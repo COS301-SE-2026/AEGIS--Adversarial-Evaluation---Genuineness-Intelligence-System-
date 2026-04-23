@@ -1,0 +1,1 @@
+# AEGIS — Adversarial Evaluation & Genuineness Intelligence System
