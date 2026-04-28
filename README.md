@@ -55,6 +55,9 @@ I enjoy solving problems, learning new technologies, and applying computer scien
 **Role:** Frontend Developer
 
 **Profile description:**
+I'm a student in the BSc Information & Knowledge Systems program studying software engineering, and I'm interested in web design and front-end programming.
+I obtained hands-on experience creating real-world apps by creating a full-stack version control solution for the IMY220 module. My passion for designing intuitive and eye-catching user interfaces was ignited by this encounter.
+I like to create cutting-edge, useful applications by fusing the logical side of programming with the artistic side of design, and I'm constantly trying to get better at what I do.
 
 **LinkedIn:** (https://www.linkedin.com/in/luyanda-ndlovu-02a281375)
 
