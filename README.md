@@ -29,36 +29,51 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 # Team Members
 
 ## Kutlwano Tau
+
 **Role:** Team Lead & Backend Developer 
+
 **Profile description:**
 Final-year Computer Science student at University of Pretoria with a strong foundation in software development, algorithms, and system design. I have experience building full-stack applications and enjoy working with backend technologies.
 I enjoy solving problems, learning new technologies, and applying computer science concepts to real-world projects.
+
 **LinkedIn:** (https://www.linkedin.com/in/kutlwano-tau-b25983244)
 
 ---
 
 ## Sambulo Zikhali
+
 **Role:** Data Engineer  
+
 **Profile description:**
+
 **LinkedIn:** (https://www.linkedin.com/in/sambulo-zikhali-468669261)
 
 ---
 
 ## Luyanda Ndlovu
-**Role:** Frontend Developer  
+
+**Role:** Frontend Developer
+
 **Profile description:**
+
 **LinkedIn:** (https://www.linkedin.com/in/luyanda-ndlovu-02a281375)
 
 ---
 
 ## Myron Wheeler
-**Role:** AI Research & Prompt Engineer  
+
+**Role:** AI Research & Prompt Engineer 
+
 **Profile description:**
+
 **LinkedIn:** (https://www.linkedin.com/in/myron-wheeler-8b5847233)
 
 ---
 
 ## Lusanda Mtembu
+
 **Role:** Frontend Developer  
+
 **Profile description:**
+
 **LinkedIn:** (https://linkedin.com/in/USERNAME)
