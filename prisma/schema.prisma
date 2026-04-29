@@ -12,6 +12,24 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  RECRUITER
+  CANDIDATE
+}
+
+// edit this later if we decide to add new questiion types
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TEXT
+}
+
+enum SessionStatus {
+  STARTED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
 
 
 
