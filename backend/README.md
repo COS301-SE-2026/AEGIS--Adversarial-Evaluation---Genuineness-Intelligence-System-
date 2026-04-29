@@ -1,14 +1,12 @@
-# Backend
+# AEGIS Backend
 
-This folder contains the server-side logic.
+FastAPI backend for the AEGIS system.
 
-## Planned Tech
-FastAPI (Python)
+## Structure
+- app/api/routes → API endpoints
+- app/services → business logic
+- app/db → database layer
+- app/core → config and security
 
-## Responsibilities
-API endpoints
-Authentication
-Assessment logic
-AI integration (Gemini API)
-
-To be implemented in upcoming phases.
+## Run server
+uvicorn app.main:app --reload
