@@ -1,0 +1,15 @@
+node_modules
+.pnp
+.pnp.js
+
+.env
+/prisma/migrations/
+/generated/prisma
+
+.docker
+
+.DS_Store
+Thumbs.db
+
+dist/
+build/

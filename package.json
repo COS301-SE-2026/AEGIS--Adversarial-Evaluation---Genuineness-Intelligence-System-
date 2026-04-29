@@ -1,0 +1,29 @@
+{
+  "name": "aegis--adversarial-evaluation---genuineness-intelligence-system-",
+  "version": "1.0.0",
+  "description": "AEGIS is an adversarial AI-powered technical assessment platform focused on investigating how modern Large Language Models (LLMs) reason, fail, hallucinate, and can be manipulated through carefully engineered adversarial prompting techniques.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/issues"
+  },
+  "homepage": "https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-#readme",
+  "devDependencies": {
+    "prisma": "^7.8.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0"
+  }
+}
