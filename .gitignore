@@ -3,7 +3,6 @@ node_modules
 .pnp.js
 
 .env
-/prisma/migrations/
 /generated/prisma
 
 .docker
