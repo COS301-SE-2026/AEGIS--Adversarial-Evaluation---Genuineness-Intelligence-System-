@@ -78,5 +78,6 @@ I like to create cutting-edge, useful applications by fusing the logical side of
 **Role:** Frontend Developer  
 
 **Profile description:**
+Final-year Computer Science student at the University of Pretoria with experience in backend & frontend development having built reliable, well-structured systems. I enjoy working on projects that have real-world impact and am currently exploring the intersection of AI and security through my capstone project. Always looking to learn, contribute, and grow through meaningful technical challenge
 
-**LinkedIn:** (https://linkedin.com/in/USERNAME)
+**LinkedIn:** (https://www.linkedin.com/in/lusanda-mtembu-aa0938247/)
