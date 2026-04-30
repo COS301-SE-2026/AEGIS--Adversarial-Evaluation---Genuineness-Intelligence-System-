@@ -77,8 +77,6 @@ An administrator creates an assessment by selecting and assigning questions to a
 ### Use Case 2: Complete Assessment
 A candidate completes a structured assessment consisting of adversarial questions. The assessment includes navigation, timing, and multiple question formats.
 
----
-
 ### Use Case 3: Save Assessment Progress
 A candidate can save assessment progress. The system automatically persists responses to a database.
 
