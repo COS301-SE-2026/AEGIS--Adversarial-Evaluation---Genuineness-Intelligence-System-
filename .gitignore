@@ -14,3 +14,17 @@ venv/
 
 # OS
 .DS_Store
+node_modules
+.pnp
+.pnp.js
+
+.env
+/generated/prisma
+
+.docker
+
+.DS_Store
+Thumbs.db
+
+dist/
+build/

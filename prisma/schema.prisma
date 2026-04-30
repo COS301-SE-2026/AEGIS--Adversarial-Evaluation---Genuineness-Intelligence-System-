@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  RECRUITER
+  CANDIDATE
+}
+
+// edit this later if we decide to add new questiion types
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TEXT
+}
+
+enum SessionStatus {
+  STARTED
+  IN_PROGRESS
+  COMPLETED
+  EXPIRED
+}
+
+// name is optional for now, quick registration. if the sign up mandates the name, change the fields to required
+model User {
+  id        String      @id @default(uuid())
+  email     String      @unique
+  password  String
+  firstName String?
+  lastName  String?
+
+  role      UserRole    @default(CANDIDATE)
+  createdAssessments Assessment[] @relation("CreatedBy")
+  sessions           CandidateSession[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Question {
+  id            String          @id @default(uuid())
+  title         String
+  content       String          @db.Text
+  type          QuestionType
+  options       Json?
+  correctAnswer String?         @db.Text
+
+  tags          String[]        //meta data for the question bank
+  assessments   AssessmentQuestion[]
+  answers       Answer[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Assessment {
+  id            String          @id @default(uuid())
+  title         String          
+  description   String          @db.Text
+  durationMins  Int?            //time limit
+
+  creatorId     String
+  creator       User            @relation("CreatedBy", fields: [creatorId], references: [id])
+  question      AssessmentQuestion[]
+  sessions      CandidateSession[]
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+}
+
+model AssessmentQuestion {
+  assessmentId  String
+  questionId    String
+  oder          Int
+
+  assessment    Assessment      @relation(fields: [assessmentId], references: [id])
+  question      Question        @relation(fields: [questionId], references: [id])
+
+  @@id([assessmentId, questionId])
+}
+
+model CandidateSession {
+  id            String             @id @default(uuid())
+  status        SessionStatus      @default(STARTED)
+  
+  totalScore    Float?
+  
+  startTime     DateTime           @default(now())
+  endTime       DateTime?
+  
+  candidateId   String
+  candidate     User               @relation(fields: [candidateId], references: [id])
+  assessmentId  String
+  assessment    Assessment         @relation(fields: [assessmentId], references: [id])
+  answers       Answer[]
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model Answer{ 
+  id            String              @id @default(uuid())
+  content       String              @db.Text
+  isCorrect     Boolean?
+  score         Float?
+
+  sessionId     String
+  session       CandidateSession    @relation(fields: [sessionId], references: [id])
+  questionId    String
+  question      Question            @relation(fields: [questionId], references: [id])
+
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
