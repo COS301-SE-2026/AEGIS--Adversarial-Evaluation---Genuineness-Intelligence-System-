@@ -1,7 +1,11 @@
-# The Alchemists - AEGIS - Adversarial Evaluation Genuineness Intelligence System
+<center>
 
+# AEGIS - Adversarial Evaluation Genuineness Intelligence System
+## THE ALCHEMISTS
+
+</center>
 <p align="center">
-  <img src="docs/images/AEGIS-logo.png" alt="The Alchemists Logo" width="200"/>
+  <img src="docs/images/AEGIS-logo.png" alt="The Alchemists Logo" width="400"/>
 </p>
 <br>
 
