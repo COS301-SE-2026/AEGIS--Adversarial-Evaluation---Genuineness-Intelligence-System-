@@ -20,10 +20,6 @@
     "url": "https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/issues"
   },
   "homepage": "https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-#readme",
-  "devDependencies": {
-    "prisma": "^7.8.0"
-  },
-  "dependencies": {
-    "@prisma/client": "^7.8.0"
-  }
+  "devDependencies": {},
+  "dependencies": {}
 }

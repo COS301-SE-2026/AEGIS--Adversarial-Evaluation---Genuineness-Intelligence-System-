@@ -19,7 +19,6 @@ node_modules
 .pnp.js
 
 .env
-/generated/prisma
 
 .docker
 
