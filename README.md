@@ -1,8 +1,11 @@
 # The Alchemists - AEGIS - Adversarial Evaluation Genuineness Intelligence System
 
-AEGIS is an adversarial AI-powered technical assessment platform focused on investigating how modern Large Language Models (LLMs) reason, fail, hallucinate, and can be manipulated through carefully engineered adversarial prompting techniques.
+<p align="center">
+  <img src="docs/images/AEGIS-logo.png" alt="The Alchemists Logo" width="200"/>
+</p>
+<br>
 
-The platform aims to generate assessment questions that remain solvable by humans while deliberately confusing AI systems through AI traps. AEGIS combines adversarial machine learning research with assessment management and AI-assisted authenticity verification.
+AEGIS is an adversarial AI-powered technical assessment platform focused on investigating how modern Large Language Models (LLMs) reason, fail, hallucinate, and can be manipulated through carefully engineered adversarial prompting techniques.
 
 ---
 
