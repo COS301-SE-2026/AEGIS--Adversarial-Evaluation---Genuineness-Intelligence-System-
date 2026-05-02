@@ -14,12 +14,12 @@ class CandidateResponse(Base):
     __tablename__ = "candidate_responses"
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey("candidate_sessions.id"), nullable=False)
+    session_id = Column(Integer, ForeignKey("candidate_assessments.id"), nullable=False)
     assessment_question_id = Column(Integer, ForeignKey("questions.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     raw_submission = Column(String, nullable=True)
     score = Column(Float, nullable=True)
     is_correct = Column(Enum(CorrectnessStatus), nullable=False)
 
-    session = relationship("CandidateSession", back_populates="responses")
+    session = relationship("CandidateAssessment", back_populates="responses")
     question = relationship("Question")

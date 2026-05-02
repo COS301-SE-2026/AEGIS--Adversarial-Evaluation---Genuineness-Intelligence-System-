@@ -21,4 +21,4 @@ class User(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     assessments = relationship("Assessment", back_populates="creator")
-    sessions = relationship("CandidateSession", back_populates="candidate")
+    sessions = relationship("CandidateAssessment", back_populates="candidate")

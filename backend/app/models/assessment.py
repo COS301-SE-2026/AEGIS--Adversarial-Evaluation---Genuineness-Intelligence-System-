@@ -16,4 +16,4 @@ class Assessment(Base):
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     creator = relationship("User", back_populates="assessments")
-    sessions = relationship("CandidateSession", back_populates="assessment")
+    sessions = relationship("CandidateAssessment", back_populates="assessment")

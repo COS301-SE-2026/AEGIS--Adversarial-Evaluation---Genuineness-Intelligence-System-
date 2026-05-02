@@ -15,7 +15,7 @@ class Question(Base):
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
     type = Column(Enum(QuestionType), nullable=False)
-    metadata = Column(JSON, nullable=True)
+    question_metadata = Column(JSON, nullable=True)
     maximum_score = Column(Float, nullable=False)
     correct_answer = Column(JSON, nullable=True)
     tags = Column(ARRAY(String), nullable=True)

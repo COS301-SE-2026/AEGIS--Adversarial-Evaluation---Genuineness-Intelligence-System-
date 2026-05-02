@@ -1,3 +1,6 @@
+# !! look for "sqlalchemy.url" in the file.
+
+
 # A generic, single database configuration.
 
 [alembic]
@@ -86,7 +89,7 @@ path_separator = os
 # database URL.  This is consumed by the user-maintained env.py script only.
 # other means of configuring database URLs may be customized within the env.py
 # file.
-sqlalchemy.url = postgresql://postgres.ifwfvbpkguwmvmrcmuzl:d-k/UT7jQM/$zbY@aws-1-eu-west-3.pooler.supabase.com:5432/postgres
+sqlalchemy.url = postgresql://user:password@host:5432/dbname
 
 
 [post_write_hooks]
