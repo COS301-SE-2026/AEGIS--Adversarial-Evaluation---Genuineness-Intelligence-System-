@@ -7,6 +7,7 @@ router = APIRouter()
 # login user
 # get user profile
 
+
 @router.get("/")
 def get_users():
     # placeholder endpoint

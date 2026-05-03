@@ -13,7 +13,8 @@ class Assessment(Base):
     total_score = Column(Float, nullable=False)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(),
+                        onupdate=func.now(), nullable=False)
 
     creator = relationship("User", back_populates="assessments")
     sessions = relationship("CandidateAssessment", back_populates="assessment")

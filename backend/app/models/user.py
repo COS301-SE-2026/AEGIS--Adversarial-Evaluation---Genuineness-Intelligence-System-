@@ -4,9 +4,11 @@ from sqlalchemy import Column, Integer, String, Enum, TIMESTAMP, func
 from sqlalchemy.orm import relationship
 from app.models.base import Base
 
+
 class UserRole(enum.Enum):
     RECRUITER = "RECRUITER"
     CANDIDATE = "CANDIDATE"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -18,7 +20,8 @@ class User(Base):
     full_name = Column(String, nullable=True)
     role = Column(Enum(UserRole), nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(),
+                        onupdate=func.now(), nullable=False)
 
     assessments = relationship("Assessment", back_populates="creator")
     sessions = relationship("CandidateAssessment", back_populates="candidate")

@@ -20,4 +20,5 @@ class Question(Base):
     correct_answer = Column(JSON, nullable=True)
     tags = Column(ARRAY(String), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(),
+                        onupdate=func.now(), nullable=False)
