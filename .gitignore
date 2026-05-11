@@ -19,7 +19,6 @@ node_modules
 .pnp.js
 
 .env
-/generated/prisma
 
 .docker
 
@@ -28,3 +27,4 @@ Thumbs.db
 
 dist/
 build/
+backend/alembic.ini
