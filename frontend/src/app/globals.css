@@ -1,31 +1,32 @@
 @import "tailwindcss";
 
-:root {
-  --background: #121211;
-  --secondary: #292C2F;
-  --border:  #333331;
-  --primary-text: #F5F5F5;
-  --human-accent: #D32F2F;
-  --system-accent: #ffffff;
+@theme {
+  --color-chinese-black: #121211;
+  --color-bunker-grey: #292C2F;
+  --color-black-wool: #333331;
+  --color-white-smoke: #F5F5F5;
+  --color-signal-red: #D32F2F;
+  --color-pure-white: #FFFFFF;
+
+  --font-staatliches: var(--font-staatliches);
+  --font-ibm-plex: var(--font-ibm-plex-sans);
+  --font-jetbrains-mono: var(--font-jetbrains-mono);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--primary-text);
-  --font-staatliches: "var(--font-staatliches)";
-  --font-ibm-plex-sans: "var(--font-ibm-plex-sans)";
-  --font-jetbrains-mono: "var(--font-jetbrains-mono)";
-}
+@layer base {
+  body {
+    background-color: var(--color-chinese-black);
+    color: var(--color-white-smoke);
+    font-family: var(--font-ibm-plex-sans), sans-serif;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-staatliches), sans-serif;
+    text-transform: uppercase;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--primary-text);
-  font-family: var(--font-ibm-plex-sans), sans-serif;
+@layer components {
+  /* Button components will go here */
+  /* Input components will go here */
 }
