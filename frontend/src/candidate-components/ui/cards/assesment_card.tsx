@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image"; 
-import { AssessmentCardProps } from "./assessment_card.types";
-import { ICONS } from "@/lib/icons";
+import { AssessmentCardProps } from "./assessment_card.types"; //icons class 
 
 
 export function AssessmentCard({ assessmentId, title, description, num_questions, attempts, success_rate }: AssessmentCardProps) {
@@ -12,15 +11,15 @@ export function AssessmentCard({ assessmentId, title, description, num_questions
                 <p className="mt-4">{description}</p>
             </div>
             <div className="flex items-center mt-2 mb-4">
-                <Image src={ICONS.FILE} alt="File Icon" className="mr-2" width={24} height={24} />
+                <Image src="/illustrations/icons/file-icon.svg" alt="File Icon" className="mr-2" width={24} height={24} />
                 <p>Questions: {num_questions}</p>
             </div>
             <div className="flex items-center mt-2 mb-4">
-                <Image src={ICONS.USERS} alt="Users Icon" className="mr-2" width={24} height={24} />
+                <Image src="/illustrations/icons/users-icon.svg" alt="Users Icon" className="mr-2" width={24} height={24} />
                 <p>Attempted: {attempts} times</p>
             </div>
             <div className="flex items-center mt-2 mb-4">
-                <Image src={ICONS.PIE_CHART} alt="Pie Chart Icon" className="mr-2" width={24} height={24} />
+                <Image src="/illustrations/icons/pie-chart-icon.svg" alt="Pie Chart Icon" className="mr-2" width={24} height={24} />
                 <p>Success Rate: {success_rate}%</p>
             </div>
             <Link href={`/assessment/${assessmentId}`}>

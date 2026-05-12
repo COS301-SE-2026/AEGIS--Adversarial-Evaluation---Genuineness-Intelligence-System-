@@ -27,6 +27,7 @@
 }
 
 @layer components {
-  /* Button components will go here */
-  /* Input components will go here */
+  .icon-white-smoke {
+    filter: invert(92%) sepia(10%) brightness(100);
+  }
 }

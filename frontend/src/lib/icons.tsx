@@ -1,11 +1,9 @@
-/*
-NextJS cannot import SVG files directly.
-So the work around is to create an object with the paths to the icons, and import the icons from that object.
-Is the a better solution? Maybe, but this works for now.
- */
+import FileIcon from '../../public/illustrations/icons/file-icon.svg';
+import PieChartIcon from '../../public/illustrations/icons/pie-chart-icon.svg';
+import UsersIcon from '../../public/illustrations/icons/users-icon.svg';
 
 export const ICONS = {
-  FILE: '/illustrations/icons/file-icon.svg',
-  PIE_CHART: '/illustrations/icons/pie-chart-icon.svg',
-  USERS: '/illustrations/icons/users-icon.svg',
+  FILE: FileIcon,
+  PIE_CHART: PieChartIcon,
+  USERS: UsersIcon,
 } as const;
