@@ -6,7 +6,7 @@ export default function Home() {
     <div>
       <main>
         <h1 className="text-signal-red">Welcome to AEGIS</h1>
-        <Button>TEST</Button>
+        <Button>NORMAL BUTTON</Button>
         <Button variant="outline">OUTLNED BUTTON</Button>
       </main>
     </div>
