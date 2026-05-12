@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-chinese-black: #121211;
+  --color-bunker-grey: #292C2F;
+  --color-black-wool: #333331;
+  --color-white-smoke: #F5F5F5;
+  --color-signal-red: #D32F2F;
+  --color-pure-white: #FFFFFF;
+
+  --font-staatliches: var(--font-staatliches);
+  --font-ibm-plex: var(--font-ibm-plex-sans);
+  --font-jetbrains-mono: var(--font-jetbrains-mono);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-chinese-black);
+    color: var(--color-white-smoke);
+    font-family: var(--font-ibm-plex-sans), sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-staatliches), sans-serif;
+    text-transform: uppercase;
+  }
+}
+
+@layer components {
+  /* Button components will go here */
+  /* Input components will go here */
+}
