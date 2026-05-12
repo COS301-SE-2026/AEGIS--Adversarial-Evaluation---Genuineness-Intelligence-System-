@@ -1,11 +1,13 @@
 import Image from "next/image";
+import Button from "../components/ui/button";
 
 export default function Home() {
   return (
     <div>
       <main>
         <h1 className="text-signal-red">Welcome to AEGIS</h1>
-<button className="bg-signal-red text-white-smoke px-10 py-4"><h2>Test</h2></button>
+        <Button>TEST</Button>
+        <Button variant="outline">OUTLNED BUTTON</Button>
       </main>
     </div>
   );
