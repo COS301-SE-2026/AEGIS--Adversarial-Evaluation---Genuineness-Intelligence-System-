@@ -13,6 +13,7 @@ export default function Home() {
         />
         <Navbar/>
         <Hero />
+        {/*  Forgot to add closing*/}
     </div>
 
   );
