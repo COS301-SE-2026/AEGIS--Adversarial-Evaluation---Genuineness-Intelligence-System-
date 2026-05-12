@@ -1,1 +1,0 @@
-import { AssessmentCard } from "@/candidate-components/ui/cards/assesment_card";
