@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Staatliches, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "../candidate-components/layouts/navbar";
+import { Navbar } from "../components/candidate/layouts/navbar";
 
 const staatliches = Staatliches({
   variable: "--font-staatliches",

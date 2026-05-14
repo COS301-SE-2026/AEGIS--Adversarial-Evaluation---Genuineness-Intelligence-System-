@@ -1,4 +1,4 @@
-import { AssessmentCard } from "@/candidate-components/ui/cards/assesment_card";
+import { AssessmentCard } from "@/components/candidate/ui/cards/assesment_card";
 
 export default function AssessmentPage() {
     return (
