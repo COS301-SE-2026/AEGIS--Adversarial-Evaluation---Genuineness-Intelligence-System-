@@ -18,7 +18,7 @@ AEGIS is designed for two primary user types: Candidates (Users) and Recruiters 
 
 ---
 
-### 👤 Candidate (User)
+### Candidate (User)
 
 The Candidate is the primary end-user of the system. This user interacts with AI-generated adversarial assessments.
 
@@ -36,7 +36,7 @@ The Candidate is the primary end-user of the system. This user interacts with AI
 
 ---
 
-### 🧑‍🏫 Recruiter (Admin)
+### Recruiter (Admin)
 
 The Admin is responsible for managing assessments.
 
@@ -52,7 +52,7 @@ The Admin is responsible for managing assessments.
 
 ---
 
-### 🤖 System (AEGIS Engine)
+### System (AEGIS Engine)
 
 The system itself acts as an intelligent adversarial assessment generator.
 
@@ -90,7 +90,7 @@ The diagram includes interactions between:
 - Candidate (User)
 - Recruiter (Admin)
 
-📄 The full use case documentation can be found here:
+The full use case documentation can be found here:
 
 [View Use Case Diagram (PDF)](UseCases.drawio.pdf)
 
