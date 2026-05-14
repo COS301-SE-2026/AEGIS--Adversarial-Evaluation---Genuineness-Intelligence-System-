@@ -7,4 +7,5 @@ export interface AssessmentCardProps {
     num_questions: number;
     attempts: number;
     success_rate: Percentage;
+    
 }
