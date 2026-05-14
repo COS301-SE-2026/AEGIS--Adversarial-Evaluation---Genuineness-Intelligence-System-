@@ -81,6 +81,21 @@ A candidate completes a structured assessment consisting of adversarial question
 A candidate can save assessment progress. The system automatically persists responses to a database.
 
 ---
+
+---
+
+## Use Case Diagram
+
+The diagram includes interactions between:
+- Candidate (User)
+- Recruiter (Admin)
+
+📄 The full use case documentation can be found here:
+
+[View Use Case Diagram (PDF)](UseCases.drawio.pdf)
+
+---
+
 ## Functional Requirements
 
 The functional requirements are grouped into subsystems based on system architecture.
