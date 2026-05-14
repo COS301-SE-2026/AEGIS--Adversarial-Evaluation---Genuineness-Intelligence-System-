@@ -24,7 +24,7 @@ export default function AssessmentPage() {
                     </p>
                 </div>
             </div>
-            <div className="grid grid-cols-4 gap-x-32 gap-y-24 pt-8">
+            <div className="grid grid-cols-4 gap-x-32 gap-y-16 pt-8 pb-8">
                 {assessments.map((assessment) => (
                     <AssessmentCard key={assessment.assessmentId} {...assessment} />
                 ))}
