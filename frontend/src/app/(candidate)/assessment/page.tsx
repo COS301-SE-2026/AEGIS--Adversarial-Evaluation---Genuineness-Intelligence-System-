@@ -1,5 +1,6 @@
 import { AssessmentCard } from "@/components/candidate/ui/cards/assesment_card";
 
+
 export default function AssessmentPage() {
 
     const assessments = [
