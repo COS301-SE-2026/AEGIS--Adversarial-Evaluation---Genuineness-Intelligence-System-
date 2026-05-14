@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Staatliches, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "../components/candidate/layouts/navbar";
 
 const staatliches = Staatliches({
   variable: "--font-staatliches",
@@ -37,7 +36,6 @@ export default function RootLayout({
       className={`${staatliches.variable} ${ibmPlexSans.variable} ${jetBrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Navbar />
         {children}
       </body>
     </html>
