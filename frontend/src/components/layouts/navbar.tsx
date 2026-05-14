@@ -42,7 +42,10 @@ const Navbar = () => {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <Button variant="solid">Sign Up</Button>
+        <Link href="/register">
+          <Button variant="solid">Sign Up</Button>
+        </Link>
+        
         <Button variant="outline">Login</Button>
       </div>
     
