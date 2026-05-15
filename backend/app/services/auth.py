@@ -81,7 +81,7 @@ async def get_or_create_user(db: Session, user_info: dict) -> User:
             email=email,
             full_name=user_info.get("name"),
             google_id=google_id,
-            avatar_url=user_info.get("picture"),
+            #avatar_url=user_info.get("picture"),
             role=UserRole.CANDIDATE,
         )
         db.add(user)
