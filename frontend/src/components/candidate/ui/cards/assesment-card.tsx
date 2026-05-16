@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image"; 
-import { AssessmentCardProps } from "./assessment_card.types"; //icons class 
+import { AssessmentCardProps } from "./assessment-card.types"; //icons class 
 import { StartAssessmentButton } from "@/components/candidate/ui/buttons/start-assessment-button";
 
 

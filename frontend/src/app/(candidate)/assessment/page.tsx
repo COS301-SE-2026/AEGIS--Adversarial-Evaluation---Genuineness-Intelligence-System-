@@ -1,4 +1,4 @@
-import { AssessmentCard } from "@/components/candidate/ui/cards/assesment_card";
+import { AssessmentCard } from "@/components/candidate/ui/cards/assesment-card";
 
 
 export default function AssessmentPage() {
@@ -17,7 +17,7 @@ export default function AssessmentPage() {
     return (
         <main>
             <div className="mt-8">
-                <h1 className="font-staatliches text-3xl text-white-smoke mb-2">Available Assessments</h1>
+                <h1 className="font-staatliches text-3xl text-default-text mb-2">Available Assessments</h1>
                 <div>
                     <p className="font-ibm-plex text-base text-white-smoke">
                         Start an assessment with carefully curated questions.

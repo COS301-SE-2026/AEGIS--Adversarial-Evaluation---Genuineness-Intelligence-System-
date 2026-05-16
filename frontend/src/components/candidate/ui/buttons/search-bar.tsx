@@ -9,7 +9,7 @@ export function SearchBar() {
                 <input
                     type="text"
                     placeholder="Search..."
-                    className="w-40  h-[36] pl-10 pr-4 py-2 border  border-tertiary-surface focus:outline-none focus:ring-2 focus:ring-white-smoke transition duration-200"
+                    className="w-40  h-[36] pl-10 pr-4 py-2 border  border-default-border/75 rounded-md focus:outline-none focus:ring-2 focus:ring-white-smoke transition duration-200"
                 />
             </div>
         </div>

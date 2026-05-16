@@ -56,7 +56,7 @@ export function Navbar() {
     else {
         return (
             <header>
-                <nav className="border-b-2 border-tertiary-surface py-4 px-24 flex items-center justify-between">
+                <nav className="bg-secondary-surface border-b-2 border-tertiary-surface py-4 px-24 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link href="/">
                             <Image src="/illustrations/AEGIS-logo-candidate-nav.png" alt="Logo" width={75} height={55} />
