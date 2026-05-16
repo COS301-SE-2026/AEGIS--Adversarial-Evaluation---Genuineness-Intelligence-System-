@@ -1,12 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-chinese-black: #121211;
-  --color-bunker-grey: #292C2F;
-  --color-black-wool: #333331;
-  --color-white-smoke: #F5F5F5;
-  --color-signal-red: #D32F2F;
-  --color-pure-white: #FFFFFF;
+  --color-background: #0C0C0C; /*chinese-black in current theme */
+  --color-secondary-surface: #292C2F; /*bunker-grey in current theme */
+  --color-tertiary-surface: #30302E; /*black-wool in current theme */
+  --color-white-smoke: #F5F5F5; /*white-smoke in current theme */
+  --color-system-red: #B42715; /*signal-red in current theme */
+  --color-default-text: #E6E6DF; /*pure-white in current theme */
+  --color-default-border: #989892 /*bunker-grey in current theme */
 
   --font-staatliches: var(--font-staatliches);
   --font-ibm-plex: var(--font-ibm-plex-sans);
@@ -15,8 +16,8 @@
 
 @layer base {
   body {
-    background-color: var(--color-chinese-black);
-    color: var(--color-white-smoke);
+    background-color: var(--color-background);
+    color: var(--color-default-text);
     font-family: var(--font-ibm-plex-sans), sans-serif;
   }
 

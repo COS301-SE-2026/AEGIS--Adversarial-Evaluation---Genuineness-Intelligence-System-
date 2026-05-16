@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Input from "@/src/components/ui/input";
-import Button from "@/src/components/ui/button";
-import GoogleIcon from "@/src/components/ui/google-icon";
-import GithubIcon from "@/src/components/ui/github-icon";
+import Input from "@/components/hero/ui/input";
+import Button from "@/components/hero/ui/button";
+import GoogleIcon from "@/components/hero/ui/google-icon";
+import GithubIcon from "@/components/hero/ui/github-icon";
 
 
 const Register = () => {
@@ -30,12 +30,12 @@ const Register = () => {
 
   return (
     <main className="min-h-screen flex items-center justify-center">
-      <div className="border border-bunker-grey p-16 w-full max-w-lg flex flex-col gap-8">
+      <div className="border border-default-border p-16 w-full max-w-lg flex flex-col gap-8">
 
-        <h1 className="text-center text-5xl text-white-smoke">Create an Account</h1>
+        <h1 className="text-center text-5xl text-default-text">Create an Account</h1>
 
         <div className="flex flex-col gap-3">
-          <p className="text-center font-ibm-plex text-sm text-white-smoke">
+          <p className="text-center font-ibm-plex text-sm text-default-text">
             Sign up with:
           </p>
           <div className="flex gap-4">
@@ -49,11 +49,11 @@ const Register = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <hr className="flex-1 border-bunker-grey"/>
-          <span className="font-jetbrains-mono text-xs tracking-widest uppercase text-white-smoke">
+          <hr className="flex-1 border-default-border"/>
+          <span className="font-jetbrains-mono text-xs tracking-widest uppercase text-default-text">
             or
           </span>
-          <hr className="flex-1 border-bunker-grey"/>
+          <hr className="flex-1 border-default-border"/>
         </div>
 
         <div className="flex flex-col gap-6">
@@ -77,9 +77,9 @@ const Register = () => {
           Sign Up
         </Button>
  
-        <p className="text-center font-ibm-plex text-sm text-white-smoke">
+        <p className="text-center font-ibm-plex text-sm text-default-text">
           Already have an account?{" "}
-          <Link href="/login" className="text-signal-red hover:underline">
+          <Link href="/login" className="text-system-red hover:underline">
             Sign In Now.
           </Link>
         </p>        

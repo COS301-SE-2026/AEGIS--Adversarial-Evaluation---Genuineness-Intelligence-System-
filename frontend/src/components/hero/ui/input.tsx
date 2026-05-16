@@ -22,12 +22,12 @@ const Input = ({
 }: InputProps) => {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-        <label className="font-jetbrains-mono text-xs tracking-widest uppercase text-white-smoke">
+        <label className="font-jetbrains-mono text-xs tracking-widest uppercase text-default-text">
             {label}
         </label>
         <div className="relative flex items-center">
             {icon && (
-                <span className="absolute left-4 text-white-smoke shrink-0">
+                <span className="absolute left-4 text-default-text shrink-0">
                     {icon}
                 </span>
             )}
@@ -36,8 +36,8 @@ const Input = ({
                 placeholder={placeholder}
                 value={value}
                 onChange={(e)=> onChange(e.target.value)}
-                className={`w-full bg-bunker-grey text-white-smoke placeholder:text-white-smoke/40 font-ibm-plex text-sm px-4 py-4 border border-transparent
-                            focus:outline-none focus:border-signal-red transition-colors duration-200 {icon ? "pl-10" : ""}`}
+                className={`w-full bg-secondary-surface text-default-text placeholder:text-white-smoke/40 font-ibm-plex text-sm px-4 py-4 border border-transparent
+                            focus:outline-none focus:border-system-red transition-colors duration-200 {icon ? "pl-10" : ""}`}
                 />
 
         </div>
