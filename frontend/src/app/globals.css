@@ -2,16 +2,18 @@
 
 @theme {
   --color-background: #0C0C0C; /*chinese-black in current theme */
-  --color-secondary-surface: #292C2F; /*bunker-grey in current theme */
+  --color-secondary-surface: #121211; /*bunker-grey in current theme */
   --color-tertiary-surface: #30302E; /*black-wool in current theme */
   --color-white-smoke: #F5F5F5; /*white-smoke in current theme */
   --color-system-red: #B42715; /*signal-red in current theme */
   --color-default-text: #E6E6DF; /*pure-white in current theme */
-  --color-default-border: #989892 /*bunker-grey in current theme */
+  --color-default-border: #989892; /*bunker-grey in current theme */
 
   --font-staatliches: var(--font-staatliches);
   --font-ibm-plex: var(--font-ibm-plex-sans);
   --font-jetbrains-mono: var(--font-jetbrains-mono);
+
+  --shadow-glow-red: 0 0 16px rgba(180, 39, 21, 0.6);
 }
 
 @layer base {
