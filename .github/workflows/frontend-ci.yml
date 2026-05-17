@@ -7,6 +7,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
       # Get the code
@@ -41,8 +45,8 @@ jobs:
 
       # Running ESLint explicitly catches errors faster rather than relying on the automatic run.
       - name: Run Linter
-        run: pnpm --filter frontend lint
+        run: pnpm lint
 
       #Build the Next.js production bundle
       - name: Build Application
-        run: pnpm --filter frontend build
+        run: pnpm build
