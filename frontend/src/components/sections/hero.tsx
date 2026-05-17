@@ -1,5 +1,6 @@
 import Button from "../ui/button";
 import Image from "next/image"
+import Link from "next/link";
 
 const Hero = () => {
   return (
@@ -22,8 +23,13 @@ const Hero = () => {
             </p>
 
             <div className="flex items-center gap-4">
-                <Button variant="solid">Get Started →</Button>
-                <Button variant="outline">Learn More</Button>
+                <Link href="/login" target="_blank">
+                    <Button variant="solid">Get Started →</Button>                
+                </Link>
+                <Link href="/resources/guides">
+                    <Button variant="outline">Learn More</Button>                
+                </Link>
+
             </div>
         </div>            
         <div className="relative w-[420px] h-[400px] shrink-0 overflow-hidden">
