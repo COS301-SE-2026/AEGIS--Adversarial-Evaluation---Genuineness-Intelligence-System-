@@ -1,13 +1,15 @@
+import { useState } from "react";
 import { TestMultipleChoiceCard } from "./test-multiple-choice-card";
 import { Question } from "./question.type";
-import { CodeEditorCard } from "./test-code-editor-card";
+import CodeEditorCard from "./test-code-editor-card";
 import { TestFillInTheBlanksCard } from "./test-fill-in-the-blanks-card";
 
 export function TestAnswerCard({ question }: { question: Question }) {
+    const [code, setCode] = useState<string>('');
 
     const answerComponents = {
         'multiple-choice': <TestMultipleChoiceCard question={question} />,
-        'coding': <CodeEditorCard question={question} />,
+        'coding': <CodeEditorCard code={code} setCode={setCode} question={question} />,
         'fill-in-the-blank': <TestFillInTheBlanksCard question={question} />
     };
 
