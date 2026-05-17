@@ -41,6 +41,7 @@ jobs:
 
       # Running ESLint explicitly catches errors faster rather than relying on the automatic run.
       - name: Run Linter
+        working-directory: ./frontend
         run: pnpm lint
 
       #Build the Next.js production bundle
