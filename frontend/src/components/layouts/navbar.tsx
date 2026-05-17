@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Button from "../ui/button";
 import {ChevronDown} from "lucide-react"
-import Image from "next/image";
 
 const Navbar = () => {
   const linkClass = "font-jetbrains-mono text-sm tracking-widest uppercase text-white-smoke hover:text-signal-red transition-colors duration-200"
