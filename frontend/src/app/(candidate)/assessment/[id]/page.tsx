@@ -1,8 +1,15 @@
+'use client';
+
+import { useState } from 'react';
 import { Question } from "@/components/candidate/ui/cards/question.type";
 import { TestDescriptionCard } from "@/components/candidate/ui/cards/test-description-card";
+import { TestAnswerCard } from "@/components/candidate/ui/cards/test-answer-card";
+import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-button";
+import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-button";
 
 
 export default function AssessmentCompletionPage() {
+   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
    const mockQuestions: Question[] = [
   // Multiple Choice
@@ -46,12 +53,34 @@ export default function AssessmentCompletionPage() {
     attempted: false
   }
 ];
+
+   const currentQuestion = mockQuestions[currentQuestionIndex];
+   const totalQuestions = mockQuestions.length;
+
+   const handleNext = () => {
+      if (currentQuestionIndex < totalQuestions - 1) {
+         setCurrentQuestionIndex(currentQuestionIndex + 1);
+      }
+   };
+
+   const handlePrevious = () => {
+      if (currentQuestionIndex > 0) {
+         setCurrentQuestionIndex(currentQuestionIndex - 1);
+      }
+   };
+
     return (
-        <main>
-            <div>
-                {mockQuestions.map((question) => (
-                    <TestDescriptionCard key={question.questionId} question={question} />
-                ))}
+        <main className="flex flex-col items-center justify-start min-h-screen gap-8">
+            <div className="flex flex-row items-center gap-4">
+               <TestDescriptionCard question={currentQuestion} />
+               <TestAnswerCard question={currentQuestion} />
+               
+            </div>
+
+            <div className=" flex flex-row items-center gap-4">
+               <TestPreviousButton handlePrevious={handlePrevious} />
+               <p>{currentQuestionIndex + 1} / {totalQuestions}</p>
+               <TestNextButton handleNext={handleNext} />
             </div>
         </main>
     );

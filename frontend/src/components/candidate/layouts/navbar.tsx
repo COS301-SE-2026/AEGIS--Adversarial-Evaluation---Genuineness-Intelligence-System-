@@ -4,10 +4,10 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { SearchBar } from "../ui/buttons/search-bar";
-import { NotificationBell } from "../ui/buttons/notification-bell";
-import { UserIcon } from "../ui/buttons/user-profile";
-import { SaveButton } from "../ui/buttons/assessment-save";
-import { ExitSessionButton } from "../ui/buttons/exit-session";
+import { NotificationBell } from "../ui/buttons/notification-bell-button";
+import { UserIcon } from "../ui/buttons/user-profile-button";
+import { SaveButton } from "../ui/buttons/assessment-save-button";
+import { ExitSessionButton } from "../ui/buttons/exit-session-button";
 
 export function Navbar() {
 
