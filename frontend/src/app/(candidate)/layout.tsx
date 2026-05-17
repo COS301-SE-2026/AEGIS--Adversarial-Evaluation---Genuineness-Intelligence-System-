@@ -1,4 +1,4 @@
-export default function AssessmentLayout({
+export default function CandidateLayout({
   children,
 }: {
   children: React.ReactNode;
