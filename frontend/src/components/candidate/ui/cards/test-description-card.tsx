@@ -1,7 +1,5 @@
 import { Question } from "./question.type";
 
-
-
 export function TestDescriptionCard({ question }: {question: Question}) {
     return (
         <div>
