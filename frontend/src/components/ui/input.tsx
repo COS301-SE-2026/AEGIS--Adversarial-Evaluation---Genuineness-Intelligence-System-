@@ -8,6 +8,8 @@ type InputProps = {
     onChange: (value: string) => void;
     className?: string;
     icon?: ReactNode;
+    error?: string;
+    onBlur?: () => void;
 };
 
 
@@ -18,7 +20,9 @@ const Input = ({
     value,
     onChange,
     className="",
-    icon
+    icon,
+    error,
+    onBlur
 }: InputProps) => {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
@@ -36,11 +40,13 @@ const Input = ({
                 placeholder={placeholder}
                 value={value}
                 onChange={(e)=> onChange(e.target.value)}
+                onBlur={onBlur}
                 className={`w-full bg-bunker-grey text-white-smoke placeholder:text-white-smoke/40 font-ibm-plex text-sm px-4 py-4 border border-transparent
                             focus:outline-none focus:border-signal-red transition-colors duration-200 {icon ? "pl-10" : ""}`}
                 />
 
         </div>
+        {error && <p className="text-signal-red text-xs font-ibm-plex">{error}</p>}
     </div>
   );
 }

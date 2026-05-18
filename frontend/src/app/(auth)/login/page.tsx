@@ -6,16 +6,58 @@ import Input from "@/src/components/ui/input";
 import Button from "@/src/components/ui/button";
 import GoogleIcon from "@/src/components/ui/google-icon";
 import GithubIcon from "@/src/components/ui/github-icon";
+import { validateEmail, validatePassword } from "@/src/lib/validation";
 
 
 const Login = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({email: "", password: ""});
+  const [touched, setTouched] = useState({ email: false, password: false });
+
+  function handleEmailChange(value: string) {
+    setEmail(value);
+    if (touched.email) {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) || ""}));
+    }
+  }
+
+  function handlePasswordChange(value: string) {
+    setPassword(value);
+    if (touched.password) {
+      setErrors(prev => ({ ...prev, password: validatePassword(value) || ""}));
+    }
+  }
+
+  function handleEmailBlur() {
+    setTouched(prev => ({ ...prev, email: true }));
+    setErrors(prev => ({ ...prev, email: validateEmail(email) || "" }));
+  }
+
+  function handlePasswordBlur() {
+    setTouched(prev => ({ ...prev, password: true }));
+    setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }));
+  }
+
+  const validate = (): boolean => {
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+
+    setErrors({
+      email: emailError || "",
+      password: passwordError || ""
+    });
+    setTouched({ email: true, password: true });
+
+    return !emailError && !passwordError;
+  }
 
   function handleSubmit() {
     //TODO: wire up registration logic
-    router.push("/assessment");
+    if (validate()) {
+      router.push("/assessment");      
+    }
   }
 
   function handleGoogle() {
@@ -62,14 +104,18 @@ const Login = () => {
             type="email"
             placeholder="Enter your email"
             value={email}
-            onChange={setEmail}
+            onChange={handleEmailChange}
+            error={errors.email}
+            onBlur={handleEmailBlur}
           />
           <Input
             label="Password"
             type="password"
             placeholder="Enter your password"
             value={password}
-            onChange={setPassword}
+            onChange={handlePasswordChange}
+            error={errors.password}
+            onBlur={handlePasswordBlur}
           />
         </div>
  

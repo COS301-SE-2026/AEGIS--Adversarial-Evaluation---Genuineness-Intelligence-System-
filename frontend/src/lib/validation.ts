@@ -1,0 +1,21 @@
+export const validateEmail = (email: string) : string|null =>{
+    if (!email) return "Email is required.";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Please enter a valid email format."
+    return null;
+};
+
+export const validatePassword = (pass: string) : string|null =>{
+    if (!pass) return "Password is required."
+    if (pass.length < 8) return "Password must be at least 8 characters long."
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&+_])[A-Za-z\d@$!%*?&+_]{8,}$/;    
+    if (!passwordRegex.test(pass)) return "Password must contain uppercase, lowercase, number, and special character";
+    return null;
+}
+
+export const validatePasswordMatch = (pass: string, confirm: string ) : string|null => {
+    if (!confirm) return "Please confirm your password";
+    if (pass !== confirm) return "Passwords do not match";
+    return null;
+}
