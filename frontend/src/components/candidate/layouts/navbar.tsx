@@ -30,7 +30,7 @@ export function Navbar() {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    if (pathname === "/assessment") {
+    if (pathname === "/assessment" || pathname === "/reports") {
         return (
             <header>
                 <nav className="bg-secondary-surface border-b border-tertiary-surface py-4 px-24 flex items-center justify-between">
@@ -69,7 +69,9 @@ export function Navbar() {
                     
                     <div className="flex items-center gap-8">
                         <SaveButton />
-                        <ExitSessionButton />
+                        <Link href="/assessment">
+                            <ExitSessionButton />
+                        </Link>
                     </div>
                 </nav>
             </header>

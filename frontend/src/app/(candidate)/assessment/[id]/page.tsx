@@ -6,47 +6,7 @@ import { TestDescriptionCard } from "@/components/candidate/ui/cards/test-descri
 import { TestAnswerCard } from "@/components/candidate/ui/cards/test-answer-card";
 import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-button";
 import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-button";
-
-// Mock question data mapped to assessment IDs
-const assessmentQuestions: { [key: string]: Question[] } = {
-  '1': [
-    {
-      questionId: 1,
-      questionTitle: "JavaScript Promise Resolution",
-      questionText: "What is the output of this code?\n\nconst p = Promise.resolve(5);\np.then(x => x * 2).then(x => console.log(x));",
-      type: 'multiple-choice',
-      options: [
-        "5",
-        "10",
-        "undefined",
-        "Promise { 10 }"
-      ],
-      correctAnswer: "10",
-      tags: ["javascript", "promises", "async"],
-      attempted: true
-    },
-    {
-      questionId: 2,
-      questionTitle: "Reverse a String Function",
-      questionText: "Write a function that reverses a string without using the built-in reverse() method.\n\nExample: reverseString('hello') should return 'olleh'",
-      type: 'coding',
-      options: [],
-      correctAnswer: "function reverseString(str) { return str.split('').reduce((rev, char) => char + rev, ''); }",
-      tags: ["javascript", "strings", "algorithms"],
-      attempted: false
-    },
-    {
-      questionId: 3,
-      questionTitle: "Array Method Completion",
-      questionText: "Complete the code:\n\nconst numbers = [1, 2, 3, 4];\nconst doubled = numbers._____(x => x * 2);\n// doubled = [2, 4, 6, 8]",
-      type: 'fill-in-the-blank',
-      options: ["map", "filter", "reduce", "forEach"],
-      correctAnswer: "map",
-      tags: ["javascript", "arrays", "functional-programming"],
-      attempted: false
-    }
-  ]
-};
+import { mockAssessmentQuestions } from "@/lib/mockData";
 
 export default function AssessmentCompletionPage({ params }: { params: Promise<{ id: string }> }) {
    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -56,7 +16,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       params.then(p => setAssessmentId(p.id));
    }, [params]);
 
-   const mockQuestions = assessmentId ? (assessmentQuestions[assessmentId] || []) : [];
+   const mockQuestions = assessmentId ? (mockAssessmentQuestions[assessmentId] || []) : [];
 
    const currentQuestion = mockQuestions[currentQuestionIndex];
    const totalQuestions = mockQuestions.length;
