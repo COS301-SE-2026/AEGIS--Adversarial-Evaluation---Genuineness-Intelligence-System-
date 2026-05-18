@@ -24,4 +24,6 @@ class CandidateResponse(Base):
 
     candidate_assessment = relationship(
         "CandidateAssessment", back_populates="responses")
-    assessment_question = relationship("AssessmentQuestion", back_populates="responses")
+    assessment_question = relationship(
+    "AssessmentQuestion", back_populates="responses"
+)
