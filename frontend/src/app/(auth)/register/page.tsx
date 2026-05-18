@@ -6,15 +6,16 @@ import Input from "@/src/components/ui/input";
 import Button from "@/src/components/ui/button";
 import GoogleIcon from "@/src/components/ui/google-icon";
 import GithubIcon from "@/src/components/ui/github-icon";
-import { validateEmail, validatePassword } from "@/src/lib/validation";
+import { validateEmail, validatePassword, validatePasswordMatch } from "@/src/lib/validation";
 
 
 const Register = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState({email: "", password: ""});
-  const [touched, setTouched] = useState({ email: false, password: false });
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState({email: "", password: "", confirmPassword: ""});
+  const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
 
   function handleEmailChange(value: string) {
     setEmail(value);
@@ -30,6 +31,16 @@ const Register = () => {
     }
   }
 
+  function handleConfirmPasswordChange(value: string) {
+    setConfirmPassword(value);
+    if (touched.confirmPassword) {
+      setErrors(prev => ({ 
+        ...prev, 
+        confirmPassword: validatePasswordMatch(password, value) || "" 
+      }));
+    }
+  }
+
   function handleEmailBlur() {
     setTouched(prev => ({ ...prev, email: true }));
     setErrors(prev => ({ ...prev, email: validateEmail(email) || "" }));
@@ -40,17 +51,27 @@ const Register = () => {
     setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }));
   }
 
+
+  function handleConfirmPasswordBlur() {
+    setTouched(prev => ({ ...prev, confirmPassword: true }));
+    setErrors(prev => ({ 
+      ...prev, 
+      confirmPassword: validatePasswordMatch(password, confirmPassword) || "" 
+    }));
+  }  
+
   const validate = (): boolean => {
     const emailError = validateEmail(email);
     const passwordError = validatePassword(password);
-
+    const confirmError = validatePasswordMatch(password, confirmPassword);
     setErrors({
       email: emailError || "",
-      password: passwordError || ""
+      password: passwordError || "",
+      confirmPassword: confirmError || ""
     });
-    setTouched({ email: true, password: true });
+    setTouched({ email: true, password: true, confirmPassword: true });
 
-    return !emailError && !passwordError;
+    return !emailError && !passwordError && !confirmError;
   }
 
   function handleSubmit() {
@@ -117,6 +138,17 @@ const Register = () => {
             error={errors.password}
             onBlur={handlePasswordBlur}
           />
+
+          <Input
+            label="Confirm Password"
+            type="password"
+            placeholder="Re enter your password"
+            value={confirmPassword}
+            onChange={handleConfirmPasswordChange}
+            error={errors.confirmPassword}
+            onBlur={handleConfirmPasswordBlur}
+          />
+
         </div>
  
         <Button variant="solid" onClick={handleSubmit} className="w-full">

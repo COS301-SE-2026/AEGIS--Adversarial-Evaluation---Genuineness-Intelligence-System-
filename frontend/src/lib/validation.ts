@@ -13,3 +13,9 @@ export const validatePassword = (pass: string) : string|null =>{
     if (!passwordRegex.test(pass)) return "Password must contain uppercase, lowercase, number, and special character";
     return null;
 }
+
+export const validatePasswordMatch = (pass: string, confirm: string ) : string|null => {
+    if (!confirm) return "Please confirm your password";
+    if (pass !== confirm) return "Passwords do not match";
+    return null;
+}
