@@ -17,4 +17,5 @@ class Assessment(Base):
 
     creator = relationship("User", back_populates="assessments")
     sessions = relationship("CandidateAssessment", back_populates="assessment")
-    assessment_questions = relationship("AssessmentQuestion", back_populates="assessment")
+    assessment_questions = relationship("AssessmentQuestion",
+                                        back_populates="assessment")

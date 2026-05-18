@@ -24,11 +24,14 @@ class CandidateAssessment(Base):
     start_time = Column(TIMESTAMP, nullable=True)
     end_time = Column(TIMESTAMP, nullable=True)
     candidate_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
-    assessment_id = Column(Integer, ForeignKey("assessments.assessment_id"), nullable=False)
+    assessment_id = Column(Integer,
+                           ForeignKey("assessments.assessment_id"),
+                           nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(),
                         onupdate=func.now(), nullable=False)
 
     candidate = relationship("User", back_populates="sessions")
     assessment = relationship("Assessment", back_populates="sessions")
-    responses = relationship("CandidateResponse", back_populates="candidate_assessment")
+    responses = relationship("CandidateResponse",
+                             back_populates="candidate_assessment")

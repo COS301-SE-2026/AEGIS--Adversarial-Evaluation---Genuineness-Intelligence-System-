@@ -11,7 +11,7 @@ class OAuth(Base):
     provider_user_id = Column(String, unique=True, nullable=True)
     access_token = Column(String, nullable=True)
     oauth_user_id = Column(
-    Integer, ForeignKey("users.user_id"), nullable=False
-)
+        Integer, ForeignKey("users.user_id"), nullable=False
+    )
 
     user = relationship("User", back_populates="oauths")
