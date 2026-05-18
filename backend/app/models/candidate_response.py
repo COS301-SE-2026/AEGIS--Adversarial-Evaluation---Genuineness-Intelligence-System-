@@ -13,15 +13,18 @@ class CorrectnessStatus(enum.Enum):
 class CandidateResponse(Base):
     __tablename__ = "candidate_responses"
 
-    id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey(
-        "candidate_assessments.id"), nullable=False)
+    response_id = Column(Integer, primary_key=True, autoincrement=True)
+    candidate_assessment_id = Column(
+        Integer, ForeignKey("candidate_assessments.candidate_assess_id"),
+        nullable=False)
     assessment_question_id = Column(
-        Integer, ForeignKey("questions.id"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    raw_submission = Column(String, nullable=True)
+        Integer, ForeignKey("assessment_questions.assessment_q_id"),
+        nullable=False)
+    candidate_answer = Column(String, nullable=True)
     score = Column(Float, nullable=True)
-    is_correct = Column(Enum(CorrectnessStatus), nullable=False)
+    is_correct = Column(Enum(CorrectnessStatus), nullable=True)
 
-    session = relationship("CandidateAssessment", back_populates="responses")
-    question = relationship("Question")
+    candidate_assessment = relationship(
+        "CandidateAssessment", back_populates="responses")
+    assessment_question = relationship(
+        "AssessmentQuestion", back_populates="responses")

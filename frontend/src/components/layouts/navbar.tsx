@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Button from "../ui/button";
 import {ChevronDown} from "lucide-react"
-import Image from "next/image";
 
 const Navbar = () => {
   const linkClass = "font-jetbrains-mono text-sm tracking-widest uppercase text-white-smoke hover:text-signal-red transition-colors duration-200"
@@ -23,8 +22,8 @@ const Navbar = () => {
             <button className="flex items-center gap-1 font-jetbrains-mono text-sm tracking-widest uppercase text-white-smoke hover:text-signal-red transition-colors duration-200 cursor-pointer">
               Resources
               <ChevronDown size={14} className="mt-0.5" />
-            </button>  
-            <div className="absolute top-full left-0 mt-2 w-48 bg-bunker-grey border border-black-wool hidden group-hover:flex flex-col z-50">
+            </button>
+            <div className="absolute top-full left-0 w-48 bg-bunker-grey border border-black-wool hidden group-hover:flex flex-col z-50">
               <Link
                 href="/resources/docs"
                 className="font-jetbrains-mono text-xs tracking-widest uppercase text-white-smoke hover:bg-black-wool hover:text-signal-red px-4 py-3 transition-colors duration-200"
@@ -42,8 +41,13 @@ const Navbar = () => {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <Button variant="solid">Sign Up</Button>
-        <Button variant="outline">Login</Button>
+        <Link href="/register" target="_blank">
+          <Button variant="solid">Sign Up</Button>
+        </Link>
+        <Link href="/login" target="_blank">
+          <Button variant="outline">Login</Button>
+        </Link>
+        
       </div>
     
     </nav>
