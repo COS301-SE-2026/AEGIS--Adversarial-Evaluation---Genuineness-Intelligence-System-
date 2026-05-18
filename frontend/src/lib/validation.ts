@@ -7,8 +7,9 @@ export const validateEmail = (email: string) : string|null =>{
 
 export const validatePassword = (pass: string) : string|null =>{
     if (!pass) return "Password is required."
-    if (pass.length < 8) "Password must be at least 8 characters long."
+    if (pass.length < 8) return "Password must be at least 8 characters long."
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&+_])[A-Za-z\d@$!%*?&+_]{8,}$/;    if (!passwordRegex.test(pass)) return "Password must contain uppercase, lowercase, number, and special character";
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&+_])[A-Za-z\d@$!%*?&+_]{8,}$/;    
+    if (!passwordRegex.test(pass)) return "Password must contain uppercase, lowercase, number, and special character";
     return null;
 }

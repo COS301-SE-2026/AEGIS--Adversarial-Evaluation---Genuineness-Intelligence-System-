@@ -14,6 +14,31 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({email: "", password: ""});
+  const [touched, setTouched] = useState({ email: false, password: false });
+
+  function handleEmailChange(value: string) {
+    setEmail(value);
+    if (touched.email) {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) || ""}));
+    }
+  }
+
+  function handlePasswordChange(value: string) {
+    setPassword(value);
+    if (touched.password) {
+      setErrors(prev => ({ ...prev, password: validatePassword(value) || ""}));
+    }
+  }
+
+  function handleEmailBlur() {
+    setTouched(prev => ({ ...prev, email: true }));
+    setErrors(prev => ({ ...prev, email: validateEmail(email) || "" }));
+  }
+
+  function handlePasswordBlur() {
+    setTouched(prev => ({ ...prev, password: true }));
+    setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }));
+  }
 
   const validate = (): boolean => {
     const emailError = validateEmail(email);
@@ -23,6 +48,7 @@ const Register = () => {
       email: emailError || "",
       password: passwordError || ""
     });
+    setTouched({ email: true, password: true });
 
     return !emailError && !passwordError;
   }
@@ -78,18 +104,18 @@ const Register = () => {
             type="email"
             placeholder="Enter your email"
             value={email}
-            onChange={setEmail}
+            onChange={handleEmailChange}
             error={errors.email}
-            onBlur={() => setErrors(prev => ({ ...prev, email: validateEmail(email) || "" }))}
+            onBlur={handleEmailBlur}
           />
           <Input
             label="Password"
             type="password"
             placeholder="Enter your password"
             value={password}
-            onChange={setPassword}
+            onChange={handlePasswordChange}
             error={errors.password}
-            onBlur={() => setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }))}
+            onBlur={handlePasswordBlur}
           />
         </div>
  
