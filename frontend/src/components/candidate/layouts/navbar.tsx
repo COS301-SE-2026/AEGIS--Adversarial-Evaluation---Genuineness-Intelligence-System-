@@ -35,7 +35,7 @@ export function Navbar() {
             <header>
                 <nav className="bg-secondary-surface border-b border-tertiary-surface py-4 px-24 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/">
+                        <Link href="/assessment">
                             <Image src="/illustrations/AEGIS-logo-candidate-nav.png" alt="Logo" width={75} height={55} />
                         </Link>
                         <div className="flex items-center ml-2 gap-x-8 text-base text-default-text">
@@ -58,7 +58,7 @@ export function Navbar() {
             <header>
                 <nav className="bg-secondary-surface border-b-2 border-tertiary-surface py-4 px-24 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/">
+                        <Link href="/assessment">
                             <Image src="/illustrations/AEGIS-logo-candidate-nav.png" alt="Logo" width={75} height={55} />
                         </Link>
                     </div>
