@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Question } from "@/components/candidate/ui/cards/question.type";
 import { TestDescriptionCard } from "@/components/candidate/ui/cards/test-description-card";
 import { TestAnswerCard } from "@/components/candidate/ui/cards/test-answer-card";
 import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-button";

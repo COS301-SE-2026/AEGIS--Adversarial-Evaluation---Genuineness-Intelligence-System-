@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Button from "../ui/button";
 import {ChevronDown} from "lucide-react"
-import Image from "next/image";
 
 const Navbar = () => {
   const linkClass = "font-jetbrains-mono text-sm tracking-widest uppercase text-white-smoke hover:text-system-red transition-colors duration-200"
@@ -42,11 +41,13 @@ const Navbar = () => {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <Link href="/register">
+        <Link href="/register" target="_blank">
           <Button variant="solid">Sign Up</Button>
         </Link>
+        <Link href="/login" target="_blank">
+          <Button variant="outline">Login</Button>
+        </Link>
         
-        <Button variant="outline">Login</Button>
       </div>
     
     </nav>
