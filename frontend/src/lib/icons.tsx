@@ -1,4 +1,3 @@
-import { Search } from 'lucide-react';
 import FileIcon from '../../public/illustrations/icons/file-icon.svg';
 import PieChartIcon from '../../public/illustrations/icons/pie-chart-icon.svg';
 import UsersIcon from '../../public/illustrations/icons/users-icon.svg';

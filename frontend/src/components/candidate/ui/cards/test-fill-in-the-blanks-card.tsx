@@ -1,12 +1,12 @@
 'use client'
-import React, { useState } from "react";
-import { Question } from "./question.type";
+// import React, { useState } from "react";
+// import { Question } from "./question.type";
 
-interface BlankAnswerState {
-    [blankIndex: string]: string;
-}
+// interface BlankAnswerState {
+//     [blankIndex: string]: string;
+// }
 
-export function TestFillInTheBlanksCard({ question }: { question: Question }) {
+export function TestFillInTheBlanksCard() {
 
     // const [answers, setAnswers] = useState<BlankAnswerState>({});
 
@@ -18,9 +18,10 @@ export function TestFillInTheBlanksCard({ question }: { question: Question }) {
     //     // send blankAnswer to backend for evaluation
     //     alert(`Submitted answer: ${blankAnswer}`);
     // }
+
     return (
         <div>
-             
+             <p>Multiple Choice</p>
         </div>
     )
 }

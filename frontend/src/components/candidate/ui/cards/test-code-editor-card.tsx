@@ -1,14 +1,12 @@
 'use client';
 import { Editor } from "@monaco-editor/react";
-import { Question } from "./question.type";
 
 interface CodeEditorProps {
   code: string;                                        // Holds the text content
   setCode: React.Dispatch<React.SetStateAction<string>>; // React's state setter function type
-  question: Question;
 }
 
-export default function CodeEditorCard({ code, setCode, question }: CodeEditorProps) {
+export default function CodeEditorCard({ code, setCode}: CodeEditorProps) {
 
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
         e.preventDefault();
