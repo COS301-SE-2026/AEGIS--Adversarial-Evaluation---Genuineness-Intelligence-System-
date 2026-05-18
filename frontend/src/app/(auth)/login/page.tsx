@@ -6,16 +6,33 @@ import Input from "@/src/components/ui/input";
 import Button from "@/src/components/ui/button";
 import GoogleIcon from "@/src/components/ui/google-icon";
 import GithubIcon from "@/src/components/ui/github-icon";
+import { validateEmail, validatePassword } from "@/src/lib/validation";
 
 
 const Login = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({email: "", password: ""});
+
+  const validate = (): boolean => {
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+
+    setErrors({
+      email: emailError || "",
+      password: passwordError || ""
+    });
+
+    return !emailError && !passwordError;
+  }
 
   function handleSubmit() {
     //TODO: wire up registration logic
-    router.push("/assessment");
+    if (validate()) {
+      router.push("/assessment");      
+    }
+
   }
 
   function handleGoogle() {
@@ -63,6 +80,8 @@ const Login = () => {
             placeholder="Enter your email"
             value={email}
             onChange={setEmail}
+            error={errors.email}
+            onBlur={() => setErrors(prev => ({ ...prev, email: validateEmail(email) || "" }))}
           />
           <Input
             label="Password"
@@ -70,6 +89,8 @@ const Login = () => {
             placeholder="Enter your password"
             value={password}
             onChange={setPassword}
+            error={errors.password}
+            onBlur={() => setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }))}
           />
         </div>
  
