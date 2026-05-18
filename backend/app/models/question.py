@@ -10,10 +10,10 @@ class QuestionType(enum.Enum):
     TEXT = "TEXT"
 
 
-class Question(Base):
-    __tablename__ = "questions"
+class QuestionBank(Base):
+    __tablename__ = "question_bank"
 
-    id = Column(Integer, primary_key=True)
+    question_bank_id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
     type = Column(Enum(QuestionType), nullable=False)
