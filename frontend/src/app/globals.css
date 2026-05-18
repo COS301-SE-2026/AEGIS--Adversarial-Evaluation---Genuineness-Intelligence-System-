@@ -30,3 +30,15 @@
   /* Button components will go here */
   /* Input components will go here */
 }
+
+@layer utilities {
+  .font-staatliches {
+    font-family: var(--font-staatliches), sans-serif;
+  }
+  .font-ibm {
+    font-family: var(--font-ibm-plex-sans), sans-serif;
+  }
+  .font-jetbrains {
+    font-family: var(--font-jetbrains-mono), monospace;
+  }
+}
