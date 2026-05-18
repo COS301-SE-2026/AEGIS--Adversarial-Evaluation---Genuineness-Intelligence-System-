@@ -22,5 +22,6 @@ class CandidateResponse(Base):
     score = Column(Float, nullable=True)
     is_correct = Column(Enum(CorrectnessStatus), nullable=True)
 
-    candidate_assessment = relationship("CandidateAssessment", back_populates="responses")
+    candidate_assessment = relationship(
+        "CandidateAssessment", back_populates="responses")
     assessment_question = relationship("AssessmentQuestion", back_populates="responses")
