@@ -6,7 +6,7 @@ interface CodeEditorProps {
   setCode: React.Dispatch<React.SetStateAction<string>>; // React's state setter function type
 }
 
-export default function CodeEditorCard({ code, setCode}: CodeEditorProps) {
+export default function CodeEditorCard({ code, setCode }: CodeEditorProps) {
 
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
         e.preventDefault();

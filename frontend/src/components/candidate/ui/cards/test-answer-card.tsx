@@ -9,8 +9,8 @@ export function TestAnswerCard({ question }: { question: Question }) {
 
     const answerComponents = {
         'multiple-choice': <TestMultipleChoiceCard question={question} />,
-        'coding': <CodeEditorCard code={code} setCode={setCode} question={question} />,
-        'fill-in-the-blank': <TestFillInTheBlanksCard question={question} />
+        'coding': <CodeEditorCard code={code} setCode={setCode} />,
+        'fill-in-the-blank': <TestFillInTheBlanksCard/>
     };
 
     const selectedComponent = answerComponents[question.type as keyof typeof answerComponents];
