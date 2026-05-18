@@ -8,7 +8,7 @@ const Hero = () => {
         <div className="flex flex-col gap-8 max-w-xl">
             <div className="flex flex-col gap-0">
                 <h1 className="font-staatliches text-8xl leading-none text-white-smoke">Prove Your</h1>
-                <h1 className="font-staatliches text-8xl leading-none text-signal-red">
+                <h1 className="font-staatliches text-8xl leading-none text-system-red">
                     Humanity
                     <span className="text-white-smoke">.</span>
                 </h1>
@@ -16,7 +16,7 @@ const Hero = () => {
             <p className="font-ibm-plex text-xs tracking-widest uppercase text-white-smoke leading-relaxed max-w-sm">
                 The ultimate coding assessment where human reasoning battles AI logic.
                 Artificial intelligence thrives on predictability.{" "}
-                <span className="text-signal-red">
+                <span className="text-system-red">
                 Can you build an unpredictable logic path and bypass the machine
                 detection grid?
                 </span>
