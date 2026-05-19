@@ -1,15 +1,17 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { Difficulty } from "../../../../app/(admin)/types/assessment";
-import type { Candidate } from "../../../../app/(admin)/types/mock-data";
+import type { CreateAssessmentForm, Difficulty } from "../../../../app/(admin)/types/assessment";
+import type { Assessment } from "../../../../app/(admin)/types/assessment";
 import {
   MOCK_ASSESSMENTS,
   MOCK_CANDIDATES,
   ADVERSARIAL_TECHNIQUES,
   TARGET_ROLES,
   DIFFICULTY_LEVELS,
+  WIZARD_STEPS,
 } from "../../../../app/(admin)/types/mock-data";
+import type { Candidate } from "../../../../app/(admin)/types/mock-data";
 
 // ─── Tiny sub-components ───────────────────────────────────────────────────
 
@@ -59,28 +61,14 @@ const inputCls =
 const sectionTitleCls =
   "font-staatliches text-base tracking-[0.07em] text-[#F5F5F5] mb-3.5 flex items-center gap-2 after:flex-1 after:h-px after:bg-[#333331] after:content-['']";
 
-const WIZARD_STEPS = [
-  { label: "BASIC INFO",  sub: "Details & role" },
-  { label: "TARGETING",   sub: "Pool & scoring" },
-  { label: "SETTINGS",    sub: "Time & proctoring" },
-  { label: "REVIEW",      sub: "Deploy" },
-];
-
-// ─── Step 0 — Basic Info (unchanged) ──────────────────────────────────────
-
-interface BasicInfoForm {
-  name: string;
-  role: string;
-  description: string;
-  difficulty: Difficulty;
-}
+// ─── Step 0 — Basic Info ───────────────────────────────────────────────────
 
 function StepBasicInfo({
   form,
   set,
 }: {
-  form: BasicInfoForm;
-  set: <K extends keyof BasicInfoForm>(k: K, v: BasicInfoForm[K]) => void;
+  form: CreateAssessmentForm;
+  set: <K extends keyof CreateAssessmentForm>(k: K, v: CreateAssessmentForm[K]) => void;
 }) {
   return (
     <>
@@ -132,7 +120,7 @@ function StepBasicInfo({
               {DIFFICULTY_LEVELS.map((d) => (
                 <button
                   key={d}
-                  onClick={() => set("difficulty", d)}
+                  onClick={() => set("difficulty", d as Difficulty)}
                   className={`flex-1 py-2 font-staatliches text-[13px] tracking-[0.04em] text-center transition-all duration-150 border-r border-[#333331] last:border-r-0 ${
                     form.difficulty === d
                       ? "bg-[rgba(211,47,47,0.15)] text-[#D32F2F]"
@@ -153,31 +141,22 @@ function StepBasicInfo({
   );
 }
 
-// ─── Step 1 — Targeting (unchanged) ───────────────────────────────────────
-
-interface TargetingForm {
-  assignedCandidates: string[];
-  scoringMethod: "auto" | "manual" | "hybrid";
-  resultVisibility: "immediate" | "after-review" | "hidden";
-  notifyOnComplete: boolean;
-  techniques: string[];
-}
+// ─── Step 1 — Targeting & Pool ────────────────────────────────────────────
 
 function StepTargeting({
   form,
   toggleArr,
   set,
-  targetRole,
 }: {
-  form: TargetingForm;
+  form: CreateAssessmentForm;
   toggleArr: (k: "assignedCandidates" | "techniques", v: string) => void;
-  set: <K extends keyof TargetingForm>(k: K, v: TargetingForm[K]) => void;
-  targetRole: string;
+  set: <K extends keyof CreateAssessmentForm>(k: K, v: CreateAssessmentForm[K]) => void;
 }) {
   const [refRoleFilter, setRefRoleFilter] = useState<string>("match");
 
-  const referencePool = MOCK_ASSESSMENTS.filter((a) => {
-    if (refRoleFilter === "match") return a.role === targetRole;
+  // Assessments to show in the pool/arsenal reference panel
+  const referencePool: Assessment[] = MOCK_ASSESSMENTS.filter((a) => {
+    if (refRoleFilter === "match") return a.role === form.role;
     if (refRoleFilter === "all") return true;
     return a.role === refRoleFilter;
   }).slice(0, 6);
@@ -194,16 +173,20 @@ function StepTargeting({
     { key: "hidden",       label: "Hidden",       sub: "Internal use only" },
   ] as const;
 
+  const aiRateColour = (rate: number) =>
+    rate >= 70 ? "#EF5350" : rate >= 40 ? "#FFCA28" : "#66BB6A";
+
   const statusDot: Record<Candidate["status"], string> = {
     "pending":     "bg-[rgba(245,245,245,0.28)]",
     "in-progress": "bg-[#FFCA28]",
     "completed":   "bg-[#66BB6A]",
   };
 
-  const assignedIds = form.assignedCandidates;
+  const assignedIds = form.assignedCandidates as string[];
 
   return (
     <>
+      {/* ── Candidates ──────────────────────────────────────────────────── */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Assign Candidates</div>
         <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mb-3 leading-relaxed">
@@ -223,6 +206,7 @@ function StepTargeting({
                     : "border-[#333331] bg-[#292C2F]"
                 }`}
               >
+                {/* Avatar + info */}
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-[5px] bg-[#D32F2F] flex items-center justify-center font-staatliches text-sm text-white flex-shrink-0 select-none">
                     {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
@@ -243,6 +227,7 @@ function StepTargeting({
                   </div>
                 </div>
 
+                {/* Status + assign button */}
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="flex items-center gap-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot[c.status]}`} />
@@ -276,18 +261,20 @@ function StepTargeting({
         )}
       </div>
 
+      {/* ── Assessment Pool / Arsenal ────────────────────────────────────── */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Assessment Pool</div>
         <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mb-3 leading-relaxed">
           Browse the existing arsenal. Filter by role to find assessments similar
-          to the one you're creating — useful for benchmarking configuration.
+          to the one you&apos;re creating — useful for benchmarking configuration.
         </p>
 
+        {/* Role filter tabs */}
         <div className="flex gap-1.5 mb-3 flex-wrap">
           {[
-            { key: "match", label: `Match Role (${targetRole})` },
+            { key: "match", label: `Match Role (${form.role})` },
             { key: "all",   label: "All Roles" },
-            ...TARGET_ROLES.filter((r) => r !== targetRole).map((r) => ({ key: r, label: r })),
+            ...TARGET_ROLES.filter((r) => r !== form.role).map((r) => ({ key: r, label: r })),
           ].slice(0, 6).map(({ key, label }) => (
             <button
               key={key}
@@ -303,6 +290,7 @@ function StepTargeting({
           ))}
         </div>
 
+        {/* Compact assessment list */}
         <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1
           [&::-webkit-scrollbar]:w-[3px]
           [&::-webkit-scrollbar-track]:bg-transparent
@@ -314,7 +302,8 @@ function StepTargeting({
             </div>
           ) : (
             referencePool.map((a) => {
-              const completionPct = a.candidates > 0 ? Math.round((a.completed / a.candidates) * 100) : 0;
+              const completionPct =
+                a.candidates > 0 ? Math.round((a.completed / a.candidates) * 100) : 0;
               const statusColours: Record<string, string> = {
                 active:  "text-[#66BB6A]",
                 closed:  "text-[rgba(245,245,245,0.28)]",
@@ -326,6 +315,7 @@ function StepTargeting({
                   key={a.id}
                   className="flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] border border-[#333331] bg-[#292C2F]"
                 >
+                  {/* Title + tags */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <div className="font-staatliches text-sm tracking-[0.04em] text-[#F5F5F5] truncate">
@@ -343,6 +333,8 @@ function StepTargeting({
                       <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)]">{a.questions} Qs</span>
                     </div>
                   </div>
+
+                  {/* Stats */}
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <div className="text-right">
                       <div className="font-staatliches text-[14px] leading-none text-[#F5F5F5]">
@@ -354,7 +346,7 @@ function StepTargeting({
                       <div className="text-right">
                         <div
                           className="font-staatliches text-[14px] leading-none"
-                          style={{ color: a.aiRate >= 70 ? "#EF5350" : a.aiRate >= 40 ? "#FFCA28" : "#66BB6A" }}
+                          style={{ color: aiRateColour(a.aiRate) }}
                         >
                           {a.aiRate}%
                         </div>
@@ -369,18 +361,20 @@ function StepTargeting({
         </div>
       </div>
 
+      {/* ── Scoring & Results ─────────────────────────────────────────────── */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Scoring &amp; Results</div>
 
+        {/* Scoring method */}
         <div className="mb-4">
           <label className={`${labelCls} block mb-2`}>Scoring Method</label>
           <div className="grid grid-cols-3 gap-2">
             {SCORING_METHODS.map(({ key, label, sub }) => {
-              const selected = form.scoringMethod === key;
+              const selected = (form.scoringMethod as string) === key;
               return (
                 <button
                   key={key}
-                  onClick={() => set("scoringMethod", key)}
+                  onClick={() => set("scoringMethod", key as CreateAssessmentForm["scoringMethod"])}
                   className={`flex flex-col gap-1 px-3 py-2.5 rounded-[5px] border text-left cursor-pointer transition-all duration-150 ${
                     selected
                       ? "border-[#D32F2F] bg-[rgba(211,47,47,0.08)]"
@@ -397,15 +391,16 @@ function StepTargeting({
           </div>
         </div>
 
+        {/* Result visibility */}
         <div className="mb-4">
           <label className={`${labelCls} block mb-2`}>Result Visibility</label>
           <div className="grid grid-cols-3 gap-2">
             {VISIBILITY_OPTIONS.map(({ key, label, sub }) => {
-              const selected = form.resultVisibility === key;
+              const selected = (form.resultVisibility as string) === key;
               return (
                 <button
                   key={key}
-                  onClick={() => set("resultVisibility", key)}
+                  onClick={() => set("resultVisibility", key as CreateAssessmentForm["resultVisibility"])}
                   className={`flex flex-col gap-1 px-3 py-2.5 rounded-[5px] border text-left cursor-pointer transition-all duration-150 ${
                     selected
                       ? "border-[#D32F2F] bg-[rgba(211,47,47,0.08)]"
@@ -422,6 +417,7 @@ function StepTargeting({
           </div>
         </div>
 
+        {/* Notify toggle */}
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#292C2F] border border-[#333331] rounded-[5px]">
           <div>
             <div className="text-[13px] font-medium text-[#F5F5F5]">Notify Admin on Completion</div>
@@ -430,12 +426,13 @@ function StepTargeting({
             </div>
           </div>
           <ToggleSwitch
-            checked={form.notifyOnComplete}
-            onChange={() => set("notifyOnComplete", !form.notifyOnComplete)}
+            checked={!!(form.notifyOnComplete)}
+            onChange={() => set("notifyOnComplete", !(form.notifyOnComplete))}
           />
         </div>
       </div>
 
+      {/* ── Adversarial Techniques ───────────────────────────────────────── */}
       <div className="bg-[rgba(211,47,47,0.04)] border border-[rgba(211,47,47,0.2)] rounded-[5px] p-4 mb-3.5">
         <div className="font-staatliches text-sm tracking-[0.06em] text-[#D32F2F] mb-3 flex items-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -447,7 +444,7 @@ function StepTargeting({
         </div>
         <div className="flex flex-col gap-1.5">
           {ADVERSARIAL_TECHNIQUES.map((t) => {
-            const active = form.techniques.includes(t.id);
+            const active = (form.techniques as string[]).includes(t.id);
             return (
               <div
                 key={t.id}
@@ -475,20 +472,14 @@ function StepTargeting({
   );
 }
 
-// ─── Step 2 — Settings (NEW full implementation) ─────────────────────────
-
-interface SettingsForm {
-  timeLimit: number;
-  randomise: boolean;
-  shuffleOptions: boolean;
-}
+// ─── Step 2 — Settings ─────────────────────────────────────────────────────
 
 function StepSettings({
   form,
   set,
 }: {
-  form: SettingsForm;
-  set: <K extends keyof SettingsForm>(k: K, v: SettingsForm[K]) => void;
+  form: CreateAssessmentForm;
+  set: <K extends keyof CreateAssessmentForm>(k: K, v: CreateAssessmentForm[K]) => void;
 }) {
   const behaviourToggles = [
     { key: "randomise"      as const, label: "Randomise Question Order", desc: "Prevents candidates from sharing question sequences" },
@@ -554,8 +545,8 @@ function StepSettings({
                 <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)] mt-0.5">{desc}</div>
               </div>
               <ToggleSwitch
-                checked={form[key]}
-                onChange={() => set(key, !form[key])}
+                checked={form[key] as boolean}
+                onChange={() => set(key, !form[key] as CreateAssessmentForm[typeof key])}
               />
             </div>
           ))}
@@ -596,76 +587,157 @@ function StepSettings({
   );
 }
 
-// ─── Step 3 — Review (empty stub – no text) ──────────────────────────────
+// ─── Step 3 — Review ───────────────────────────────────────────────────────
 
-function StepReviewEmpty() {
-  return <div className="min-h-[200px]" />;
+function StepReview({ form }: { form: CreateAssessmentForm }) {
+  const scoringLabels: Record<string, string> = {
+    auto:   "Auto (AI-graded)",
+    manual: "Manual (human only)",
+    hybrid: "Hybrid (AI + human)",
+  };
+  const visibilityLabels: Record<string, string> = {
+    "immediate":    "Immediate",
+    "after-review": "After Review",
+    "hidden":       "Hidden",
+  };
+
+  const assignedCandidateIds = form.assignedCandidates as string[];
+  const assignedCandidates = MOCK_CANDIDATES.filter((c) =>
+    assignedCandidateIds.includes(String(c.id))
+  );
+
+  return (
+    <>
+      <div className="font-staatliches text-base tracking-[0.07em] mb-3.5 flex items-center gap-2">
+        CONFIGURATION SUMMARY
+        <div className="flex-1 h-px bg-[#333331]" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        {/* Identity */}
+        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">IDENTITY</div>
+          {([
+            ["Title",       form.name || "(untitled)"],
+            ["Target Role", form.role],
+            ["Difficulty",  form.difficulty],
+          ] as [string, string][]).map(([k, v]) => (
+            <div key={k} className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)] last:border-b-0">
+              <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">{k}</span>
+              <span className="font-ibm text-[12px] font-medium text-[#F5F5F5] text-right max-w-[55%]">{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Targeting */}
+        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">TARGETING</div>
+          <div className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)]">
+            <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">Assigned</span>
+            <div className="flex flex-col gap-1 items-end max-w-[60%]">
+              {assignedCandidates.length > 0
+                ? assignedCandidates.map((c) => (
+                    <span key={c.id} className="font-jetbrains text-[9px] px-1.5 py-0.5 bg-[#222426] border border-[#333331] rounded-[5px] text-[rgba(245,245,245,0.42)] truncate max-w-full">
+                      {c.name}
+                    </span>
+                  ))
+                : <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">none yet</span>}
+            </div>
+          </div>
+          <div className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)]">
+            <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">Scoring</span>
+            <span className="font-ibm text-[12px] font-medium text-[#F5F5F5]">
+              {scoringLabels[(form.scoringMethod as string) ?? "auto"] ?? "Auto"}
+            </span>
+          </div>
+          <div className="flex justify-between items-start py-1.5">
+            <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">Results</span>
+            <span className="font-ibm text-[12px] font-medium text-[#F5F5F5]">
+              {visibilityLabels[(form.resultVisibility as string) ?? "immediate"] ?? "Immediate"}
+            </span>
+          </div>
+        </div>
+
+        {/* Settings */}
+        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">SETTINGS</div>
+          {([
+            ["Time Limit",     `${form.timeLimit} min`],
+            ["Randomise",      form.randomise      ? "Yes" : "No"],
+            ["Shuffle Opts",   form.shuffleOptions ? "Yes" : "No"],
+          ] as [string, string][]).map(([k, v]) => (
+            <div key={k} className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)] last:border-b-0">
+              <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">{k}</span>
+              <span className="font-ibm text-[12px] font-medium text-[#F5F5F5]">{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Adversarial */}
+        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">ADVERSARIAL TECHNIQUES</div>
+          {(form.techniques as string[]).length
+            ? (form.techniques as string[]).map((id) => {
+                const t = ADVERSARIAL_TECHNIQUES.find((x) => x.id === id);
+                return t ? (
+                  <div key={id} className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)] last:border-b-0">
+                    <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] max-w-[55%]">{t.label}</span>
+                    <TechBadge eff={t.eff} />
+                  </div>
+                ) : null;
+              })
+            : <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] py-2">No techniques selected</div>}
+        </div>
+      </div>
+
+      {/* Deploy box */}
+      <div className="bg-[rgba(56,142,60,0.05)] border border-[rgba(56,142,60,0.25)] rounded-[5px] px-4 py-3.5">
+        <div className="font-staatliches text-sm tracking-[0.06em] text-[#66BB6A] mb-1.5">✓ READY TO DEPLOY</div>
+        <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] leading-relaxed">
+          Assessment will be created as a draft and can be activated once questions are assigned from the Question Bank.
+          Candidates will not have access until you set the status to{" "}
+          <strong className="text-[#66BB6A]">ACTIVE</strong>.
+        </div>
+      </div>
+    </>
+  );
 }
 
-// ─── Main panel ─────────────────────────────────────────────────────────
+// ─── Main panel ────────────────────────────────────────────────────────────
 
 interface CreateAssessmentPanelProps {
   onClose: () => void;
 }
 
-interface FullFormState {
-  // Basic Info
-  name: string;
-  role: string;
-  description: string;
-  difficulty: Difficulty;
-  // Targeting
-  assignedCandidates: string[];
-  scoringMethod: "auto" | "manual" | "hybrid";
-  resultVisibility: "immediate" | "after-review" | "hidden";
-  notifyOnComplete: boolean;
-  techniques: string[];
-  // Settings
-  timeLimit: number;
-  randomise: boolean;
-  shuffleOptions: boolean;
-}
-
-const DEFAULT_FORM: FullFormState = {
+const DEFAULT_FORM: CreateAssessmentForm = {
   name: "",
   role: "Backend",
   description: "",
   difficulty: "Mid",
+  questionTypes: [],
+  languages: [],
+  questionCount: 16,
+  timeLimit: 60,
+  randomise: true,
+  autosave: true,
+  proctoring: false,
+  shuffleOptions: true,
+  adversarialDensity: 50,
+  techniques: ["misdirect", "negsemant"],
+  // targeting fields
   assignedCandidates: [],
   scoringMethod: "auto",
   resultVisibility: "immediate",
   notifyOnComplete: true,
-  techniques: ["misdirect", "negsemant"],
-  timeLimit: 60,
-  randomise: true,
-  shuffleOptions: true,
 };
 
 export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanelProps) {
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState(DEFAULT_FORM);
+  const [form, setForm] = useState<CreateAssessmentForm>(DEFAULT_FORM);
 
-  const setBasic = useCallback(
-    <K extends keyof Pick<FullFormState, "name" | "role" | "description" | "difficulty">>(
-      k: K,
-      v: FullFormState[K]
-    ) => setForm((f) => ({ ...f, [k]: v })),
-    []
-  );
-
-  const setTargeting = useCallback(
-    <K extends keyof Pick<FullFormState, "scoringMethod" | "resultVisibility" | "notifyOnComplete">>(
-      k: K,
-      v: FullFormState[K]
-    ) => setForm((f) => ({ ...f, [k]: v })),
-    []
-  );
-
-  const setSettings = useCallback(
-    <K extends keyof Pick<FullFormState, "timeLimit" | "randomise" | "shuffleOptions">>(
-      k: K,
-      v: FullFormState[K]
-    ) => setForm((f) => ({ ...f, [k]: v })),
+  const set = useCallback(
+    <K extends keyof CreateAssessmentForm>(k: K, v: CreateAssessmentForm[K]) =>
+      setForm((f) => ({ ...f, [k]: v })),
     []
   );
 
@@ -684,61 +756,13 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
     if (e.target === e.currentTarget) onClose();
   };
 
-  const canContinue = step === 0 ? !!form.name : true;
-
-  const renderStep = () => {
-    switch (step) {
-      case 0:
-        return (
-          <StepBasicInfo
-            form={{
-              name: form.name,
-              role: form.role,
-              description: form.description,
-              difficulty: form.difficulty,
-            }}
-            set={setBasic}
-          />
-        );
-      case 1:
-        return (
-          <StepTargeting
-            form={{
-              assignedCandidates: form.assignedCandidates,
-              scoringMethod: form.scoringMethod,
-              resultVisibility: form.resultVisibility,
-              notifyOnComplete: form.notifyOnComplete,
-              techniques: form.techniques,
-            }}
-            toggleArr={toggleArr}
-            set={setTargeting}
-            targetRole={form.role}
-          />
-        );
-      case 2:
-        return (
-          <StepSettings
-            form={{
-              timeLimit: form.timeLimit,
-              randomise: form.randomise,
-              shuffleOptions: form.shuffleOptions,
-            }}
-            set={setSettings}
-          />
-        );
-      case 3:
-        return <StepReviewEmpty />;
-      default:
-        return null;
-    }
-  };
-
   return (
     <div
       className="fixed inset-0 bg-[rgba(0,0,0,0.55)] z-50 flex justify-end"
       onClick={handleOverlayClick}
     >
       <div className="w-[720px] max-w-[95vw] bg-[#1A1C1E] border-l border-[#333331] flex flex-col h-full overflow-hidden">
+
         {/* Header */}
         <div className="px-7 py-5 border-b border-[#333331] flex items-center justify-between flex-shrink-0">
           <div>
@@ -746,7 +770,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
               CREATE ASSESSMENT
             </div>
             <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mt-0.5">
-              // configure an adversarial assessment set
+              {"// configure an adversarial assessment set"}
             </div>
           </div>
           <button
@@ -814,7 +838,10 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
           [&::-webkit-scrollbar-track]:bg-transparent
           [&::-webkit-scrollbar-thumb]:bg-[#333331]
           [&::-webkit-scrollbar-thumb]:rounded-full">
-          {renderStep()}
+          {step === 0 && <StepBasicInfo form={form} set={set} />}
+          {step === 1 && <StepTargeting form={form} toggleArr={toggleArr} set={set} />}
+          {step === 2 && <StepSettings form={form} set={set} />}
+          {step === 3 && <StepReview form={form} />}
         </div>
 
         {/* Footer */}
@@ -840,12 +867,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
             {step < WIZARD_STEPS.length - 1 ? (
               <button
                 onClick={() => setStep((s) => s + 1)}
-                disabled={!canContinue}
-                className={`flex items-center gap-2 px-[18px] py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] transition-colors duration-150 whitespace-nowrap ${
-                  canContinue
-                    ? "bg-[#D32F2F] hover:bg-[#EF5350] text-[#F5F5F5] cursor-pointer"
-                    : "bg-[#333331] text-[rgba(245,245,245,0.42)] cursor-not-allowed"
-                }`}
+                className="flex items-center gap-2 bg-[#D32F2F] hover:bg-[#EF5350] text-[#F5F5F5] px-[18px] py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-colors duration-150 whitespace-nowrap"
               >
                 CONTINUE →
               </button>

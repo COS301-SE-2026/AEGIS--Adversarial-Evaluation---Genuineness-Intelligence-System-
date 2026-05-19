@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import AdminSidebar from "../../../../components/admin/layouts/sidebar";
 import AdminTopbar from "../../../../components/admin/layouts/topbar";
 import AssessmentCard from "../../../../components/admin/ui/cards/assessment-card";
@@ -12,62 +12,57 @@ import type { AssessmentStatus } from "../../types/assessment";
 type FilterValue = AssessmentStatus | "all";
 
 export default function AssessmentsPage() {
-  const [filter, setFilter] = useState<FilterValue>("all");
-  const [search, setSearch] = useState("");
-  const [sortOrder, setSortOrder] = useState<"recent" | "oldest">("recent");
+  const [filter, setFilter]   = useState<FilterValue>("all");
+
+  const [search, setSearch]   = useState("");
+
   const [panelOpen, setPanelOpen] = useState(false);
 
-  const filteredAndSorted = useMemo(() => {
-    let filtered = MOCK_ASSESSMENTS.filter((a) => {
-      const matchStatus = filter === "all" || a.status === filter;
-      const matchSearch =
-        !search || a.title.toLowerCase().includes(search.toLowerCase());
-      return matchStatus && matchSearch;
-    });
+  const filtered = MOCK_ASSESSMENTS.filter((a) => {
 
-    const sorted = [...filtered].sort((a, b) => {
-      const dateA = new Date(a.created);
-      const dateB = new Date(b.created);
-      return sortOrder === "recent"
-        ? dateB.getTime() - dateA.getTime()
-        : dateA.getTime() - dateB.getTime();
-    });
-    return sorted;
-  }, [filter, search, sortOrder]);
-
-  const handleSortToggle = () => {
-    setSortOrder((prev) => (prev === "recent" ? "oldest" : "recent"));
-  };
+    const matchStatus = filter === "all" || a.status === filter;
+    
+    const matchSearch =
+      !search || a.title.toLowerCase().includes(search.toLowerCase());
+    return matchStatus && matchSearch;
+  });
 
   return (
     <div className="flex min-h-screen bg-[#121211] text-[#F5F5F5]">
+      {/* Sidebar */}
       <AdminSidebar />
+
+      {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
+        {/* Topbar — transparent per Figma */}
         <AdminTopbar onNewAssessment={() => setPanelOpen(true)} />
+
+        {/* Content */}
         <main className="flex-1 overflow-y-auto px-7 py-6">
+          {/* Page header */}
           <div className="flex items-start justify-between mb-5">
             <div>
               <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-[#F5F5F5]">
                 ASSESSMENT ARSENAL
               </h1>
               <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mt-1">
-                // manage, deploy, and monitor adversarial assessment sets
+                {"// manage, deploy, and monitor adversarial assessment sets"}
               </p>
             </div>
           </div>
 
+          {/* Filter bar */}
           <AssessmentFilterBar
             filter={filter}
             search={search}
-            sortOrder={sortOrder}
-            onFilterChange={(f) => setFilter(f)}
+            onFilterChange={(f) => setFilter(f as FilterValue)}
             onSearchChange={setSearch}
-            onSortToggle={handleSortToggle}
           />
 
-          {filteredAndSorted.length > 0 ? (
+          {/* Grid */}
+          {filtered.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(310px,1fr))] gap-3.5">
-              {filteredAndSorted.map((a) => (
+              {filtered.map((a) => (
                 <AssessmentCard key={a.id} assessment={a} />
               ))}
             </div>
@@ -84,6 +79,7 @@ export default function AssessmentsPage() {
         </main>
       </div>
 
+      {/* Create assessment slide-over panel */}
       {panelOpen && (
         <CreateAssessmentPanel onClose={() => setPanelOpen(false)} />
       )}

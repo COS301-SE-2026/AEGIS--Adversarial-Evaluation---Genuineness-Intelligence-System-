@@ -1,7 +1,7 @@
 "use client";
 
 interface TopbarProps {
-  onNewAssessment?: () => void;  // optional to avoid breaking existing uses
+  onNewAssessment: () => void;
 }
 
 export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
