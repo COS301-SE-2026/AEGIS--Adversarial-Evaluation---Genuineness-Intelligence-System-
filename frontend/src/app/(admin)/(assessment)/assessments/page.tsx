@@ -5,6 +5,7 @@ import AdminSidebar from "../../../../components/admin/layouts/sidebar";
 import AdminTopbar from "../../../../components/admin/layouts/topbar";
 import AssessmentCard from "../../../../components/admin/ui/cards/assessment-card";
 import AssessmentFilterBar from "../../../../components/admin/ui/buttons/assessment-filter-bar";
+import CreateAssessmentPanel from "../../../../components/admin/ui/cards/create-assessment-panel";
 import { MOCK_ASSESSMENTS } from "../../types/mock-data";
 import type { AssessmentStatus } from "../../types/assessment";
 
@@ -14,9 +15,9 @@ export default function AssessmentsPage() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"recent" | "oldest">("recent");
+  const [panelOpen, setPanelOpen] = useState(false);
 
   const filteredAndSorted = useMemo(() => {
-    // Filter by status and search
     let filtered = MOCK_ASSESSMENTS.filter((a) => {
       const matchStatus = filter === "all" || a.status === filter;
       const matchSearch =
@@ -24,7 +25,6 @@ export default function AssessmentsPage() {
       return matchStatus && matchSearch;
     });
 
-    // Sort by created date
     const sorted = [...filtered].sort((a, b) => {
       const dateA = new Date(a.created);
       const dateB = new Date(b.created);
@@ -43,7 +43,7 @@ export default function AssessmentsPage() {
     <div className="flex min-h-screen bg-[#121211] text-[#F5F5F5]">
       <AdminSidebar />
       <div className="flex flex-col flex-1 min-w-0">
-        <AdminTopbar />
+        <AdminTopbar onNewAssessment={() => setPanelOpen(true)} />
         <main className="flex-1 overflow-y-auto px-7 py-6">
           <div className="flex items-start justify-between mb-5">
             <div>
@@ -83,6 +83,10 @@ export default function AssessmentsPage() {
           )}
         </main>
       </div>
+
+      {panelOpen && (
+        <CreateAssessmentPanel onClose={() => setPanelOpen(false)} />
+      )}
     </div>
   );
 }
