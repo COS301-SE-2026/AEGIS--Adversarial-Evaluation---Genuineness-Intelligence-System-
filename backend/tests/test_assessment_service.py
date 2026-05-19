@@ -1,7 +1,15 @@
+import uuid
 from datetime import datetime
 from unittest.mock import MagicMock
 
+import pytest
+from fastapi import HTTPException
+
+from app.models.assessment import Assessment
+from app.models.candidate_assessment import CandidateAssessment, SessionStatus
+from app.models.user import User
 from app.services.assessment import (
+    create_candidate_assessment,
     get_all_assessments,
     get_assessment_by_id,
 )
@@ -155,3 +163,77 @@ def test_get_assessment_by_id_each_question_has_required_fields():
     assert aq.question_bank.type.value == "TEXT"
     assert aq.question_bank.maximum_score == 5.0
     assert aq.question_bank.tags == ["python", "oop"]
+
+
+def _make_mock_db_for_invite(assessment_result, candidate_result, existing_result):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_q = MagicMock()
+        if model is Assessment:
+            mock_q.filter.return_value.first.return_value = assessment_result
+        elif model is User:
+            mock_q.filter.return_value.first.return_value = candidate_result
+        elif model is CandidateAssessment:
+            mock_q.filter.return_value.first.return_value = existing_result
+        return mock_q
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_create_candidate_assessment_raises_404_when_assessment_not_found():
+    mock_db = _make_mock_db_for_invite(None, MagicMock(), None)
+    with pytest.raises(HTTPException) as exc_info:
+        create_candidate_assessment(mock_db, assessment_id=99, candidate_id=1)
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"
+
+
+def test_create_candidate_assessment_raises_404_when_candidate_not_found():
+    mock_db = _make_mock_db_for_invite(MagicMock(), None, None)
+    with pytest.raises(HTTPException) as exc_info:
+        create_candidate_assessment(mock_db, assessment_id=1, candidate_id=99)
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Candidate not found"
+
+
+def test_create_candidate_assessment_raises_400_when_already_invited():
+    mock_db = _make_mock_db_for_invite(MagicMock(), MagicMock(), MagicMock())
+    with pytest.raises(HTTPException) as exc_info:
+        create_candidate_assessment(mock_db, assessment_id=1, candidate_id=1)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Candidate has already been invited to this assessment"
+
+
+def test_create_candidate_assessment_returns_session_with_correct_fields():
+    mock_db = _make_mock_db_for_invite(MagicMock(), MagicMock(), None)
+
+    def refresh_side_effect(obj):
+        obj.candidate_assess_id = 5
+        obj.assessment_id = 1
+        obj.candidate_id = 2
+        obj.status = SessionStatus.STARTED
+
+    mock_db.refresh.side_effect = refresh_side_effect
+
+    result = create_candidate_assessment(mock_db, assessment_id=1, candidate_id=2)
+
+    assert result.candidate_assess_id == 5
+    assert result.assessment_id == 1
+    assert result.candidate_id == 2
+    assert result.status == SessionStatus.STARTED
+    assert result.candidate_score is None
+    assert result.total_score is None
+    assert result.start_time is None
+    assert result.end_time is None
+
+
+def test_create_candidate_assessment_access_token_is_valid_uuid():
+    mock_db = _make_mock_db_for_invite(MagicMock(), MagicMock(), None)
+    mock_db.refresh.side_effect = None
+
+    result = create_candidate_assessment(mock_db, assessment_id=1, candidate_id=2)
+
+    parsed = uuid.UUID(result.access_token)
+    assert str(parsed) == result.access_token
