@@ -35,3 +35,15 @@
     filter: invert(92%) sepia(10%) brightness(100);
   }
 }
+
+@layer utilities {
+  .font-staatliches {
+    font-family: var(--font-staatliches), sans-serif;
+  }
+  .font-ibm {
+    font-family: var(--font-ibm-plex-sans), sans-serif;
+  }
+  .font-jetbrains {
+    font-family: var(--font-jetbrains-mono), monospace;
+  }
+}

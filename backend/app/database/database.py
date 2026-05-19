@@ -1,16 +1,12 @@
-# PostgreSQL database connection setup
-
-# Example:
-# create database engine
-# manage sessions
-# connect FastAPI to Postgres
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL)
+from app.core.config import settings
+
+# Create the SQLAlchemy engine using the database URL from settings
+engine = create_engine(settings.database_url)
+
+# Each request gets its own session, closed when the request ends
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
