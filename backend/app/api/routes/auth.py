@@ -8,7 +8,10 @@ from app.services.auth import (
     exchange_code_for_user_info,
     get_google_auth_url,
     get_or_create_user,
+    register_user,
 )
+
+from app.schema.auth import RegisterRequest, RegisterResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -53,3 +56,18 @@ async def google_callback(
             "role": user.role.value,
         },
     }
+
+@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+def register(
+    payload: RegisterRequest,
+    db: Session = Depends(get_db),
+) -> RegisterResponse:
+    user, access_token = register_user(db, payload)
+    return RegisterResponse(
+        user={
+            "id": user.user_id,
+            "email": user.email,
+            "full_name": user.full_name
+        },
+        access_token=access_token
+    )

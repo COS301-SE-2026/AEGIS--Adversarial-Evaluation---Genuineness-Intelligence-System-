@@ -142,7 +142,7 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[User, str]:
     )
 
     db.add(oauth_record)
-    db.flush()
+    db.commit()
     db.refresh(user)
 
     return user, access_token
