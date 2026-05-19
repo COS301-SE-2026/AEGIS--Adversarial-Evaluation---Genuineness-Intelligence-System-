@@ -11,11 +11,13 @@ from app.services.assessment import (
     get_candidate_responses,
     get_assessment_by_id,
     save_candidate_response,
+    submit_candidate_assessment,
 )
 from app.schema.candidate_response import (
     CandidateResponseResponse,
     ResponseCreate,
 )
+from app.schema.candidate_assessment import CandidateAssessmentResponse
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 candidate_response_router = APIRouter(
@@ -145,6 +147,20 @@ async def list_responses(
     db: Session = Depends(get_db),
 ):
     return get_candidate_responses(
+        db,
+        candidate_assessment_id,
+    )
+
+
+@candidate_response_router.post(
+    "/{candidate_assessment_id}/submit",
+    response_model=CandidateAssessmentResponse,
+)
+async def submit_assessment(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+):
+    return submit_candidate_assessment(
         db,
         candidate_assessment_id,
     )

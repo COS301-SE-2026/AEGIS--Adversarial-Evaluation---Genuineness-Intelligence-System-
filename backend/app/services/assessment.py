@@ -1,9 +1,11 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
-from app.models.candidate_assessment import CandidateAssessment
+from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 import json
 
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
@@ -192,3 +194,46 @@ def get_candidate_responses(
         )
         .all()
     )
+
+
+def submit_candidate_assessment(
+    db: Session,
+    candidate_assessment_id: int,
+) -> CandidateAssessment:
+    session = (
+        db.query(CandidateAssessment)
+        .options(
+            selectinload(CandidateAssessment.responses),
+            selectinload(CandidateAssessment.assessment)
+            .selectinload(Assessment.assessment_questions)
+            .selectinload(AssessmentQuestion.question_bank),
+        )
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id
+        )
+        .first()
+    )
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate assessment not found",
+        )
+
+    candidate_score = sum((resp.score or 0.0) for resp in session.responses)
+
+    total_score = 0.0
+    for aq in session.assessment.assessment_questions:
+        if aq.marks is not None:
+            total_score += aq.marks
+        elif aq.question_bank is not None and aq.question_bank.maximum_score is not None:
+            total_score += aq.question_bank.maximum_score
+
+    session.candidate_score = candidate_score
+    session.total_score = total_score
+    session.status = SessionStatus.COMPLETED
+    session.end_time = datetime.utcnow()
+
+    db.commit()
+    db.refresh(session)
+    return session
