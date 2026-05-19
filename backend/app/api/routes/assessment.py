@@ -6,9 +6,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database.database import get_db
+from app.schema.candidate_assessment import InviteCreate
 from app.services.assessment import (
     get_all_assessments,
     get_assessment_by_id,
+    create_candidate_assessment,
 )
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
@@ -107,4 +109,26 @@ async def get_assessment(
             }
             for aq in assessment.assessment_questions
         ],
+    }
+
+
+@router.post(
+    "/{assessment_id}/invite",
+    status_code=status.HTTP_201_CREATED,
+)
+async def invite_candidate(
+    assessment_id: int,
+    body: InviteCreate,
+    db: Session = Depends(get_db),
+):
+    session = create_candidate_assessment(db, assessment_id, body.candidate_id)
+    return {
+        "candidate_assess_id": session.candidate_assess_id,
+        "access_token": session.access_token,
+        "status": session.status.value,
+        "assessment_id": session.assessment_id,
+        "candidate_id": session.candidate_id,
+        "access_link": (
+         f"http://localhost:3000/assessment/take?token={session.access_token}"
+        ),
     }
