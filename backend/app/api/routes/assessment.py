@@ -9,11 +9,23 @@ from app.database.database import get_db
 from app.schema.candidate_assessment import InviteCreate
 from app.services.assessment import (
     get_all_assessments,
+    get_candidate_responses,
     get_assessment_by_id,
+    save_candidate_response,
+    submit_candidate_assessment,
     create_candidate_assessment,
 )
+from app.schema.candidate_response import (
+    CandidateResponseResponse,
+    ResponseCreate,
+)
+from app.schema.candidate_assessment import CandidateAssessmentResponse
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
+candidate_response_router = APIRouter(
+    prefix="/candidate-assessments",
+    tags=["candidate-assessments"],
+)
 
 
 class AssessmentListItem(BaseModel):
@@ -110,6 +122,50 @@ async def get_assessment(
             for aq in assessment.assessment_questions
         ],
     }
+
+
+@candidate_response_router.post(
+    "/{candidate_assessment_id}/responses",
+    response_model=CandidateResponseResponse,
+)
+async def save_response(
+    candidate_assessment_id: int,
+    response_in: ResponseCreate,
+    db: Session = Depends(get_db),
+):
+    return save_candidate_response(
+        db,
+        candidate_assessment_id,
+        response_in,
+    )
+
+
+@candidate_response_router.get(
+    "/{candidate_assessment_id}/responses",
+    response_model=List[CandidateResponseResponse],
+)
+async def list_responses(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+):
+    return get_candidate_responses(
+        db,
+        candidate_assessment_id,
+    )
+
+
+@candidate_response_router.post(
+    "/{candidate_assessment_id}/submit",
+    response_model=CandidateAssessmentResponse,
+)
+async def submit_assessment(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+):
+    return submit_candidate_assessment(
+        db,
+        candidate_assessment_id,
+    )
 
 
 @router.post(

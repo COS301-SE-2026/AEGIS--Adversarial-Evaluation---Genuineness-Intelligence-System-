@@ -12,7 +12,9 @@ from app.services.assessment import (
     create_candidate_assessment,
     get_all_assessments,
     get_assessment_by_id,
+    save_candidate_response,
 )
+from app.schema.candidate_response import ResponseCreate
 
 
 def _make_mock_db_for_all(assessments):
@@ -30,6 +32,13 @@ def _make_mock_db_for_by_id(assessment):
         .first.return_value
     ) = assessment
     return mock_db
+
+
+def _mock_query_result(result):
+    query = MagicMock()
+    query.filter.return_value.first.return_value = result
+    query.options.return_value.filter.return_value.first.return_value = result
+    return query
 
 
 def test_get_all_assessments_returns_list():
@@ -165,6 +174,35 @@ def test_get_assessment_by_id_each_question_has_required_fields():
     assert aq.question_bank.tags == ["python", "oop"]
 
 
+def test_save_candidate_response_grades_json_correct_answer():
+    from app.models.candidate_response import CorrectnessStatus
+
+    mock_db = MagicMock()
+    mock_session = MagicMock()
+
+    mock_qb = MagicMock()
+    mock_qb.correct_answer = {"answer": "b"}
+    mock_qb.maximum_score = 4.0
+
+    mock_aq = MagicMock()
+    mock_aq.question_bank = mock_qb
+
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result(None),
+        _mock_query_result(mock_aq),
+    ]
+
+    response_in = ResponseCreate(
+        assessment_question_id=11,
+        candidate_answer="b",
+    )
+
+    result = save_candidate_response(mock_db, 9, response_in)
+
+    assert result.candidate_answer == "b"
+    assert result.score == 4.0
+    assert result.is_correct == CorrectnessStatus.CORRECT
 def _make_mock_db_for_invite(assessment_result, candidate_result, existing_result):
     mock_db = MagicMock()
 
