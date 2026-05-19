@@ -128,3 +128,125 @@ def test_get_assessment_includes_questions_list(client, mock_db):
     assert q["assessment_q_id"] == 7
     assert q["title"] == "What is X?"
     assert q["type"] == "TEXT"
+
+def _mock_query_result(result):
+    query = MagicMock()
+    query.filter.return_value.first.return_value = result
+    query.options.return_value.filter.return_value.first.return_value = result
+    return query
+
+
+def test_save_candidate_response_creates_response(client, mock_db):
+    mock_session = MagicMock()
+
+    # query sequence: CandidateAssessment, CandidateResponse (None), AssessmentQuestion (None)
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result(None),
+        _mock_query_result(None),
+    ]
+
+    # response_model expects response_id
+    mock_db.refresh.side_effect = lambda obj: setattr(obj, "response_id", 101)
+
+    response = client.post(
+        "/api/v1/candidate-assessments/9/responses",
+        json={
+            "assessment_question_id": 11,
+            "candidate_answer": "Draft answer",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["response_id"] == 101
+    assert body["candidate_assessment_id"] == 9
+    assert body["assessment_question_id"] == 11
+    assert body["candidate_answer"] == "Draft answer"
+    assert body["score"] is None
+    assert body["is_correct"] is None
+
+
+def test_save_candidate_response_updates_existing_response(client, mock_db):
+    mock_session = MagicMock()
+
+    existing_response = MagicMock()
+    existing_response.response_id = 202
+    existing_response.candidate_assessment_id = 9
+    existing_response.assessment_question_id = 11
+    existing_response.candidate_answer = "Old answer"
+    existing_response.score = 3.5
+    existing_response.is_correct = "PARTIAL"
+
+    # query sequence: CandidateAssessment, CandidateResponse (existing), AssessmentQuestion (None)
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result(existing_response),
+        _mock_query_result(None),
+    ]
+
+    response = client.post(
+        "/api/v1/candidate-assessments/9/responses",
+        json={
+            "assessment_question_id": 11,
+            "candidate_answer": "Updated answer",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["response_id"] == 202
+    assert body["candidate_answer"] == "Updated answer"
+    # grading skipped (assessment_question None), so service sets these to None
+    assert body["score"] is None
+    assert body["is_correct"] is None
+
+
+def test_save_candidate_response_grades_json_correct_answer(client, mock_db):
+    mock_session = MagicMock()
+
+    mock_qb = MagicMock()
+    mock_qb.correct_answer = {"answer": "b"}
+    mock_qb.maximum_score = 4.0
+
+    mock_aq = MagicMock()
+    mock_aq.question_bank = mock_qb
+
+    # query sequence: CandidateAssessment, CandidateResponse (None), AssessmentQuestion (with qb)
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result(None),
+        _mock_query_result(mock_aq),
+    ]
+
+    mock_db.refresh.side_effect = lambda obj: setattr(obj, "response_id", 303)
+
+    response = client.post(
+        "/api/v1/candidate-assessments/9/responses",
+        json={
+            "assessment_question_id": 11,
+            "candidate_answer": "b",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["response_id"] == 303
+    assert body["score"] == 4.0
+    assert body["is_correct"] == "CORRECT"
+
+
+def test_save_candidate_response_returns_404_for_missing_session(client, mock_db):
+    # CandidateAssessment not found
+    mock_db.query.side_effect = [_mock_query_result(None)]
+
+    response = client.post(
+        "/api/v1/candidate-assessments/999/responses",
+        json={
+            "assessment_question_id": 11,
+            "candidate_answer": "anything",
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Candidate assessment not found"

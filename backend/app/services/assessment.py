@@ -154,9 +154,9 @@ def save_candidate_response(
         correct_answer = qb.correct_answer
         candidate_parsed = _parse_candidate_answer(response_in.candidate_answer)
 
-        score, status = _grade_candidate(qb, correct_answer, candidate_parsed)
+        score, correctness_status = _grade_candidate(qb, correct_answer, candidate_parsed)
         candidate_response.score = score
-        candidate_response.is_correct = status
+        candidate_response.is_correct = correctness_status
     else:
         candidate_response.score = None
         candidate_response.is_correct = None
