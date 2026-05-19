@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     google_client_secret: str
     google_redirect_uri: str
 
+    
+    frontend_url: str = "http://localhost:3000"
+
 
 # Single shared instance imported by the rest of the app
 settings = Settings()
