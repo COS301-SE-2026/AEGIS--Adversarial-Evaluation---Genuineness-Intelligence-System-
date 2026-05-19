@@ -1,7 +1,77 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
+from app.models.candidate_assessment import CandidateAssessment
+import json
+
+from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.schema.candidate_response import ResponseCreate
+
+
+def _norm(v):
+    return str(v).strip().lower()
+
+
+def _parse_candidate_answer(raw: str):
+    try:
+        return json.loads(raw or "")
+    except Exception:
+        return raw or ""
+
+
+def _grade_candidate(qb, correct_answer, candidate_parsed):
+
+    if correct_answer is None:
+        return None, None
+
+    max_score = qb.maximum_score or 0.0
+
+    if isinstance(correct_answer, (list, tuple)):
+        correct_set = set(map(_norm, correct_answer))
+
+        if isinstance(candidate_parsed, (list, tuple)):
+            cand_set = set(map(_norm, candidate_parsed))
+            matched = cand_set & correct_set
+            if cand_set == correct_set:
+                return max_score, CorrectnessStatus.CORRECT
+            if matched:
+                fraction = len(matched) / len(correct_set)
+                return max_score * fraction, CorrectnessStatus.PARTIAL
+            return 0.0, CorrectnessStatus.INCORRECT
+
+        if isinstance(candidate_parsed, dict):
+            scalar = candidate_parsed.get("answer") or candidate_parsed.get("value")
+            if scalar is not None and _norm(scalar) in correct_set:
+                return max_score, CorrectnessStatus.CORRECT
+            return 0.0, CorrectnessStatus.INCORRECT
+
+        if _norm(candidate_parsed) in correct_set:
+            return max_score, CorrectnessStatus.CORRECT
+        return 0.0, CorrectnessStatus.INCORRECT
+
+    if isinstance(correct_answer, dict):
+        if isinstance(candidate_parsed, dict):
+            if candidate_parsed == correct_answer:
+                return max_score, CorrectnessStatus.CORRECT
+            cand_scalar = candidate_parsed.get("answer") or candidate_parsed.get("value")
+            expected_scalar = correct_answer.get("answer") or correct_answer.get("value")
+            if cand_scalar is not None and expected_scalar is not None and _norm(cand_scalar) == _norm(expected_scalar):
+                return max_score, CorrectnessStatus.CORRECT
+            return 0.0, CorrectnessStatus.INCORRECT
+
+        expected_scalar = correct_answer.get("answer") or correct_answer.get("value")
+        if expected_scalar is not None and _norm(expected_scalar) == _norm(candidate_parsed):
+            return max_score, CorrectnessStatus.CORRECT
+        return 0.0, CorrectnessStatus.INCORRECT
+
+    try:
+        if _norm(correct_answer) == _norm(candidate_parsed):
+            return max_score, CorrectnessStatus.CORRECT
+        return 0.0, CorrectnessStatus.INCORRECT
+    except Exception:
+        return None, None
 
 
 def get_all_assessments(db: Session) -> list[Assessment]:
@@ -29,3 +99,68 @@ def get_assessment_by_id(
             )
         )
     return assessment
+
+
+def save_candidate_response(
+    db: Session,
+    candidate_assessment_id: int,
+    response_in: ResponseCreate,
+) -> CandidateResponse:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id
+        )
+        .first()
+    )
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate assessment not found",
+        )
+
+    existing_response = (
+        db.query(CandidateResponse)
+        .filter(
+            CandidateResponse.candidate_assessment_id
+            == candidate_assessment_id,
+            CandidateResponse.assessment_question_id
+            == response_in.assessment_question_id,
+        )
+        .first()
+    )
+
+    if existing_response is not None:
+        existing_response.candidate_answer = response_in.candidate_answer
+        candidate_response = existing_response
+    else:
+        candidate_response = CandidateResponse(
+            candidate_assessment_id=candidate_assessment_id,
+            assessment_question_id=response_in.assessment_question_id,
+            candidate_answer=response_in.candidate_answer,
+        )
+        db.add(candidate_response)
+
+    assessment_q = (
+        db.query(AssessmentQuestion)
+        .options(selectinload(AssessmentQuestion.question_bank))
+        .filter(AssessmentQuestion.assessment_q_id == response_in.assessment_question_id)
+        .first()
+    )
+
+    if assessment_q is not None and assessment_q.question_bank is not None:
+        qb = assessment_q.question_bank
+        correct_answer = qb.correct_answer
+        candidate_parsed = _parse_candidate_answer(response_in.candidate_answer)
+
+        score, status = _grade_candidate(qb, correct_answer, candidate_parsed)
+        candidate_response.score = score
+        candidate_response.is_correct = status
+    else:
+        candidate_response.score = None
+        candidate_response.is_correct = None
+
+    db.commit()
+    db.refresh(candidate_response)
+    return candidate_response

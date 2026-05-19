@@ -9,9 +9,18 @@ from app.database.database import get_db
 from app.services.assessment import (
     get_all_assessments,
     get_assessment_by_id,
+    save_candidate_response,
+)
+from app.schema.candidate_response import (
+    CandidateResponseResponse,
+    ResponseCreate,
 )
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
+candidate_response_router = APIRouter(
+    prefix="/candidate-assessments",
+    tags=["candidate-assessments"],
+)
 
 
 class AssessmentListItem(BaseModel):
@@ -108,3 +117,19 @@ async def get_assessment(
             for aq in assessment.assessment_questions
         ],
     }
+
+
+@candidate_response_router.post(
+    "/{candidate_assessment_id}/responses",
+    response_model=CandidateResponseResponse,
+)
+async def save_response(
+    candidate_assessment_id: int,
+    response_in: ResponseCreate,
+    db: Session = Depends(get_db),
+):
+    return save_candidate_response(
+        db,
+        candidate_assessment_id,
+        response_in,
+    )
