@@ -20,7 +20,8 @@ async def google_login():
     return RedirectResponse(url=url, status_code=302)
 
 
-# Receives Google's authorization code, exchanges it for user info, and returns a signed* JWT.
+# Receives Google's authorization code, exchanges it for user info,
+# and returns a signed* JWT.
 @router.get("/google/callback")
 async def google_callback(
     code: str,

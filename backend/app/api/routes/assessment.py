@@ -63,7 +63,6 @@ async def get_assessment(
     assessment_id: int,
     db: Session = Depends(get_db),
 ):
-    
     assessment = get_assessment_by_id(db, assessment_id)
     if assessment is None:
         raise HTTPException(

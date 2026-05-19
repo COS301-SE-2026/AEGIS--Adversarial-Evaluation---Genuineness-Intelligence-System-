@@ -12,7 +12,6 @@ def get_all_assessments(db: Session) -> list[Assessment]:
 def get_assessment_by_id(
     db: Session, assessment_id: int
 ) -> Assessment | None:
-    
     assessment = (
         db.query(Assessment)
         .options(
