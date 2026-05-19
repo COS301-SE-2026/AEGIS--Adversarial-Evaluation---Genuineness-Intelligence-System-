@@ -21,7 +21,7 @@ const Button = ({
   icon,
 }: ButtonProps) => {
   const base =
-    "inline-flex items-center justify-center gap-2 px-8 py-4 font-jetbrains-mono text-sm tracking-widest uppercase transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+    "font-staatliches tracking-widest inline-flex items-center justify-center rounded-md gap-2 px-8 py-4  tracking-widest uppercase transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
   const variants: Record<ButtonVariant, string> = {
     solid:
       "bg-system-red text-default-text hover:bg-red-700 border border-system-red",
