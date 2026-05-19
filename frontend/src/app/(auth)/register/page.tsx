@@ -2,20 +2,84 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Input from "@/src/components/ui/input";
-import Button from "@/src/components/ui/button";
-import GoogleIcon from "@/src/components/ui/google-icon";
-import GithubIcon from "@/src/components/ui/github-icon";
+import Input from "@/components/hero/ui/input";
+import Button from "@/components/hero/ui/button";
+import GoogleIcon from "@/components/hero/ui/google-icon";
+import GithubIcon from "@/components/hero/ui/github-icon";
+
+import { validateEmail, validatePassword, validatePasswordMatch } from "@/lib/validation";
 
 
 const Register = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState({email: "", password: "", confirmPassword: ""});
+  const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
+
+  function handleEmailChange(value: string) {
+    setEmail(value);
+    if (touched.email) {
+      setErrors(prev => ({ ...prev, email: validateEmail(value) || ""}));
+    }
+  }
+
+  function handlePasswordChange(value: string) {
+    setPassword(value);
+    if (touched.password) {
+      setErrors(prev => ({ ...prev, password: validatePassword(value) || ""}));
+    }
+  }
+
+  function handleConfirmPasswordChange(value: string) {
+    setConfirmPassword(value);
+    if (touched.confirmPassword) {
+      setErrors(prev => ({ 
+        ...prev, 
+        confirmPassword: validatePasswordMatch(password, value) || "" 
+      }));
+    }
+  }
+
+  function handleEmailBlur() {
+    setTouched(prev => ({ ...prev, email: true }));
+    setErrors(prev => ({ ...prev, email: validateEmail(email) || "" }));
+  }
+
+  function handlePasswordBlur() {
+    setTouched(prev => ({ ...prev, password: true }));
+    setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }));
+  }
+
+
+  function handleConfirmPasswordBlur() {
+    setTouched(prev => ({ ...prev, confirmPassword: true }));
+    setErrors(prev => ({ 
+      ...prev, 
+      confirmPassword: validatePasswordMatch(password, confirmPassword) || "" 
+    }));
+  }  
+
+  const validate = (): boolean => {
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+    const confirmError = validatePasswordMatch(password, confirmPassword);
+    setErrors({
+      email: emailError || "",
+      password: passwordError || "",
+      confirmPassword: confirmError || ""
+    });
+    setTouched({ email: true, password: true, confirmPassword: true });
+
+    return !emailError && !passwordError && !confirmError;
+  }
 
   function handleSubmit() {
     //TODO: wire up registration logic
-    router.push("/assessment");
+    if (validate()) {
+      router.push("/assessment");      
+    }
   }
 
   function handleGoogle() {
@@ -30,12 +94,12 @@ const Register = () => {
 
   return (
     <main className="min-h-screen flex items-center justify-center">
-      <div className="border border-bunker-grey p-16 w-full max-w-lg flex flex-col gap-8">
+      <div className="border border-default-border p-16 w-full max-w-lg flex flex-col gap-8">
 
-        <h1 className="text-center text-5xl text-white-smoke">Create an Account</h1>
+        <h1 className="text-center text-5xl text-default-text">Create an Account</h1>
 
         <div className="flex flex-col gap-3">
-          <p className="text-center font-ibm-plex text-sm text-white-smoke">
+          <p className="text-center font-ibm-plex text-sm text-default-text">
             Sign up with:
           </p>
           <div className="flex gap-4">
@@ -49,11 +113,11 @@ const Register = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          <hr className="flex-1 border-bunker-grey"/>
-          <span className="font-jetbrains-mono text-xs tracking-widest uppercase text-white-smoke">
+          <hr className="flex-1 border-default-border"/>
+          <span className="font-jetbrains-mono text-xs tracking-widest uppercase text-default-text">
             or
           </span>
-          <hr className="flex-1 border-bunker-grey"/>
+          <hr className="flex-1 border-default-border"/>
         </div>
 
         <div className="flex flex-col gap-6">
@@ -62,24 +126,39 @@ const Register = () => {
             type="email"
             placeholder="Enter your email"
             value={email}
-            onChange={setEmail}
+            onChange={handleEmailChange}
+            error={errors.email}
+            onBlur={handleEmailBlur}
           />
           <Input
             label="Password"
             type="password"
             placeholder="Enter your password"
             value={password}
-            onChange={setPassword}
+            onChange={handlePasswordChange}
+            error={errors.password}
+            onBlur={handlePasswordBlur}
           />
+
+          <Input
+            label="Confirm Password"
+            type="password"
+            placeholder="Re enter your password"
+            value={confirmPassword}
+            onChange={handleConfirmPasswordChange}
+            error={errors.confirmPassword}
+            onBlur={handleConfirmPasswordBlur}
+          />
+
         </div>
  
         <Button variant="solid" onClick={handleSubmit} className="w-full">
           Sign Up
         </Button>
  
-        <p className="text-center font-ibm-plex text-sm text-white-smoke">
+        <p className="text-center font-ibm-plex text-sm text-default-text">
           Already have an account?{" "}
-          <Link href="/login" className="text-signal-red hover:underline">
+          <Link href="/login" className="text-system-red hover:underline">
             Sign In Now.
           </Link>
         </p>        

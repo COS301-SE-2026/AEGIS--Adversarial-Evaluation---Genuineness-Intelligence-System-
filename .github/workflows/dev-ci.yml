@@ -32,3 +32,8 @@ jobs:
 
       - name: Lint check (basic)
         run: pip install flake8 && flake8 app
+
+      - name: Run backend tests
+        run: |
+          pip install pytest pytest-asyncio httpx
+          pytest tests/ -v

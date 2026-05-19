@@ -1,5 +1,6 @@
 import Button from "../ui/button";
 import Image from "next/image"
+import Link from "next/link";
 
 const Hero = () => {
   return (
@@ -7,7 +8,7 @@ const Hero = () => {
         <div className="flex flex-col gap-8 max-w-xl">
             <div className="flex flex-col gap-0">
                 <h1 className="font-staatliches text-8xl leading-none text-white-smoke">Prove Your</h1>
-                <h1 className="font-staatliches text-8xl leading-none text-signal-red">
+                <h1 className="font-staatliches text-8xl leading-none text-system-red">
                     Humanity
                     <span className="text-white-smoke">.</span>
                 </h1>
@@ -15,15 +16,20 @@ const Hero = () => {
             <p className="font-ibm-plex text-xs tracking-widest uppercase text-white-smoke leading-relaxed max-w-sm">
                 The ultimate coding assessment where human reasoning battles AI logic.
                 Artificial intelligence thrives on predictability.{" "}
-                <span className="text-signal-red">
+                <span className="text-system-red">
                 Can you build an unpredictable logic path and bypass the machine
                 detection grid?
                 </span>
             </p>
 
             <div className="flex items-center gap-4">
-                <Button variant="solid">Get Started →</Button>
-                <Button variant="outline">Learn More</Button>
+                <Link href="/login" target="_blank">
+                    <Button variant="solid">Get Started →</Button>                
+                </Link>
+                <Link href="/resources/guides">
+                    <Button variant="outline">Learn More</Button>                
+                </Link>
+
             </div>
         </div>            
         <div className="relative w-[420px] h-[400px] shrink-0 overflow-hidden">

@@ -24,9 +24,9 @@ const Button = ({
     "inline-flex items-center justify-center gap-2 px-8 py-4 font-jetbrains-mono text-sm tracking-widest uppercase transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
   const variants: Record<ButtonVariant, string> = {
     solid:
-      "bg-signal-red text-pure-white hover:bg-red-700 border border-signal-red",
+      "bg-system-red text-default-text hover:bg-red-700 border border-system-red",
     outline:
-      "bg-transparent text-signal-red border border-signal-red hover:bg-signal-red hover:text-pure-white",
+      "bg-transparent text-system-red border border-system-red hover:bg-system-red hover:text-default-text",
   };
 
   return (
