@@ -1,7 +1,4 @@
 from datetime import datetime, timedelta, timezone
-# timedelta is to express durations like 30 minutes from now,
-# timezone.utc ensures we use UTC times for token expiry,
-# avoiding timezone issues with them JWT tokens
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -9,9 +6,6 @@ from jose import JWTError, jwt
 
 from app.core.config import settings
 
-# the Oauth2PasswordBearer is a utility that just extract a
-# Bearer token from the request header
-# Ideally frontend will send a header like 'Authorization: Bearer eyJ...'
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/google/callback")
 
 

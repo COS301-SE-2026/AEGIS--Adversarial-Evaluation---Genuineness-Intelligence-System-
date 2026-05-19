@@ -129,6 +129,6 @@ async def invite_candidate(
         "assessment_id": session.assessment_id,
         "candidate_id": session.candidate_id,
         "access_link": (
-            f"http://localhost:3000/assessment/take?token={session.access_token}"
+         f"http://localhost:3000/assessment/take?token={session.access_token}"
         ),
     }
