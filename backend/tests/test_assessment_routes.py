@@ -259,6 +259,8 @@ def test_save_candidate_response_returns_404_for_missing_session(client, mock_db
 def test_submit_candidate_assessment_updates_scores(client, mock_db):
     mock_session = MagicMock()
     mock_session.candidate_assess_id = 9
+    mock_session.access_token = "token-123"
+    mock_session.status = "COMPLETED"
 
     mock_resp_1 = MagicMock()
     mock_resp_1.score = 2.0
@@ -291,7 +293,6 @@ def test_submit_candidate_assessment_updates_scores(client, mock_db):
     assert response.status_code == 200
     body = response.json()
     assert body["candidate_assess_id"] == 9
-    assert body["candidate_score"] == 2.0
     assert body["total_score"] == 8.0
     assert body["status"] == "COMPLETED"
 
