@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db
 from app.services.assessment import (
     get_all_assessments,
+    get_candidate_responses,
     get_assessment_by_id,
     save_candidate_response,
 )
@@ -132,4 +133,18 @@ async def save_response(
         db,
         candidate_assessment_id,
         response_in,
+    )
+
+
+@candidate_response_router.get(
+    "/{candidate_assessment_id}/responses",
+    response_model=List[CandidateResponseResponse],
+)
+async def list_responses(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+):
+    return get_candidate_responses(
+        db,
+        candidate_assessment_id,
     )

@@ -164,3 +164,31 @@ def save_candidate_response(
     db.commit()
     db.refresh(candidate_response)
     return candidate_response
+
+
+def get_candidate_responses(
+    db: Session,
+    candidate_assessment_id: int,
+) -> list[CandidateResponse]:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id
+        )
+        .first()
+    )
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate assessment not found",
+        )
+
+    return (
+        db.query(CandidateResponse)
+        .filter(
+            CandidateResponse.candidate_assessment_id
+            == candidate_assessment_id
+        )
+        .all()
+    )
