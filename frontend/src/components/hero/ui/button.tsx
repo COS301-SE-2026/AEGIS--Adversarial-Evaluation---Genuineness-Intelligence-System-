@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-type ButtonVariant = "solid" | "outline";
+type ButtonVariant = "solid" | "outline" | "social";
 
 type ButtonProps = {
   variant?: ButtonVariant;
@@ -21,12 +21,14 @@ const Button = ({
   icon,
 }: ButtonProps) => {
   const base =
-    "font-staatliches tracking-widest inline-flex items-center justify-center rounded-md gap-2 px-8 py-4  tracking-widest uppercase transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+    "font-staatliches tracking-widest inline-flex items-center justify-center rounded-md gap-2 px-8 py-4 tracking-widest uppercase transition-colors duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
   const variants: Record<ButtonVariant, string> = {
     solid:
-      "bg-system-red text-default-text hover:bg-red-700 border border-system-red",
+      "bg-default-text text-background border border-default-text hover:bg-transparent hover:border-system-red hover:text-system-red",
     outline:
-      "bg-transparent text-system-red border border-system-red hover:bg-system-red hover:text-default-text",
+      "bg-transparent text-default-text border border-default-border hover:bg-background hover:text-default-text",
+    social:
+      "bg-transparent text-default-text border border-default-border hover:border-system-red",
   };
 
   return (
