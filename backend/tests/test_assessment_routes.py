@@ -253,6 +253,46 @@ def test_save_candidate_response_returns_404_for_missing_session(client, mock_db
     assert response.json()["detail"] == "Candidate assessment not found"
 
 
+def test_submit_candidate_assessment_updates_scores(client, mock_db):
+    mock_session = MagicMock()
+    mock_session.candidate_assess_id = 9
+
+    mock_resp_1 = MagicMock()
+    mock_resp_1.score = 2.0
+    mock_resp_2 = MagicMock()
+    mock_resp_2.score = None
+    mock_session.responses = [mock_resp_1, mock_resp_2]
+
+    mock_qb = MagicMock()
+    mock_qb.maximum_score = 5.0
+    mock_aq_1 = MagicMock()
+    mock_aq_1.marks = None
+    mock_aq_1.question_bank = mock_qb
+
+    mock_aq_2 = MagicMock()
+    mock_aq_2.marks = 3.0
+    mock_aq_2.question_bank = None
+
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_questions = [mock_aq_1, mock_aq_2]
+    mock_session.assessment = mock_assessment
+
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+    ]
+
+    response = client.post(
+        "/api/v1/candidate-assessments/9/submit",
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["candidate_assess_id"] == 9
+    assert body["candidate_score"] == 2.0
+    assert body["total_score"] == 8.0
+    assert body["status"] == "COMPLETED"
+
+
 def test_list_candidate_responses_returns_responses(client, mock_db):
     mock_session = MagicMock()
 
