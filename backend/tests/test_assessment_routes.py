@@ -133,6 +133,7 @@ def _mock_query_result(result):
     query = MagicMock()
     query.filter.return_value.first.return_value = result
     query.options.return_value.filter.return_value.first.return_value = result
+    query.filter.return_value.all.return_value = result
     return query
 
 
@@ -247,6 +248,51 @@ def test_save_candidate_response_returns_404_for_missing_session(client, mock_db
             "candidate_answer": "anything",
         },
     )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Candidate assessment not found"
+
+
+def test_list_candidate_responses_returns_responses(client, mock_db):
+    mock_session = MagicMock()
+
+    response_one = MagicMock()
+    response_one.response_id = 1
+    response_one.candidate_assessment_id = 9
+    response_one.assessment_question_id = 11
+    response_one.candidate_answer = "A"
+    response_one.score = 1.0
+    response_one.is_correct = "CORRECT"
+
+    response_two = MagicMock()
+    response_two.response_id = 2
+    response_two.candidate_assessment_id = 9
+    response_two.assessment_question_id = 12
+    response_two.candidate_answer = "B"
+    response_two.score = 0.0
+    response_two.is_correct = "INCORRECT"
+
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result([response_one, response_two]),
+    ]
+
+    response = client.get("/api/v1/candidate-assessments/9/responses")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    assert len(body) == 2
+    assert body[0]["response_id"] == 1
+    assert body[0]["candidate_answer"] == "A"
+    assert body[1]["response_id"] == 2
+    assert body[1]["candidate_answer"] == "B"
+
+
+def test_list_candidate_responses_returns_404_for_missing_session(client, mock_db):
+    mock_db.query.side_effect = [_mock_query_result(None)]
+
+    response = client.get("/api/v1/candidate-assessments/999/responses")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Candidate assessment not found"
