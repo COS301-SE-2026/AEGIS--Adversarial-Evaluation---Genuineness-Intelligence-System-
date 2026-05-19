@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import uuid
 
 from fastapi import HTTPException, status
@@ -7,9 +8,8 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
-import json
-
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.models.user import User
 from app.schema.candidate_response import ResponseCreate
 
 
@@ -45,7 +45,9 @@ def _grade_candidate(qb, correct_answer, candidate_parsed):
             return 0.0, CorrectnessStatus.INCORRECT
 
         if isinstance(candidate_parsed, dict):
-            scalar = candidate_parsed.get("answer") or candidate_parsed.get("value")
+            scalar = candidate_parsed.get("answer") or candidate_parsed.get(
+                "value"
+            )
             if scalar is not None and _norm(scalar) in correct_set:
                 return max_score, CorrectnessStatus.CORRECT
             return 0.0, CorrectnessStatus.INCORRECT
@@ -58,14 +60,28 @@ def _grade_candidate(qb, correct_answer, candidate_parsed):
         if isinstance(candidate_parsed, dict):
             if candidate_parsed == correct_answer:
                 return max_score, CorrectnessStatus.CORRECT
-            cand_scalar = candidate_parsed.get("answer") or candidate_parsed.get("value")
-            expected_scalar = correct_answer.get("answer") or correct_answer.get("value")
-            if cand_scalar is not None and expected_scalar is not None and _norm(cand_scalar) == _norm(expected_scalar):
+            cand_scalar = (
+                candidate_parsed.get("answer")
+                or candidate_parsed.get("value")
+            )
+            expected_scalar = (
+                correct_answer.get("answer")
+                or correct_answer.get("value")
+            )
+            if (
+                cand_scalar is not None
+                and expected_scalar is not None
+                and _norm(cand_scalar) == _norm(expected_scalar)
+            ):
                 return max_score, CorrectnessStatus.CORRECT
             return 0.0, CorrectnessStatus.INCORRECT
 
-        expected_scalar = correct_answer.get("answer") or correct_answer.get("value")
-        if expected_scalar is not None and _norm(expected_scalar) == _norm(candidate_parsed):
+        expected_scalar = correct_answer.get("answer") or correct_answer.get(
+            "value"
+        )
+        if expected_scalar is not None and _norm(expected_scalar) == _norm(
+            candidate_parsed
+        ):
             return max_score, CorrectnessStatus.CORRECT
         return 0.0, CorrectnessStatus.INCORRECT
 
@@ -75,7 +91,6 @@ def _grade_candidate(qb, correct_answer, candidate_parsed):
         return 0.0, CorrectnessStatus.INCORRECT
     except Exception:
         return None, None
-from app.models.user import User
 
 
 def get_all_assessments(db: Session) -> list[Assessment]:
@@ -149,16 +164,23 @@ def save_candidate_response(
     assessment_q = (
         db.query(AssessmentQuestion)
         .options(selectinload(AssessmentQuestion.question_bank))
-        .filter(AssessmentQuestion.assessment_q_id == response_in.assessment_question_id)
+        .filter(
+            AssessmentQuestion.assessment_q_id
+            == response_in.assessment_question_id
+        )
         .first()
     )
 
     if assessment_q is not None and assessment_q.question_bank is not None:
         qb = assessment_q.question_bank
         correct_answer = qb.correct_answer
-        candidate_parsed = _parse_candidate_answer(response_in.candidate_answer)
+        candidate_parsed = _parse_candidate_answer(
+            response_in.candidate_answer
+        )
 
-        score, correctness_status = _grade_candidate(qb, correct_answer, candidate_parsed)
+        score, correctness_status = _grade_candidate(
+            qb, correct_answer, candidate_parsed
+        )
         candidate_response.score = score
         candidate_response.is_correct = correctness_status
     else:
@@ -228,7 +250,10 @@ def submit_candidate_assessment(
     for aq in session.assessment.assessment_questions:
         if aq.marks is not None:
             total_score += aq.marks
-        elif aq.question_bank is not None and aq.question_bank.maximum_score is not None:
+        elif (
+            aq.question_bank is not None
+            and aq.question_bank.maximum_score is not None
+        ):
             total_score += aq.question_bank.maximum_score
 
     session.candidate_score = candidate_score
@@ -239,6 +264,8 @@ def submit_candidate_assessment(
     db.commit()
     db.refresh(session)
     return session
+
+
 def create_candidate_assessment(
     db: Session,
     assessment_id: int,
