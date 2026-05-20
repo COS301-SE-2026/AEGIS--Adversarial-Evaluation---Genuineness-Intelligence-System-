@@ -6,10 +6,10 @@ interface TopbarProps {
 
 export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
   return (
-    <div className="h-[60px] bg-transparent border-b border-[#333331] flex items-center justify-between px-7 flex-shrink-0">
+    <div className="h-[60px] bg-secondary-surface border-b border-tertiary-surface flex items-center justify-between px-7 flex-shrink-0">
       {/* Breadcrumb */}
-      <div className="font-jetbrains text-[11px] text-[rgba(245,245,245,0.42)]">
-        ADMIN / <span className="text-[#D32F2F]">ASSESSMENTS</span>
+      <div className="font-jetbrains text-[11px] text-white-smoke/40">
+        ADMIN / <span className="text-system-red">ASSESSMENTS</span>
       </div>
 
       {/* Right side */}
@@ -17,7 +17,7 @@ export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
         {/* Bell icon */}
         <button
           aria-label="Notifications"
-          className="text-[rgba(245,245,245,0.42)] hover:text-[#F5F5F5] transition-colors"
+          className="text-white-smoke/40 hover:text-white-smoke transition-colors"
         >
           <svg
             width="18"
@@ -32,10 +32,10 @@ export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
           </svg>
         </button>
 
-        {/* New Assessment button */}
+        {/* New Assessment button — kept as latest solid variant matching home */}
         <button
           onClick={onNewAssessment}
-          className="flex items-center gap-2 bg-[#D32F2F] hover:bg-[#EF5350] text-[#F5F5F5] px-[18px] py-[9px] font-staatliches text-[15px] tracking-[0.05em] rounded-[5px] transition-colors duration-150 whitespace-nowrap"
+          className="flex items-center gap-2 bg-default-text text-background border border-default-text px-[18px] py-[9px] font-staatliches text-[15px] tracking-[0.05em] rounded-[5px] transition-colors duration-200 whitespace-nowrap hover:bg-transparent hover:border-system-red hover:text-system-red"
         >
           <svg
             width="12"
@@ -51,8 +51,10 @@ export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
           NEW ASSESSMENT
         </button>
 
-        {/* Avatar */}
-        <div className="w-[34px] h-[34px] bg-[#D32F2F] rounded-[5px] flex items-center justify-center font-staatliches text-base cursor-pointer select-none text-white">
+        {/* Avatar — updated to transparent bg + white text + default border (as requested) */}
+        <div 
+          className="w-[34px] h-[34px] bg-transparent border border-default-border rounded-[5px] flex items-center justify-center font-staatliches text-base cursor-pointer select-none text-white-smoke"
+        >
           AD
         </div>
       </div>
