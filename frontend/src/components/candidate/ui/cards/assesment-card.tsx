@@ -8,32 +8,13 @@ function formatStatus(status: string): string {
     return status.replace(/_/g, " ").toUpperCase();
 }
 
-function formatDate(value?: string | null): string {
-    if (!value) {
-        return "Not started";
-    }
-
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) {
-        return "Not scheduled";
-    }
-
-    return date.toLocaleString();
-}
-
 export function AssessmentCard({
     assessmentId,
     title,
     description,
     durationMins,
     status,
-    startTime,
-    endTime,
 }: AssessmentCardProps) {
-    const windowLabel = startTime || endTime
-        ? `${formatDate(startTime)} - ${formatDate(endTime)}`
-        : "Not scheduled";
-
     return (
         <div className= "bg-secondary-surface/50 border-2 rounded-md border-tertiary-surface p-4 h-20rem w-15rem flex flex-col hover:scale-105 hover:border-system-red/75 hover:shadow-glow-red transition-all duration-300">
             <div className="mb-4 shrink-0">

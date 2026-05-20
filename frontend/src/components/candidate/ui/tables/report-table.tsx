@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { AssessmentCardProps } from "../cards/assessment-card.types";
 import { ReportViewButton } from "../buttons/report-view-button";
 import { mockCompletedAssessments } from "@/lib/mockData";
+import type { CompletedAssessment } from "@/lib/mockData";
 
 interface ReportTableProps {
-    assessments?: (AssessmentCardProps & { dateCompleted?: string })[];
+    assessments?: CompletedAssessment[];
 }
 
 export function ReportTable({ assessments = mockCompletedAssessments }: ReportTableProps) {
