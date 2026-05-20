@@ -1,27 +1,68 @@
-'use client'
-// import React, { useState } from "react";
-// import { Question } from "./question.type";
+'use client';
 
-// interface BlankAnswerState {
-//     [blankIndex: string]: string;
-// }
+import { Question } from "./question.type";
+import React, { useRef, useState } from "react";
 
-export function TestFillInTheBlanksCard() {
+export function TestFillInTheBlanksCard({ question }: { question: Question }) {
+    const [orderedOptions, setOrderedOptions] = useState<string[]>(() => [...question.options]);
+    const dragIndexRef = useRef<number | null>(null);
+    const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+    const [overIndex, setOverIndex] = useState<number | null>(null);
 
-    // const [answers, setAnswers] = useState<BlankAnswerState>({});
+    const handleDragStart = (index: number) => {
+        dragIndexRef.current = index;
+        setDraggingIndex(index);
+    };
 
-    // const totalBlanks = (question.questionText.match(/_____/g) || []).length;
+    const handleDragEnd = () => {
+        dragIndexRef.current = null;
+        setDraggingIndex(null);
+        setOverIndex(null);
+    };
 
+    const handleDrop = (index: number) => {
+        const fromIndex = dragIndexRef.current;
+        if (fromIndex === null || fromIndex === index) {
+            handleDragEnd();
+            return;
+        }
 
-
-    // const handleSubmit = () => {
-    //     // send blankAnswer to backend for evaluation
-    //     alert(`Submitted answer: ${blankAnswer}`);
-    // }
+        const updated = [...orderedOptions];
+        const [moved] = updated.splice(fromIndex, 1);
+        updated.splice(index, 0, moved);
+        setOrderedOptions(updated);
+        handleDragEnd();
+    };
 
     return (
         <div>
-             <p>Multiple Choice</p>
+            <div>
+                <h3 className="text-base tracking-widest uppercase mt-4 mb-6">Arrange The Answers In The Correct Order</h3>
+            </div>
+            <div className="flex flex-col gap-4">
+                {orderedOptions.map((option, index) => (
+                    <div
+                        key={`option-${index}`}
+                        draggable
+                        onDragStart={() => handleDragStart(index)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDragEnter={() => setOverIndex(index)}
+                        onDragLeave={() => setOverIndex((current) => (current === index ? null : current))}
+                        onDrop={() => handleDrop(index)}
+                        className={`flex items-center gap-4 rounded-md border p-4 cursor-move transition-all ${
+                            draggingIndex === index
+                                ? "border-blue-400 bg-blue-400/10 scale-[0.99]"
+                                : overIndex === index
+                                    ? "border-blue-300 bg-blue-300/10"
+                                    : "border-default-border"
+                        }`}
+                    >
+                        <span className="text-lg min-w-fit">{index + 1}.</span>
+                        <span className="text-default-text">{option}</span>
+                    </div>
+                ))}
+            </div>
         </div>
-    )
+    );
 }

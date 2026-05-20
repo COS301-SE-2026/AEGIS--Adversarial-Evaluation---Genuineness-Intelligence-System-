@@ -24,7 +24,7 @@ export function TestDescriptionCard({ question }: {question: Question}) {
                 </div>
                 <hr className="border-default-border/75" />
                 <div className="p-4">
-                    <p>{question.questionText}</p>
+                    <p className="whitespace-pre-wrap">{question.questionContent}</p>
                 </div>
             </div>
         </div>
