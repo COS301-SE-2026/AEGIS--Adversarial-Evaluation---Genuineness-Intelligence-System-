@@ -208,7 +208,7 @@ function StepTargeting({
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-[5px] bg-system-red flex items-center justify-center font-staatliches text-sm text-white flex-shrink-0 select-none">
+                  <div className="w-8 h-8 rounded-[5px] bg-white text-black flex items-center justify-center font-staatliches text-sm flex-shrink-0 select-none border border-default-border">
                     {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div>
