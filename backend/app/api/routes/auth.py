@@ -62,12 +62,14 @@ def register(
     payload: RegisterRequest,
     db: Session = Depends(get_db),
 ) -> RegisterResponse:
-    user, access_token = register_user(db, payload)
+    try:
+        user, access_token = register_user(db, payload)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
     return RegisterResponse(
-        user={
-            "id": user.user_id,
-            "email": user.email,
-            "full_name": user.full_name
-        },
-        access_token=access_token
+        user={"id": user.user_id, "email": user.email, "full_name": user.full_name},
+        access_token=access_token,
     )
