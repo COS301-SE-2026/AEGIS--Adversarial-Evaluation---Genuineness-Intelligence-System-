@@ -5,6 +5,7 @@ import { TestDescriptionCard } from "@/components/candidate/ui/cards/test-descri
 import { TestAnswerCard } from "@/components/candidate/ui/cards/test-answer-card";
 import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-button";
 import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-button";
+import { TestSubmitButton } from "@/components/candidate/ui/buttons/test-submit-button";
 import { mockAssessmentQuestions } from "@/lib/mockData";
 
 export default function AssessmentCompletionPage({ params }: { params: Promise<{ id: string }> }) {
@@ -48,11 +49,17 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
 
             </div>
 
-            <div className=" flex flex-row items-center 2xl:gap-4">
-               <TestPreviousButton handlePrevious={handlePrevious} />
-               <p>{currentQuestionIndex + 1} / {totalQuestions}</p>
-               <TestNextButton handleNext={handleNext} />
+            <div className="relative flex w-full items-center">
+               <div className="mx-auto flex flex-row items-center gap-4">
+                  <TestPreviousButton handlePrevious={handlePrevious} />
+                  <p>{currentQuestionIndex + 1} / {totalQuestions}</p>
+                  <TestNextButton handleNext={handleNext} />
+               </div>
+               <div className="absolute right-18">
+                  <TestSubmitButton />
+               </div>
             </div>
+            
         </main>
     );
 }

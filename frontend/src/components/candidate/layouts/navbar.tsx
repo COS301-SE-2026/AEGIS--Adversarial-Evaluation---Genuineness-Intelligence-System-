@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { SearchBar } from "../ui/buttons/search-bar";
 import { NotificationBell } from "../ui/buttons/notification-bell-button";
 import { UserIcon } from "../ui/buttons/user-profile-button";
-import { SaveButton } from "../ui/buttons/assessment-save-button";
+import { TestSaveButton } from "../ui/buttons/test-save-button";
 import { ExitSessionButton } from "../ui/buttons/exit-session-button";
 
 export function Navbar() {
@@ -68,7 +68,7 @@ export function Navbar() {
                     </div>
                     
                     <div className="flex items-center gap-8">
-                        <SaveButton />
+                        <TestSaveButton />
                         <Link href="/assessment">
                             <ExitSessionButton />
                         </Link>
