@@ -13,6 +13,7 @@ from app.services.assessment import (
     get_candidate_responses,
     get_assessment_by_id,
     get_candidate_assessments,
+    get_questions_for_candidate_assessment,
     save_candidate_response,
     submit_candidate_assessment,
     create_candidate_assessment,
@@ -243,3 +244,39 @@ async def invite_candidate(
          f"http://localhost:3000/assessment/take?token={session.access_token}"
         ),
     }
+
+
+@router.get(
+    "/candidate/{candidate_assess_id}/questions",
+    status_code=status.HTTP_200_OK,
+)
+async def get_candidate_assessment_questions(
+    candidate_assess_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = int(current_user["user_id"])
+    questions = get_questions_for_candidate_assessment(
+        db, candidate_assess_id, user_id
+    )
+    return [
+        {
+            "assessment_q_id": aq.assessment_q_id,
+            "display_order": aq.display_order,
+            "marks": aq.marks,
+            "question": (
+                {
+                    "question_bank_id": aq.question_bank.question_bank_id,
+                    "title": aq.question_bank.title,
+                    "content": aq.question_bank.content,
+                    "type": aq.question_bank.type.value,
+                    "maximum_score": aq.question_bank.maximum_score,
+                    "tags": aq.question_bank.tags,
+                    "question_metadata": aq.question_bank.question_metadata,
+                }
+                if aq.question_bank is not None
+                else None
+            ),
+        }
+        for aq in questions
+    ]
