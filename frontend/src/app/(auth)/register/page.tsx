@@ -9,14 +9,19 @@ import GithubIcon from "@/components/hero/ui/github-icon";
 
 import { validateEmail, validatePassword, validatePasswordMatch } from "@/lib/validation";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 const Register = () => {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
   const [errors, setErrors] = useState({email: "", password: "", confirmPassword: ""});
   const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
+
+  const [serverError, setServerError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleEmailChange(value: string) {
     setEmail(value);
@@ -75,11 +80,37 @@ const Register = () => {
     return !emailError && !passwordError && !confirmError;
   }
 
-  function handleSubmit() {
-    //TODO: wire up registration logic
-    if (validate()) {
-      router.push("/assessment");      
+  async function handleSubmit() {
+    setServerError("");
+    if (!validate()) return;
+    setLoading(true);
+
+    try{
+      const response = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({email, password}),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const detail = data.detail;
+        if (Array.isArray(detail)) {
+          setServerError(detail.map((e: { msg: string }) => e.msg).join(" "));
+        } else {
+          setServerError(detail ?? "Registration failed. Please try again.");
+        }
+        return;
+      }
+
+      localStorage.setItem("access_token", data.access_token);
+      router.push("/assessment");
+    } catch {
+      setServerError("Server unreachable.");
+    } finally {
+      setLoading(false);
     }
+
   }
 
   function handleGoogle() {
@@ -152,8 +183,14 @@ const Register = () => {
 
         </div>
  
-        <Button variant="solid" onClick={handleSubmit} className="w-full">
-          Sign Up
+        {serverError && (
+          <p className="text-center font-ibm-plex text-sm text-system-red">
+            {serverError}
+          </p>
+        )}
+
+        <Button variant="solid" onClick={handleSubmit} className="w-full" disabled={loading}>
+          {loading ? "Creating account..." : "Sign Up"}
         </Button>
  
         <p className="text-center font-ibm-plex text-sm text-default-text">
