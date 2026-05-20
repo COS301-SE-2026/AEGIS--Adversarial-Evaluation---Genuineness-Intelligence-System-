@@ -106,32 +106,35 @@ def get_or_create_user(db: Session, user_info: dict) -> User:
     db.refresh(user)
     return user
 
+
 def register_user(db: Session, payload: RegisterRequest) -> tuple[User, str]:
     user_exists = db.query(User).filter(User.email == payload.email).first()
     if user_exists:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, 
+            status_code=status.HTTP_409_CONFLICT,
             detail="An account with this email already exists"
         )
-    
+
     candidate_role = (
         db.query(Role).filter(Role.role_name == "CANDIDATE").first()
     )
     if candidate_role is None:
         raise ValueError("CANDIDATE role not found")
-    
+
     user = User(
         email=payload.email,
         full_name=payload.full_name,
-        password_hash = hash_password(payload.password),
-        user_role_id= candidate_role.role_id
+        password_hash=hash_password(payload.password),
+        user_role_id=candidate_role.role_id
     )
 
     db.add(user)
     db.flush()
 
     access_token = create_access_token(
-        data={"sub": str(user.user_id), "email": user.email, "role": candidate_role.role_name}
+        data={"sub": str(user.user_id),
+              "email": user.email,
+              "role": candidate_role.role_name}
     )
 
     oauth_record = OAuth(

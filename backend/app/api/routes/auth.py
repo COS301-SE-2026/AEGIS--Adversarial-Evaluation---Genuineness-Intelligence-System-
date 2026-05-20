@@ -57,7 +57,9 @@ async def google_callback(
         },
     }
 
-@router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post("/register", response_model=RegisterResponse,
+             status_code=status.HTTP_201_CREATED)
 def register(
     payload: RegisterRequest,
     db: Session = Depends(get_db),
@@ -70,6 +72,7 @@ def register(
             detail=str(e),
         )
     return RegisterResponse(
-        user={"id": user.user_id, "email": user.email, "full_name": user.full_name},
+        user={"id": user.user_id, "email": user.email,
+              "full_name": user.full_name},
         access_token=access_token,
     )

@@ -3,6 +3,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+
 class RegisterRequest(BaseModel):
     email: EmailStr = Field(
         ...,
@@ -10,11 +11,11 @@ class RegisterRequest(BaseModel):
     )
     password: str = Field(
         ...,
-        description="The user's password; minimum 8 characters, one uppercase, one number and one special character"
+        description="Min 8 chars, one uppercase, one number"
     )
     full_name: Optional[str] = Field(
-        None, 
-        description="The users full name; optional while registering"
+        None,
+        description="The user's full name — optional",
     )
 
     @field_validator("password")
@@ -23,13 +24,15 @@ class RegisterRequest(BaseModel):
         if len(value) < 8:
             raise ValueError("Password must be at least 8 characters")
         if not re.search(r"[A-Z]", value):
-            raise ValueError("Password must include at least one uppercase letter")
+            raise ValueError(
+                "Password must contain at least one uppercase letter."
+            )
         if not re.search(r"[0-9]", value):
             raise ValueError("Password must include at least one number")
         if not re.search(r"[!@#$%^&*()_+\-=[\]{};':\"\\|,.<>\/?`~]", value):
-            raise ValueError("Password must include at least one special character")
+            raise ValueError("Password must include at least one special char")
         return value
-        
+
 
 class UserResponse(BaseModel):
     id: int = Field(
@@ -42,11 +45,12 @@ class UserResponse(BaseModel):
     )
     full_name: Optional[str] = Field(
         None,
-        description="The user's full name. This may be null if not provided when signing up"
+        description="The user's full name"
     )
 
     class Config:
         orm_mode = True
+
 
 class RegisterResponse(BaseModel):
     user: UserResponse = Field(
@@ -55,7 +59,7 @@ class RegisterResponse(BaseModel):
     )
     access_token: str = Field(
         ...,
-        description="Signed JWT — send this in the Authorization header as 'Bearer <token>'"
+        description="Signed JWT for authenticated requests",
     )
     token_type: str = Field(
         "bearer",

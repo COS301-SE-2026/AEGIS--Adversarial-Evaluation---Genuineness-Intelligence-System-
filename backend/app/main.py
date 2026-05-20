@@ -8,6 +8,7 @@ app = FastAPI()
 app.include_router(assessment_router, prefix="/api/v1")
 app.include_router(auth_router, prefix="/api/v1")
 
+
 @app.get("/")
 def root():
     # Replace with API status info
