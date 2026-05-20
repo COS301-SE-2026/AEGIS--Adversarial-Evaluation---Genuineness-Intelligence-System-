@@ -8,6 +8,9 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("GOOGLE_REDIRECT_URI", "http://localhost:8000/callback")
+os.environ.setdefault("GITHUB_CLIENT_ID", "test-github-client-id")
+os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-github-client-secret")
+os.environ.setdefault("GITHUB_REDIRECT_URI", "http://localhost:8000/github/callback")
 
 import pytest
 from fastapi import HTTPException
