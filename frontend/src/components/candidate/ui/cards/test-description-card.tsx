@@ -3,10 +3,10 @@ import { Question } from "./question.type";
 export function TestDescriptionCard({ question }: {question: Question}) {
     return (
         <div>
-            <div className="flex flex-col items-center bg-code-editor w-18 2xl:w-24 2xl:h-14 border-b p-4">
+            <div className="flex flex-col items-center bg-code-editor w-24 h-14 border-b p-4">
                     <h2>Description</h2>
             </div>
-            <div className="bg-code-editor h-120 rounded-md">
+            <div className="bg-code-editor w-3xl h-168 p-4 rounded-md">
                 <div className="flex flex-row items-center gap-4 p-4">
                     <h1 className="text-2xl">{question.questionId}.</h1>
                     <h1 className="text-2xl">{question.questionTitle}</h1>
