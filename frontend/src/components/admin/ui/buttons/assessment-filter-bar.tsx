@@ -19,7 +19,11 @@ export default function AssessmentFilterBar({
 }: AssessmentFilterBarProps) {
   return (
     <div className="flex items-center gap-2.5 mb-5 flex-wrap">
-      {/* Search */}
+      {/* Search
+            Default:  bg-background (#0F0F0E) + border-default-border (#989892) + text-default-text
+            Focus:    border-system-red
+            bg-background is the true near-black; tertiary-surface (#30302E) is the hover step up
+      */}
       <div className="relative flex-1 min-w-[200px] max-w-[320px]">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 text-white-smoke/40"
@@ -30,15 +34,17 @@ export default function AssessmentFilterBar({
           stroke="currentColor"
           strokeWidth="2"
         >
-          <circle cx="11" cy="11" r="8"/>
-          <path d="m21 21-4.35-4.35"/>
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
         </svg>
         <input
           className="
-            w-full bg-tertiary-surface border border-tertiary-surface text-white-smoke
-            pl-9 pr-3 py-2 font-ibm text-[13px] rounded-[5px] outline-none
+            w-full bg-background border border-default-border text-default-text
+            pl-9 pr-3 py-2 font-jetbrains text-[11px] tracking-[0.04em] rounded-[5px] outline-none
             placeholder:text-white-smoke/40
-            transition-colors duration-150 focus:border-system-red
+            transition-colors duration-150
+            hover:bg-tertiary-surface
+            focus:border-system-red focus:bg-background
           "
           placeholder="Search assessments..."
           value={search}
@@ -46,7 +52,10 @@ export default function AssessmentFilterBar({
         />
       </div>
 
-      {/* Status chips */}
+      {/* Status chips
+            Inactive: bg-background + border-default-border + text-default-text/60, hover bg-tertiary-surface
+            Active:   bg-system-red/15 + border-system-red + text-system-red
+      */}
       <div className="flex gap-1.5 flex-wrap">
         {FILTER_OPTIONS.map((f) => (
           <button
@@ -58,7 +67,7 @@ export default function AssessmentFilterBar({
               ${
                 filter === f
                   ? "bg-system-red/15 border-system-red text-system-red"
-                  : "bg-tertiary-surface border-tertiary-surface text-white-smoke/40 hover:border-white-smoke/30 hover:text-white-smoke"
+                  : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
               }
             `}
           >
@@ -67,12 +76,12 @@ export default function AssessmentFilterBar({
         ))}
       </div>
 
-      {/* Sort button */}
-      <button className="ml-auto flex items-center gap-1.5 font-jetbrains text-[10px] text-white-smoke/40 bg-tertiary-surface border border-tertiary-surface px-3 py-2 rounded-[5px] cursor-pointer tracking-[0.05em] transition-all duration-150 hover:text-white-smoke hover:border-white-smoke/30">
+      {/* Sort button — same inactive style as chips */}
+      <button className="ml-auto flex items-center gap-1.5 font-jetbrains text-[10px] tracking-[0.05em] text-default-text bg-background border border-default-border px-3 py-2 rounded-[5px] cursor-pointer transition-all duration-150 hover:bg-tertiary-surface">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="6" y1="12" x2="18" y2="12"/>
-          <line x1="9" y1="18" x2="15" y2="18"/>
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="6" y1="12" x2="18" y2="12" />
+          <line x1="9" y1="18" x2="15" y2="18" />
         </svg>
         SORT: RECENT
       </button>
