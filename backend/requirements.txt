@@ -17,6 +17,10 @@ bcrypt==4.1.1
 # Data validation
 pydantic==2.5.0
 pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# HTTP client
+httpx==0.25.2
 
 # CORS support
 fastapi-cors==0.0.6
@@ -24,7 +28,6 @@ fastapi-cors==0.0.6
 # Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1
-httpx==0.25.2
 
 # Development
 black==23.12.0

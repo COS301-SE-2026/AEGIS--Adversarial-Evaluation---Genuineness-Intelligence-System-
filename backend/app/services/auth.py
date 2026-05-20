@@ -2,11 +2,14 @@ from urllib.parse import urlencode
 
 import httpx
 from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
 
 from app.core.config import settings
+from app.core.security import hash_password, create_access_token
 from app.models.oauth import OAuth
 from app.models.role import Role
 from app.models.user import User
+from app.schema.auth import RegisterRequest
 
 
 def get_google_auth_url() -> str:
@@ -102,3 +105,47 @@ def get_or_create_user(db: Session, user_info: dict) -> User:
     db.commit()
     db.refresh(user)
     return user
+
+
+def register_user(db: Session, payload: RegisterRequest) -> tuple[User, str]:
+    user_exists = db.query(User).filter(User.email == payload.email).first()
+    if user_exists:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An account with this email already exists"
+        )
+
+    candidate_role = (
+        db.query(Role).filter(Role.role_name == "CANDIDATE").first()
+    )
+    if candidate_role is None:
+        raise ValueError("CANDIDATE role not found")
+
+    user = User(
+        email=payload.email,
+        full_name=payload.full_name,
+        password_hash=hash_password(payload.password),
+        user_role_id=candidate_role.role_id
+    )
+
+    db.add(user)
+    db.flush()
+
+    access_token = create_access_token(
+        data={"sub": str(user.user_id),
+              "email": user.email,
+              "role": candidate_role.role_name}
+    )
+
+    oauth_record = OAuth(
+        oauth_provider="AEGIS",
+        provider_user_id=str(user.user_id),
+        access_token=access_token,
+        oauth_user_id=user.user_id
+    )
+
+    db.add(oauth_record)
+    db.commit()
+    db.refresh(user)
+
+    return user, access_token
