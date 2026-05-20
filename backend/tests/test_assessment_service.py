@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,7 +12,11 @@ from app.services.assessment import (
     create_candidate_assessment,
     get_all_assessments,
     get_assessment_by_id,
+    get_candidate_assessments,
+    save_candidate_response,
+    start_candidate_assessment,
 )
+from app.schema.candidate_response import ResponseCreate
 
 
 def _make_mock_db_for_all(assessments):
@@ -30,6 +34,13 @@ def _make_mock_db_for_by_id(assessment):
         .first.return_value
     ) = assessment
     return mock_db
+
+
+def _mock_query_result(result):
+    query = MagicMock()
+    query.filter.return_value.first.return_value = result
+    query.options.return_value.filter.return_value.first.return_value = result
+    return query
 
 
 def test_get_all_assessments_returns_list():
@@ -165,6 +176,35 @@ def test_get_assessment_by_id_each_question_has_required_fields():
     assert aq.question_bank.tags == ["python", "oop"]
 
 
+def test_save_candidate_response_grades_json_correct_answer():
+    from app.models.candidate_response import CorrectnessStatus
+
+    mock_db = MagicMock()
+    mock_session = MagicMock()
+
+    mock_qb = MagicMock()
+    mock_qb.correct_answer = {"answer": "b"}
+    mock_qb.maximum_score = 4.0
+
+    mock_aq = MagicMock()
+    mock_aq.question_bank = mock_qb
+
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result(None),
+        _mock_query_result(mock_aq),
+    ]
+
+    response_in = ResponseCreate(
+        assessment_question_id=11,
+        candidate_answer="b",
+    )
+
+    result = save_candidate_response(mock_db, 9, response_in)
+
+    assert result.candidate_answer == "b"
+    assert result.score == 4.0
+    assert result.is_correct == CorrectnessStatus.CORRECT
 def _make_mock_db_for_invite(assessment_result, candidate_result, existing_result):
     mock_db = MagicMock()
 
@@ -237,3 +277,157 @@ def test_create_candidate_assessment_access_token_is_valid_uuid():
 
     parsed = uuid.UUID(result.access_token)
     assert str(parsed) == result.access_token
+
+
+def _make_mock_db_for_start(session_result, assessment_result=None):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_q = MagicMock()
+        if model is CandidateAssessment:
+            mock_q.filter.return_value.first.return_value = session_result
+        elif model is Assessment:
+            mock_q.filter.return_value.first.return_value = assessment_result
+        return mock_q
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_start_candidate_assessment_raises_404_when_token_not_found():
+    mock_db = _make_mock_db_for_start(None)
+    with pytest.raises(HTTPException) as exc_info:
+        start_candidate_assessment(mock_db, "nonexistent-token")
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Invalid access token"
+
+
+def test_start_candidate_assessment_raises_400_when_in_progress():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.IN_PROGRESS
+    mock_db = _make_mock_db_for_start(mock_session)
+    with pytest.raises(HTTPException) as exc_info:
+        start_candidate_assessment(mock_db, "some-token")
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Assessment has already been started"
+
+
+def test_start_candidate_assessment_raises_400_when_completed():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.COMPLETED
+    mock_db = _make_mock_db_for_start(mock_session)
+    with pytest.raises(HTTPException) as exc_info:
+        start_candidate_assessment(mock_db, "some-token")
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Assessment has already been completed"
+
+
+def test_start_candidate_assessment_raises_400_when_expired():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.EXPIRED
+    mock_db = _make_mock_db_for_start(mock_session)
+    with pytest.raises(HTTPException) as exc_info:
+        start_candidate_assessment(mock_db, "some-token")
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Assessment has expired"
+
+
+def test_start_candidate_assessment_returns_in_progress_status():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.STARTED
+    mock_session.assessment_id = 1
+
+    mock_assessment = MagicMock()
+    mock_assessment.duration_mins = 60
+
+    mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
+
+    result = start_candidate_assessment(mock_db, "valid-token")
+    assert result.status == SessionStatus.IN_PROGRESS
+
+
+def test_start_candidate_assessment_sets_start_time():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.STARTED
+    mock_session.assessment_id = 1
+
+    mock_assessment = MagicMock()
+    mock_assessment.duration_mins = 60
+
+    mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
+
+    start_candidate_assessment(mock_db, "valid-token")
+    assert isinstance(mock_session.start_time, datetime)
+
+
+def test_start_candidate_assessment_end_time_is_start_plus_duration():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.STARTED
+    mock_session.assessment_id = 1
+
+    mock_assessment = MagicMock()
+    mock_assessment.duration_mins = 45
+
+    mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
+
+    start_candidate_assessment(mock_db, "valid-token")
+    assert mock_session.end_time == mock_session.start_time + timedelta(minutes=45)
+
+
+def test_start_candidate_assessment_end_time_greater_than_start_time():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.STARTED
+    mock_session.assessment_id = 1
+
+    mock_assessment = MagicMock()
+    mock_assessment.duration_mins = 30
+
+    mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
+
+    start_candidate_assessment(mock_db, "valid-token")
+    assert mock_session.end_time > mock_session.start_time
+
+
+def _make_mock_db_for_my_assessments(results):
+    mock_db = MagicMock()
+    (
+        mock_db.query.return_value
+        .options.return_value
+        .filter.return_value
+        .all.return_value
+    ) = results
+    return mock_db
+
+
+def test_get_candidate_assessments_returns_empty_list():
+    mock_db = _make_mock_db_for_my_assessments([])
+    result = get_candidate_assessments(mock_db, candidate_id=1)
+    assert result == []
+
+
+def test_get_candidate_assessments_returns_list_with_items():
+    mock_session = MagicMock()
+    mock_db = _make_mock_db_for_my_assessments([mock_session])
+    result = get_candidate_assessments(mock_db, candidate_id=1)
+    assert len(result) == 1
+    assert result[0] is mock_session
+
+
+def test_get_candidate_assessments_loads_assessment_relation():
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_id = 42
+    mock_session = MagicMock()
+    mock_session.assessment = mock_assessment
+    mock_db = _make_mock_db_for_my_assessments([mock_session])
+    result = get_candidate_assessments(mock_db, candidate_id=1)
+    assert result[0].assessment.assessment_id == 42
+
+
+def test_get_candidate_assessments_returns_all_matching_sessions():
+    session_a = MagicMock()
+    session_b = MagicMock()
+    mock_db = _make_mock_db_for_my_assessments([session_a, session_b])
+    result = get_candidate_assessments(mock_db, candidate_id=3)
+    assert len(result) == 2
+    assert result[0] is session_a
+    assert result[1] is session_b

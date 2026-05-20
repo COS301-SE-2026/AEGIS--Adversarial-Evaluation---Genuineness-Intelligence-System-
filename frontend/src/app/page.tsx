@@ -8,12 +8,11 @@ export default function Home() {
           src="/illustrations/hero-background.jpg"
           alt="Background"
           fill
-          className="absolute inset-0 object-cover grayscale brightness-25 -z-10 "
+          className="absolute inset-0 object-cover brightness-14 -z-10 "
           priority
         />
         <Navbar/>
         <Hero />
-        {/*  Forgot to add closing*/}
     </div>
 
   );
