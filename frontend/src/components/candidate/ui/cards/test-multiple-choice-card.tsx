@@ -5,7 +5,7 @@ import React, { useState } from "react";
 export function TestMultipleChoiceCard({question}: {question: Question}) {
 
     const options = question.options;
-    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
     return (
         <div>
@@ -17,15 +17,15 @@ export function TestMultipleChoiceCard({question}: {question: Question}) {
                     <label 
                         key={index} 
                         className={`flex items-center gap-4 p-4 rounded-md cursor-pointer border transition-colors ${
-                            selectedOption === option ? 'border-blue-400' : 'border-default-border'
+                            selectedIndex === index ? 'border-blue-400' : 'border-default-border'
                         }`}
                     >
                         <input
                             type="radio"
-                            name="multiple-choice"
+                            name={`multiple-choice-${question.questionId}`}
                             value={option}
-                            checked={selectedOption === option}
-                            onChange={() => setSelectedOption(option)}
+                            checked={selectedIndex === index}
+                            onChange={() => setSelectedIndex(index)}
                             className="hidden"
                         />
                         <span className="text-lg min-w-fit">{String.fromCharCode(65 + index)}.</span>
