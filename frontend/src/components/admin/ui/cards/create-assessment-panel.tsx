@@ -6,7 +6,6 @@ import type { Assessment } from "../../../../app/(admin)/types/assessment";
 import {
   MOCK_ASSESSMENTS,
   MOCK_CANDIDATES,
-  ADVERSARIAL_TECHNIQUES,
   TARGET_ROLES,
   DIFFICULTY_LEVELS,
   WIZARD_STEPS,
@@ -40,18 +39,18 @@ function ToggleSwitch({
   );
 }
 
-function TechBadge({ eff }: { eff: "HIGH" | "MED" | "LOW" }) {
-  const styles = {
-    HIGH: "bg-system-red/15 text-system-red border border-system-red/25",
-    MED:  "bg-[#F9A825]/12 text-[#FFCA28] border border-[#F9A825]/25",
-    LOW:  "bg-[#388E3C]/12 text-[#66BB6A] border border-[#388E3C]/25",
-  };
-  return (
-    <span className={`font-jetbrains text-[9px] px-[7px] py-0.5 rounded-[5px] ${styles[eff]}`}>
-      {eff}
-    </span>
-  );
-}
+// function TechBadge({ eff }: { eff: "HIGH" | "MED" | "LOW" }) {
+//   const styles = {
+//     HIGH: "bg-system-red/15 text-system-red border border-system-red/25",
+//     MED:  "bg-[#F9A825]/12 text-[#FFCA28] border border-[#F9A825]/25",
+//     LOW:  "bg-[#388E3C]/12 text-[#66BB6A] border border-[#388E3C]/25",
+//   };
+//   return (
+//     <span className={`font-jetbrains text-[9px] px-[7px] py-0.5 rounded-[5px] ${styles[eff]}`}>
+//       {eff}
+//     </span>
+//   );
+// }
 
 // ─── Shared label styles (updated for consistency with assessments page) ───
 const labelCls =
@@ -552,7 +551,7 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
         <div className="flex-1 h-px bg-default-border" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
         <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4">
           <div className="font-staatliches text-[13px] tracking-[0.06em] text-white-smoke/40 mb-2.5">IDENTITY</div>
           {([
@@ -609,20 +608,7 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
           ))}
         </div>
 
-        <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4">
-          <div className="font-staatliches text-[13px] tracking-[0.06em] text-white-smoke/40 mb-2.5">ADVERSARIAL TECHNIQUES</div>
-          {(form.techniques as string[]).length
-            ? (form.techniques as string[]).map((id) => {
-                const t = ADVERSARIAL_TECHNIQUES.find((x) => x.id === id);
-                return t ? (
-                  <div key={id} className="flex justify-between items-start py-1.5 border-b border-white-smoke/10 last:border-b-0">
-                    <span className="font-jetbrains text-[10px] text-white-smoke/40 max-w-[55%]">{t.label}</span>
-                    <TechBadge eff={t.eff} />
-                  </div>
-                ) : null;
-              })
-            : <div className="font-jetbrains text-[10px] text-white-smoke/40 py-2">No techniques selected</div>}
-        </div>
+       
       </div>
 
       <div className="bg-[#388E3C]/5 border border-[#388E3C]/25 rounded-[5px] px-4 py-3.5">
@@ -734,7 +720,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
                       isDone
                         ? "bg-[#388E3C]/20 border-[#388E3C] text-[#66BB6A]"
                         : isCurrent
-                        ? "bg-system-red border-system-red text-white"
+                        ? "bg-white text-black border-default-border"
                         : "border-default-border text-white-smoke/40"
                     }`}
                   >
