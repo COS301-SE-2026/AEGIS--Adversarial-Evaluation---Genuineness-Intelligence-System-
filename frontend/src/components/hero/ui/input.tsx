@@ -26,7 +26,7 @@ const Input = ({
 }: InputProps) => {
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
-        <label className="font-jetbrains-mono text-xs tracking-widest uppercase text-default-text">
+        <label className="text-xs tracking-widest uppercase text-default-text">
             {label}
         </label>
         <div className="relative flex items-center">
@@ -41,12 +41,12 @@ const Input = ({
                 value={value}
                 onChange={(e)=> onChange(e.target.value)}
                 onBlur={onBlur}
-                className={`w-full bg-secondary-surface text-default-text placeholder:text-white-smoke/40 font-ibm-plex text-sm px-4 py-4 border border-transparent
-                            focus:outline-none focus:border-system-red transition-colors duration-200 {icon ? "pl-10" : ""}`}
+                className={`w-full bg-secondary-surface text-default-text placeholder:text-default-text/80 text-sm px-4 py-4 border border-transparent
+                            focus:outline-none focus:border-default-border transition-colors duration-200 {icon ? "pl-10" : ""}`}
                 />
 
         </div>
-        {error && <p className="text-signal-red text-xs font-ibm-plex">{error}</p>}
+        {error && <p className="text-signal-red text-xs">{error}</p>}
     </div>
   );
 }

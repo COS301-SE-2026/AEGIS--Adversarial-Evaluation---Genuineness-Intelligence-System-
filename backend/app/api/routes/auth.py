@@ -37,23 +37,23 @@ async def google_callback(
             detail=error,
         )
 
-    user_info = await exchange_code_for_user_info(code)
-    user = await get_or_create_user(db, user_info)
+    user_info = exchange_code_for_user_info(code)
+    user = get_or_create_user(db, user_info)
 
     token = create_access_token({
         "sub": user.email,
-        "role": user.role.value,
-        "user_id": str(user.id),
+        "role": user.role.role_name,
+        "user_id": str(user.user_id),
     })
 
     return {
         "access_token": token,
         "token_type": "bearer",
         "user": {
-            "id": user.id,
+            "id": user.user_id,
             "email": user.email,
             "name": user.full_name,
-            "role": user.role.value,
+            "role": user.role.role_name,
         },
     }
 

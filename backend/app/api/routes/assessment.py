@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from app.core.security import get_current_user
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -9,11 +10,25 @@ from app.database.database import get_db
 from app.schema.candidate_assessment import InviteCreate
 from app.services.assessment import (
     get_all_assessments,
+    get_candidate_responses,
     get_assessment_by_id,
+    get_candidate_assessments,
+    save_candidate_response,
+    submit_candidate_assessment,
     create_candidate_assessment,
+    start_candidate_assessment,
 )
+from app.schema.candidate_response import (
+    CandidateResponseResponse,
+    ResponseCreate,
+)
+from app.schema.candidate_assessment import CandidateAssessmentResponse
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
+candidate_response_router = APIRouter(
+    prefix="/candidate-assessments",
+    tags=["candidate-assessments"],
+)
 
 
 class AssessmentListItem(BaseModel):
@@ -55,6 +70,38 @@ class AssessmentDetailResponse(BaseModel):
 async def list_assessments(db: Session = Depends(get_db)):
     # Returns all assessments. Returns an empty list if none exist.
     return get_all_assessments(db)
+
+
+@router.get(
+    "/my-assessments",
+    status_code=status.HTTP_200_OK,
+)
+async def list_my_assessments(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    candidate_id = int(current_user["user_id"])
+    sessions = get_candidate_assessments(db, candidate_id)
+    return [
+        {
+            "candidate_assess_id": s.candidate_assess_id,
+            "status": s.status.value,
+            "access_token": s.access_token,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "assessment": (
+                {
+                    "assessment_id": s.assessment.assessment_id,
+                    "title": s.assessment.title,
+                    "description": s.assessment.description,
+                    "duration_mins": s.assessment.duration_mins,
+                }
+                if s.assessment is not None
+                else None
+            ),
+        }
+        for s in sessions
+    ]
 
 
 @router.get(
@@ -109,6 +156,70 @@ async def get_assessment(
             }
             for aq in assessment.assessment_questions
         ],
+    }
+
+
+@candidate_response_router.post(
+    "/{candidate_assessment_id}/responses",
+    response_model=CandidateResponseResponse,
+)
+async def save_response(
+    candidate_assessment_id: int,
+    response_in: ResponseCreate,
+    db: Session = Depends(get_db),
+):
+    return save_candidate_response(
+        db,
+        candidate_assessment_id,
+        response_in,
+    )
+
+
+@candidate_response_router.get(
+    "/{candidate_assessment_id}/responses",
+    response_model=List[CandidateResponseResponse],
+)
+async def list_responses(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+):
+    return get_candidate_responses(
+        db,
+        candidate_assessment_id,
+    )
+
+
+@candidate_response_router.post(
+    "/{candidate_assessment_id}/submit",
+    response_model=CandidateAssessmentResponse,
+)
+async def submit_assessment(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+):
+    return submit_candidate_assessment(
+        db,
+        candidate_assessment_id,
+    )
+
+
+@router.post(
+    "/take/{access_token}/start",
+    status_code=status.HTTP_200_OK,
+)
+async def start_assessment(
+    access_token: str,
+    db: Session = Depends(get_db),
+):
+    session = start_candidate_assessment(db, access_token)
+    return {
+        "candidate_assess_id": session.candidate_assess_id,
+        "status": session.status.value,
+        "assessment_id": session.assessment_id,
+        "candidate_id": session.candidate_id,
+        "start_time": session.start_time,
+        "end_time": session.end_time,
+        "access_token": session.access_token,
     }
 
 
