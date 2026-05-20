@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from app.core.security import get_current_user
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -11,6 +12,7 @@ from app.services.assessment import (
     get_all_assessments,
     get_candidate_responses,
     get_assessment_by_id,
+    get_candidate_assessments,
     save_candidate_response,
     submit_candidate_assessment,
     create_candidate_assessment,
@@ -68,6 +70,38 @@ class AssessmentDetailResponse(BaseModel):
 async def list_assessments(db: Session = Depends(get_db)):
     # Returns all assessments. Returns an empty list if none exist.
     return get_all_assessments(db)
+
+
+@router.get(
+    "/my-assessments",
+    status_code=status.HTTP_200_OK,
+)
+async def list_my_assessments(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    candidate_id = int(current_user["user_id"])
+    sessions = get_candidate_assessments(db, candidate_id)
+    return [
+        {
+            "candidate_assess_id": s.candidate_assess_id,
+            "status": s.status.value,
+            "access_token": s.access_token,
+            "start_time": s.start_time,
+            "end_time": s.end_time,
+            "assessment": (
+                {
+                    "assessment_id": s.assessment.assessment_id,
+                    "title": s.assessment.title,
+                    "description": s.assessment.description,
+                    "duration_mins": s.assessment.duration_mins,
+                }
+                if s.assessment is not None
+                else None
+            ),
+        }
+        for s in sessions
+    ]
 
 
 @router.get(

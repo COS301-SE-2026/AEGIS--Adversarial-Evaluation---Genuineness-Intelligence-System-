@@ -12,6 +12,7 @@ from app.services.assessment import (
     create_candidate_assessment,
     get_all_assessments,
     get_assessment_by_id,
+    get_candidate_assessments,
     save_candidate_response,
     start_candidate_assessment,
 )
@@ -385,3 +386,48 @@ def test_start_candidate_assessment_end_time_greater_than_start_time():
 
     start_candidate_assessment(mock_db, "valid-token")
     assert mock_session.end_time > mock_session.start_time
+
+
+def _make_mock_db_for_my_assessments(results):
+    mock_db = MagicMock()
+    (
+        mock_db.query.return_value
+        .options.return_value
+        .filter.return_value
+        .all.return_value
+    ) = results
+    return mock_db
+
+
+def test_get_candidate_assessments_returns_empty_list():
+    mock_db = _make_mock_db_for_my_assessments([])
+    result = get_candidate_assessments(mock_db, candidate_id=1)
+    assert result == []
+
+
+def test_get_candidate_assessments_returns_list_with_items():
+    mock_session = MagicMock()
+    mock_db = _make_mock_db_for_my_assessments([mock_session])
+    result = get_candidate_assessments(mock_db, candidate_id=1)
+    assert len(result) == 1
+    assert result[0] is mock_session
+
+
+def test_get_candidate_assessments_loads_assessment_relation():
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_id = 42
+    mock_session = MagicMock()
+    mock_session.assessment = mock_assessment
+    mock_db = _make_mock_db_for_my_assessments([mock_session])
+    result = get_candidate_assessments(mock_db, candidate_id=1)
+    assert result[0].assessment.assessment_id == 42
+
+
+def test_get_candidate_assessments_returns_all_matching_sessions():
+    session_a = MagicMock()
+    session_b = MagicMock()
+    mock_db = _make_mock_db_for_my_assessments([session_a, session_b])
+    result = get_candidate_assessments(mock_db, candidate_id=3)
+    assert len(result) == 2
+    assert result[0] is session_a
+    assert result[1] is session_b
