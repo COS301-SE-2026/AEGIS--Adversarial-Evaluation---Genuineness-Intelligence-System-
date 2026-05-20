@@ -5,11 +5,11 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.core.config import settings
-from app.core.security import hash_password, create_access_token
+from app.core.security import hash_password, create_access_token, verify_password
 from app.models.oauth import OAuth
 from app.models.role import Role
 from app.models.user import User
-from app.schema.auth import RegisterRequest
+from app.schema.auth import RegisterRequest, LoginRequest
 
 
 def get_google_auth_url() -> str:
@@ -149,3 +149,30 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[User, str]:
     db.refresh(user)
 
     return user, access_token
+
+def login_user(db: Session, payload: LoginRequest) -> tuple[User, str]:
+    user = db.query(User).filter(User.email == payload.email).first()
+
+    if not user or not user.password_hash:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
+    
+    acess_token = create_access_token(
+        data={
+            "sub": str(user.user_id),
+            "email": user.email,
+            "role": user.role.role_name
+        }
+    )
+
+    return user, acess_token
+
+    

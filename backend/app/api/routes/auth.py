@@ -1,7 +1,10 @@
+from urllib.parse import quote
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.security import create_access_token
 from app.database.database import get_db
 from app.services.auth import (
@@ -9,9 +12,10 @@ from app.services.auth import (
     get_google_auth_url,
     get_or_create_user,
     register_user,
+    login_user,
 )
 
-from app.schema.auth import RegisterRequest, RegisterResponse
+from app.schema.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -32,30 +36,32 @@ async def google_callback(
     db: Session = Depends(get_db),
 ):
     if error is not None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=error,
+        return RedirectResponse(
+            url=f"{settings.frontend_url}/login?error={quote(error, safe='')}",
+            status_code=302,
         )
 
-    user_info = exchange_code_for_user_info(code)
-    user = get_or_create_user(db, user_info)
+    try:
+        user_info = exchange_code_for_user_info(code)
+        user = get_or_create_user(db, user_info)
+    except Exception as exc:
+        error_message = quote(str(exc), safe='')
+        return RedirectResponse(
+            url=f"{settings.frontend_url}/login?error={error_message}",
+            status_code=302,
+        )
 
     token = create_access_token({
         "sub": user.email,
         "role": user.role.role_name,
         "user_id": str(user.user_id),
     })
+    role = user.role.role_name
 
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.user_id,
-            "email": user.email,
-            "name": user.full_name,
-            "role": user.role.role_name,
-        },
-    }
+    return RedirectResponse(
+        url=f"{settings.frontend_url}/auth/callback?token={token}&role={role}",
+        status_code=302,
+    )
 
 
 @router.post("/register", response_model=RegisterResponse,
@@ -72,6 +78,18 @@ def register(
             detail=str(e),
         )
     return RegisterResponse(
+        user={"id": user.user_id, "email": user.email,
+              "full_name": user.full_name},
+        access_token=access_token,
+    )
+
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+def login(
+    payload: LoginRequest,
+    db: Session = Depends(get_db),
+) -> LoginResponse:
+    user, access_token = login_user(db, payload)
+    return LoginResponse(
         user={"id": user.user_id, "email": user.email,
               "full_name": user.full_name},
         access_token=access_token,
