@@ -49,10 +49,6 @@ export function AssessmentCard({
                     <Image src="/illustrations/icons/users-icon.svg" alt="Users Icon" className="mr-2" width={24} height={24} />
                     <p>Status: {formatStatus(status)}</p>
                 </div>
-                <div className="flex items-center mt-2 mb-4">
-                    <Image src="/illustrations/icons/pie-chart-icon.svg" alt="Pie Chart Icon" className="mr-2" width={24} height={24} />
-                    <p>Window: {windowLabel}</p>
-                </div>
             </div>
             <div className="mt-auto">
                 <Link href={`/assessment/${assessmentId}`}>

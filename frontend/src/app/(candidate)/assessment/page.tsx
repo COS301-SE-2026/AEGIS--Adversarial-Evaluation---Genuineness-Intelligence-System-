@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AssessmentCard } from "@/components/candidate/ui/cards/assesment-card";
 import type { AssessmentCardProps } from "@/components/candidate/ui/cards/assessment-card.types";
 import { apiGet } from "@/lib/apiClient";
+import { getToken } from "@/lib/auth";
 
 type CandidateAssessmentApi = {
     candidate_assess_id: number;
@@ -30,22 +31,14 @@ function mapCandidateAssessment(session: CandidateAssessmentApi): AssessmentCard
         title: session.assessment.title,
         description: session.assessment.description ?? "No description provided.",
         durationMins: session.assessment.duration_mins,
-        status: session.status,
+        status: 'READY TO START',
         startTime: session.start_time ?? null,
         endTime: session.end_time ?? null,
     };
 }
 
 function getStoredAuthToken(): string | undefined {
-    if (typeof window === "undefined") {
-        return undefined;
-    }
-
-    return (
-        window.localStorage.getItem("access_token") ??
-        window.localStorage.getItem("auth_token") ??
-        undefined
-    );
+    return getToken() ?? undefined;
 }
 
 export default function AssessmentPage() {
