@@ -1,11 +1,10 @@
-type Percentage = number;
-
 export interface AssessmentCardProps {
+    candidateAssessId: number;
     assessmentId: number;
     title: string;
     description: string;
-    num_questions: number;
-    attempts: number;
-    success_rate: Percentage;
-    
+    durationMins: number;
+    status: string;
+    startTime?: string | null;
+    endTime?: string | null;
 }

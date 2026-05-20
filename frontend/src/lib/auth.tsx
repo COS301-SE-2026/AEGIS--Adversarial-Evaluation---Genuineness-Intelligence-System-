@@ -1,4 +1,26 @@
-/*this page will be the middleware for identifying the user and their role, and redirecting them to the appropriate page
-users will "sign up" regularly through google or github, then the backend guys will manually assign roles in DB.
-then when the user logs in, the middleware will check their role and redirect them to the appropriate page.
-*/
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("aegis_token");
+}
+
+export function getRole(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("aegis_role");
+}
+
+export function isAuthenticated(): boolean {
+  return getToken() !== null;
+}
+
+export function logout(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("aegis_token");
+  localStorage.removeItem("aegis_role");
+  window.location.href = "/login";
+}
+
+export function getAuthHeaders(): Record<string, string> {
+  const token = getToken();
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
