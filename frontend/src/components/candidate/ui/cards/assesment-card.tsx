@@ -42,11 +42,23 @@ export function AssessmentCard({
             </div>
             <div className="text-sm grow">
                 <div className="flex items-center mt-2 mb-4">
-                    <Image src="/illustrations/icons/file-icon.svg" alt="File Icon" className="mr-2" width={24} height={24} />
+                    <Image
+                        src="/illustrations/icons/file-icon.svg"
+                        alt="File Icon"
+                        className="mr-2 brightness-0 invert"
+                        width={24}
+                        height={24}
+                    />
                     <p>Duration: {durationMins} mins</p>
                 </div>
                 <div className="flex items-center mt-2 mb-4">
-                    <Image src="/illustrations/icons/users-icon.svg" alt="Users Icon" className="mr-2" width={24} height={24} />
+                    <Image
+                        src="/illustrations/icons/users-icon.svg"
+                        alt="Users Icon"
+                        className="mr-2 brightness-0 invert"
+                        width={24}
+                        height={24}
+                    />
                     <p>Status: {formatStatus(status)}</p>
                 </div>
             </div>
