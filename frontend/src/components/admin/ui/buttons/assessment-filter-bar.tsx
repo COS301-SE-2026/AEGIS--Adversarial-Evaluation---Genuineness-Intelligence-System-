@@ -22,12 +22,12 @@ export default function AssessmentFilterBar({
       {/* Search */}
       <div className="relative flex-1 min-w-[200px] max-w-[320px]">
         <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-white-smoke/40"
           width="14"
           height="14"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#F5F5F5"
+          stroke="currentColor"
           strokeWidth="2"
         >
           <circle cx="11" cy="11" r="8"/>
@@ -35,10 +35,10 @@ export default function AssessmentFilterBar({
         </svg>
         <input
           className="
-            w-full bg-[#292C2F] border border-[#333331] text-[#F5F5F5]
+            w-full bg-tertiary-surface border border-tertiary-surface text-white-smoke
             pl-9 pr-3 py-2 font-ibm text-[13px] rounded-[5px] outline-none
-            placeholder:text-[rgba(245,245,245,0.42)]
-            transition-colors duration-150 focus:border-[#D32F2F]
+            placeholder:text-white-smoke/40
+            transition-colors duration-150 focus:border-system-red
           "
           placeholder="Search assessments..."
           value={search}
@@ -57,8 +57,8 @@ export default function AssessmentFilterBar({
               rounded-[5px] cursor-pointer border transition-all duration-150 uppercase
               ${
                 filter === f
-                  ? "bg-[rgba(211,47,47,0.15)] border-[#D32F2F] text-[#D32F2F]"
-                  : "bg-[#292C2F] border-[#333331] text-[rgba(245,245,245,0.42)] hover:border-[rgba(245,245,245,0.3)] hover:text-[#F5F5F5]"
+                  ? "bg-system-red/15 border-system-red text-system-red"
+                  : "bg-tertiary-surface border-tertiary-surface text-white-smoke/40 hover:border-white-smoke/30 hover:text-white-smoke"
               }
             `}
           >
@@ -68,7 +68,7 @@ export default function AssessmentFilterBar({
       </div>
 
       {/* Sort button */}
-      <button className="ml-auto flex items-center gap-1.5 font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] bg-[#292C2F] border border-[#333331] px-3 py-2 rounded-[5px] cursor-pointer tracking-[0.05em] transition-all duration-150 hover:text-[#F5F5F5] hover:border-[rgba(245,245,245,0.3)]">
+      <button className="ml-auto flex items-center gap-1.5 font-jetbrains text-[10px] text-white-smoke/40 bg-tertiary-surface border border-tertiary-surface px-3 py-2 rounded-[5px] cursor-pointer tracking-[0.05em] transition-all duration-150 hover:text-white-smoke hover:border-white-smoke/30">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <line x1="3" y1="6" x2="21" y2="6"/>
           <line x1="6" y1="12" x2="18" y2="12"/>
