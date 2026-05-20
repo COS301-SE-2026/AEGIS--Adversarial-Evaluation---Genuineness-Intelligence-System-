@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import uuid
 
@@ -261,6 +261,49 @@ def submit_candidate_assessment(
     session.status = SessionStatus.COMPLETED
     session.end_time = datetime.utcnow()
 
+    db.commit()
+    db.refresh(session)
+    return session
+
+
+def start_candidate_assessment(
+    db: Session,
+    access_token: str,
+) -> CandidateAssessment:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(CandidateAssessment.access_token == access_token)
+        .first()
+    )
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid access token",
+        )
+    if session.status == SessionStatus.IN_PROGRESS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assessment has already been started",
+        )
+    if session.status == SessionStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assessment has already been completed",
+        )
+    if session.status == SessionStatus.EXPIRED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Assessment has expired",
+        )
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == session.assessment_id)
+        .first()
+    )
+    start_time = datetime.utcnow()
+    session.start_time = start_time
+    session.end_time = start_time + timedelta(minutes=assessment.duration_mins)
+    session.status = SessionStatus.IN_PROGRESS
     db.commit()
     db.refresh(session)
     return session

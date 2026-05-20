@@ -14,6 +14,7 @@ from app.services.assessment import (
     save_candidate_response,
     submit_candidate_assessment,
     create_candidate_assessment,
+    start_candidate_assessment,
 )
 from app.schema.candidate_response import (
     CandidateResponseResponse,
@@ -166,6 +167,26 @@ async def submit_assessment(
         db,
         candidate_assessment_id,
     )
+
+
+@router.post(
+    "/take/{access_token}/start",
+    status_code=status.HTTP_200_OK,
+)
+async def start_assessment(
+    access_token: str,
+    db: Session = Depends(get_db),
+):
+    session = start_candidate_assessment(db, access_token)
+    return {
+        "candidate_assess_id": session.candidate_assess_id,
+        "status": session.status.value,
+        "assessment_id": session.assessment_id,
+        "candidate_id": session.candidate_id,
+        "start_time": session.start_time,
+        "end_time": session.end_time,
+        "access_token": session.access_token,
+    }
 
 
 @router.post(

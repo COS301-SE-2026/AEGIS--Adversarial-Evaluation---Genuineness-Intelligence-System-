@@ -429,3 +429,72 @@ def test_invite_candidate_returns_400_when_already_invited(client, mock_db):
         )
     assert response.status_code == 400
     assert "already been invited" in response.json()["detail"]
+
+
+START_PATCH = "app.api.routes.assessment.start_candidate_assessment"
+
+
+def _make_started_session(access_token="valid-token"):
+    mock_session = MagicMock()
+    mock_session.candidate_assess_id = 5
+    mock_session.status = SessionStatus.IN_PROGRESS
+    mock_session.assessment_id = 1
+    mock_session.candidate_id = 2
+    mock_session.access_token = access_token
+    mock_session.start_time = datetime(2025, 1, 1, 12, 0, 0)
+    mock_session.end_time = datetime(2025, 1, 1, 13, 0, 0)
+    return mock_session
+
+
+def test_start_assessment_returns_200_on_valid_token(client, mock_db):
+    mock_session = _make_started_session()
+    with patch(START_PATCH, return_value=mock_session):
+        response = client.post("/api/v1/assessments/take/valid-token/start")
+    assert response.status_code == 200
+
+
+def test_start_assessment_response_includes_start_time_and_end_time(client, mock_db):
+    mock_session = _make_started_session()
+    with patch(START_PATCH, return_value=mock_session):
+        response = client.post("/api/v1/assessments/take/valid-token/start")
+    body = response.json()
+    assert "start_time" in body
+    assert "end_time" in body
+    assert body["start_time"] is not None
+    assert body["end_time"] is not None
+
+
+def test_start_assessment_returns_404_on_invalid_token(client, mock_db):
+    exc = HTTPException(status_code=404, detail="Invalid access token")
+    with patch(START_PATCH, side_effect=exc):
+        response = client.post("/api/v1/assessments/take/bad-token/start")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Invalid access token"
+
+
+def test_start_assessment_returns_400_when_already_in_progress(client, mock_db):
+    exc = HTTPException(
+        status_code=400, detail="Assessment has already been started"
+    )
+    with patch(START_PATCH, side_effect=exc):
+        response = client.post("/api/v1/assessments/take/some-token/start")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Assessment has already been started"
+
+
+def test_start_assessment_returns_400_when_already_completed(client, mock_db):
+    exc = HTTPException(
+        status_code=400, detail="Assessment has already been completed"
+    )
+    with patch(START_PATCH, side_effect=exc):
+        response = client.post("/api/v1/assessments/take/some-token/start")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Assessment has already been completed"
+
+
+def test_start_assessment_returns_400_when_expired(client, mock_db):
+    exc = HTTPException(status_code=400, detail="Assessment has expired")
+    with patch(START_PATCH, side_effect=exc):
+        response = client.post("/api/v1/assessments/take/some-token/start")
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Assessment has expired"
