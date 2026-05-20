@@ -29,7 +29,6 @@ async def startup_event():
     print(f"AEGIS backend started | environment: {env}")
 
 
-
 @app.get("/")
 def root():
     return {"message": "AEGIS backend is running"}
