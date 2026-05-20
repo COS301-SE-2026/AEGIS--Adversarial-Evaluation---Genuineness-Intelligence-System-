@@ -33,6 +33,7 @@ class RegisterRequest(BaseModel):
             raise ValueError("Password must include at least one special char")
         return value
 
+
 class LoginRequest(BaseModel):
     email: EmailStr = Field(
         ...,
@@ -42,6 +43,7 @@ class LoginRequest(BaseModel):
         ...,
         description="User's password"
     )
+
 
 class UserResponse(BaseModel):
     id: int = Field(
@@ -74,5 +76,6 @@ class RegisterResponse(BaseModel):
         "bearer",
         description="Token type. Always 'bearer' for JWT auth"
     )
+
 
 LoginResponse = RegisterResponse

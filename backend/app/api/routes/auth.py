@@ -15,7 +15,10 @@ from app.services.auth import (
     login_user,
 )
 
-from app.schema.auth import RegisterRequest, RegisterResponse, LoginRequest, LoginResponse
+from app.schema.auth import (RegisterRequest,
+                             RegisterResponse,
+                             LoginRequest,
+                             LoginResponse)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -83,7 +86,9 @@ def register(
         access_token=access_token,
     )
 
-@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+
+@router.post("/login", response_model=LoginResponse,
+             status_code=status.HTTP_200_OK)
 def login(
     payload: LoginRequest,
     db: Session = Depends(get_db),
