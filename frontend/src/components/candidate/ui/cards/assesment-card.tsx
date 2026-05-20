@@ -6,7 +6,7 @@ import { StartAssessmentButton } from "@/components/candidate/ui/buttons/start-a
 
 export function AssessmentCard({ assessmentId, title, description, num_questions, attempts, success_rate }: AssessmentCardProps) {
     return (
-        <div className= "bg-secondary-surface/50 border-2 rounded-md border-tertiary-surface p-4 h-20rem w-15rem flex flex-col hover:scale-105 hover:border-system-red/75 hover:shadow-glow-red transition-all duration-300">
+        <div className= "bg-secondary-surface/50 border-2 rounded-md border-tertiary-surface p-4 h-20rem w-15rem flex flex-col hover:scale-105 hover:border-default-text/75 hover:shadow-default-text/60 transition-all duration-300">
             <div className="mb-4 shrink-0">
                 <h2 className="text-l mb-2 leading-6 tracking-widest">{title}</h2>
                 <p className="mt-4 line-clamp-2">{description}</p>
