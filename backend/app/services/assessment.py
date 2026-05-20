@@ -321,6 +321,46 @@ def start_candidate_assessment(
     return session
 
 
+def get_questions_for_candidate_assessment(
+    db: Session,
+    candidate_assess_id: int,
+    user_id: int,
+) -> list:
+    session = (
+        db.query(CandidateAssessment)
+        .options(
+            selectinload(CandidateAssessment.assessment)
+            .selectinload(Assessment.assessment_questions)
+            .selectinload(AssessmentQuestion.question_bank)
+        )
+        .filter(CandidateAssessment.candidate_assess_id == candidate_assess_id)
+        .first()
+    )
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment session not found",
+        )
+    if session.candidate_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorised to access this assessment",
+        )
+    if session.status == SessionStatus.EXPIRED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This assessment has expired",
+        )
+    questions = list(session.assessment.assessment_questions)
+    questions.sort(
+        key=lambda aq: (
+            aq.display_order is None,
+            aq.display_order or 0,
+        )
+    )
+    return questions
+
+
 def create_candidate_assessment(
     db: Session,
     assessment_id: int,

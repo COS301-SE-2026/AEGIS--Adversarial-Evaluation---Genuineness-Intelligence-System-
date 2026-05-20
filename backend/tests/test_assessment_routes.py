@@ -568,3 +568,71 @@ def test_my_assessments_returns_nested_assessment_details(auth_client, mock_db):
     assert item["assessment"]["duration_mins"] == 30
     assert item["status"] == "IN_PROGRESS"
     assert item["access_token"] == "tok-abc"
+
+
+QUESTIONS_PATCH = "app.api.routes.assessment.get_questions_for_candidate_assessment"
+
+
+def _make_mock_question(assessment_q_id=1, display_order=1, marks=5.0):
+    mock_qb = MagicMock()
+    mock_qb.question_bank_id = 10
+    mock_qb.title = "What is X?"
+    mock_qb.content = "Explain X."
+    mock_qb.type.value = "TEXT"
+    mock_qb.maximum_score = 5.0
+    mock_qb.tags = ["python"]
+    mock_qb.question_metadata = {"difficulty": "easy"}
+
+    mock_aq = MagicMock()
+    mock_aq.assessment_q_id = assessment_q_id
+    mock_aq.display_order = display_order
+    mock_aq.marks = marks
+    mock_aq.question_bank = mock_qb
+    return mock_aq
+
+
+def test_get_candidate_questions_returns_200_with_list(auth_client, mock_db):
+    mock_aq = _make_mock_question()
+    with patch(QUESTIONS_PATCH, return_value=[mock_aq]):
+        response = auth_client.get("/api/v1/assessments/candidate/1/questions")
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    assert len(body) == 1
+    assert body[0]["assessment_q_id"] == 1
+
+
+def test_get_candidate_questions_returns_404_when_session_not_found(
+    auth_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment session not found")
+    with patch(QUESTIONS_PATCH, side_effect=exc):
+        response = auth_client.get("/api/v1/assessments/candidate/99/questions")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment session not found"
+
+
+def test_get_candidate_questions_returns_403_when_wrong_user(auth_client, mock_db):
+    exc = HTTPException(
+        status_code=403,
+        detail="You are not authorised to access this assessment",
+    )
+    with patch(QUESTIONS_PATCH, side_effect=exc):
+        response = auth_client.get("/api/v1/assessments/candidate/1/questions")
+    assert response.status_code == 403
+    assert response.json()["detail"] == "You are not authorised to access this assessment"
+
+
+def test_get_candidate_questions_returns_401_when_no_jwt(client, mock_db):
+    response = client.get("/api/v1/assessments/candidate/1/questions")
+    assert response.status_code == 401
+
+
+def test_get_candidate_questions_includes_question_metadata(auth_client, mock_db):
+    mock_aq = _make_mock_question()
+    with patch(QUESTIONS_PATCH, return_value=[mock_aq]):
+        response = auth_client.get("/api/v1/assessments/candidate/1/questions")
+    body = response.json()
+    assert "question" in body[0]
+    assert "question_metadata" in body[0]["question"]
+    assert body[0]["question"]["question_metadata"] == {"difficulty": "easy"}

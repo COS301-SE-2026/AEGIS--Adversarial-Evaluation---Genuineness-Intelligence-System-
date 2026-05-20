@@ -13,6 +13,7 @@ from app.services.assessment import (
     get_all_assessments,
     get_assessment_by_id,
     get_candidate_assessments,
+    get_questions_for_candidate_assessment,
     save_candidate_response,
     start_candidate_assessment,
 )
@@ -431,3 +432,102 @@ def test_get_candidate_assessments_returns_all_matching_sessions():
     assert len(result) == 2
     assert result[0] is session_a
     assert result[1] is session_b
+
+
+def _make_mock_db_for_questions(session_result):
+    mock_db = MagicMock()
+    (
+        mock_db.query.return_value
+        .options.return_value
+        .filter.return_value
+        .first.return_value
+    ) = session_result
+    return mock_db
+
+
+def test_get_questions_raises_404_when_session_not_found():
+    mock_db = _make_mock_db_for_questions(None)
+    with pytest.raises(HTTPException) as exc_info:
+        get_questions_for_candidate_assessment(
+            mock_db, candidate_assess_id=99, user_id=1
+        )
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment session not found"
+
+
+def test_get_questions_raises_403_when_user_id_does_not_match():
+    mock_session = MagicMock()
+    mock_session.candidate_id = 5
+    mock_session.status = SessionStatus.IN_PROGRESS
+    mock_db = _make_mock_db_for_questions(mock_session)
+    with pytest.raises(HTTPException) as exc_info:
+        get_questions_for_candidate_assessment(
+            mock_db, candidate_assess_id=1, user_id=99
+        )
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.detail == "You are not authorised to access this assessment"
+
+
+def test_get_questions_raises_400_when_status_is_expired():
+    mock_session = MagicMock()
+    mock_session.candidate_id = 5
+    mock_session.status = SessionStatus.EXPIRED
+    mock_db = _make_mock_db_for_questions(mock_session)
+    with pytest.raises(HTTPException) as exc_info:
+        get_questions_for_candidate_assessment(
+            mock_db, candidate_assess_id=1, user_id=5
+        )
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "This assessment has expired"
+
+
+def test_get_questions_returns_list_when_valid():
+    mock_qb = MagicMock()
+    mock_qb.question_bank_id = 10
+    mock_qb.title = "What is X?"
+
+    mock_aq = MagicMock()
+    mock_aq.display_order = 1
+    mock_aq.question_bank = mock_qb
+
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_questions = [mock_aq]
+
+    mock_session = MagicMock()
+    mock_session.candidate_id = 5
+    mock_session.status = SessionStatus.IN_PROGRESS
+    mock_session.assessment = mock_assessment
+
+    mock_db = _make_mock_db_for_questions(mock_session)
+    result = get_questions_for_candidate_assessment(
+        mock_db, candidate_assess_id=1, user_id=5
+    )
+
+    assert isinstance(result, list)
+    assert len(result) == 1
+    assert result[0].question_bank.question_bank_id == 10
+
+
+def test_get_questions_ordered_by_display_order():
+    aq1 = MagicMock()
+    aq1.display_order = 3
+    aq2 = MagicMock()
+    aq2.display_order = 1
+    aq3 = MagicMock()
+    aq3.display_order = 2
+
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_questions = [aq1, aq2, aq3]
+
+    mock_session = MagicMock()
+    mock_session.candidate_id = 5
+    mock_session.status = SessionStatus.IN_PROGRESS
+    mock_session.assessment = mock_assessment
+
+    mock_db = _make_mock_db_for_questions(mock_session)
+    result = get_questions_for_candidate_assessment(
+        mock_db, candidate_assess_id=1, user_id=5
+    )
+
+    orders = [aq.display_order for aq in result]
+    assert orders == [1, 2, 3]
