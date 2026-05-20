@@ -266,6 +266,18 @@ def submit_candidate_assessment(
     return session
 
 
+def get_candidate_assessments(
+    db: Session,
+    candidate_id: int,
+) -> list:
+    return (
+        db.query(CandidateAssessment)
+        .options(selectinload(CandidateAssessment.assessment))
+        .filter(CandidateAssessment.candidate_id == candidate_id)
+        .all()
+    )
+
+
 def start_candidate_assessment(
     db: Session,
     access_token: str,

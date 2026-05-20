@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.database.database import get_db
+from app.core.security import get_current_user
 from app.models.candidate_assessment import SessionStatus
 
 
@@ -26,6 +27,14 @@ def mock_db():
 @pytest.fixture
 def client(mock_db):
     app.dependency_overrides[get_db] = lambda: mock_db
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def auth_client(mock_db):
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_current_user] = lambda: {"user_id": "5"}
     yield TestClient(app)
     app.dependency_overrides.clear()
 
@@ -498,3 +507,61 @@ def test_start_assessment_returns_400_when_expired(client, mock_db):
         response = client.post("/api/v1/assessments/take/some-token/start")
     assert response.status_code == 400
     assert response.json()["detail"] == "Assessment has expired"
+
+
+MY_ASSESSMENTS_PATCH = "app.api.routes.assessment.get_candidate_assessments"
+
+
+def _make_my_assessment_session():
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_id = 10
+    mock_assessment.title = "Python Test"
+    mock_assessment.description = "Fundamentals"
+    mock_assessment.duration_mins = 30
+
+    mock_session = MagicMock()
+    mock_session.candidate_assess_id = 1
+    mock_session.status = SessionStatus.IN_PROGRESS
+    mock_session.access_token = "tok-abc"
+    mock_session.start_time = datetime(2025, 1, 1, 9, 0, 0)
+    mock_session.end_time = datetime(2025, 1, 1, 9, 30, 0)
+    mock_session.assessment = mock_assessment
+    return mock_session
+
+
+def test_my_assessments_returns_200_with_list(auth_client, mock_db):
+    mock_session = _make_my_assessment_session()
+    with patch(MY_ASSESSMENTS_PATCH, return_value=[mock_session]):
+        response = auth_client.get("/api/v1/assessments/my-assessments")
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    assert len(body) == 1
+    assert body[0]["candidate_assess_id"] == 1
+
+
+def test_my_assessments_returns_200_empty_list(auth_client, mock_db):
+    with patch(MY_ASSESSMENTS_PATCH, return_value=[]):
+        response = auth_client.get("/api/v1/assessments/my-assessments")
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_my_assessments_returns_401_without_jwt(client, mock_db):
+    response = client.get("/api/v1/assessments/my-assessments")
+    assert response.status_code == 401
+
+
+def test_my_assessments_returns_nested_assessment_details(auth_client, mock_db):
+    mock_session = _make_my_assessment_session()
+    with patch(MY_ASSESSMENTS_PATCH, return_value=[mock_session]):
+        response = auth_client.get("/api/v1/assessments/my-assessments")
+    body = response.json()
+    item = body[0]
+    assert "assessment" in item
+    assert item["assessment"]["assessment_id"] == 10
+    assert item["assessment"]["title"] == "Python Test"
+    assert item["assessment"]["description"] == "Fundamentals"
+    assert item["assessment"]["duration_mins"] == 30
+    assert item["status"] == "IN_PROGRESS"
+    assert item["access_token"] == "tok-abc"
