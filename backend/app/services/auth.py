@@ -168,7 +168,7 @@ def login_user(db: Session, payload: LoginRequest) -> tuple[User, str]:
             detail="Invalid email or password"
         )
 
-    acess_token = create_access_token(
+    access_token = create_access_token(
         data={
             "sub": str(user.user_id),
             "email": user.email,
@@ -176,4 +176,4 @@ def login_user(db: Session, payload: LoginRequest) -> tuple[User, str]:
         }
     )
 
-    return user, acess_token
+    return user, access_token
