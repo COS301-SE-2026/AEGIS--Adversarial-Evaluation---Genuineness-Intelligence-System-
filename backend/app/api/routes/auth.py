@@ -44,8 +44,9 @@ async def google_callback(
         user_info = exchange_code_for_user_info(code)
         user = get_or_create_user(db, user_info)
     except Exception as exc:
+        error_message = quote(str(exc), safe='')
         return RedirectResponse(
-            url=f"{settings.frontend_url}/login?error={quote(str(exc), safe='')}",
+            url=f"{settings.frontend_url}/login?error={error_message}",
             status_code=302,
         )
 
