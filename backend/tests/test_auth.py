@@ -8,6 +8,7 @@ os.environ.setdefault("GOOGLE_REDIRECT_URI", "http://localhost:8000/callback")
 os.environ.setdefault("GITHUB_CLIENT_ID", "test-github-client-id")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-github-client-secret")
 os.environ.setdefault("GITHUB_REDIRECT_URI", "http://localhost:8000/github/callback")
+os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
 
 
 from unittest.mock import MagicMock, patch
@@ -124,7 +125,6 @@ def test_register_returns_409_when_email_already_exists(client):
     assert "already exists" in response.json()["detail"]
 
 
-# --- Password validation (handled by Pydantic, no patch needed) ---
 
 def test_register_returns_422_when_password_too_short(client):
     response = client.post(
