@@ -10,7 +10,7 @@ export function TestAnswerCard({ question }: { question: Question }) {
     const answerComponents = {
         'multiple-choice': <TestMultipleChoiceCard question={question} />,
         'coding': <CodeEditorCard code={code} setCode={setCode} />,
-        'fill-in-the-blank': <TestFillInTheBlanksCard/>
+        'fill-in-the-blank': <TestFillInTheBlanksCard question={question}/>
     };
 
     const selectedComponent = answerComponents[question.type as keyof typeof answerComponents];
@@ -29,8 +29,8 @@ export function TestAnswerCard({ question }: { question: Question }) {
     };
 
     return (
-        <div>
-            <div className="flex items-center justify-center w-36 h-14 tracking-wider bg-code-editor border-b border-default-border p-4">
+        <div className=" lg:w-2xl lg:mr-22">
+            <div className="flex items-center justify-center 2xl:w-36 h-14 tracking-wider bg-code-editor border-b border-default-border p-4">
                 <h3 className="text-sm uppercase text-default-text">{getHeaderTitle()}</h3>
             </div>
             <div className="bg-code-editor w-3xl h-168 p-4 rounded-md">
