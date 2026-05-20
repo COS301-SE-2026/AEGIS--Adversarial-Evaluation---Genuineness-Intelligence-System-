@@ -28,7 +28,7 @@ export default function AssessmentsPage() {
   });
 
   return (
-    <div className="flex min-h-screen bg-[#121211] text-[#F5F5F5]">
+    <div className="flex min-h-screen bg-background text-white-smoke">
       {/* Sidebar */}
       <AdminSidebar />
 

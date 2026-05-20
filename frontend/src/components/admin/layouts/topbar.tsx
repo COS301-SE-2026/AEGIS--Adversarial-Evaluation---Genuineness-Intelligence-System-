@@ -32,7 +32,7 @@ export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
           </svg>
         </button>
 
-        {/* New Assessment button — matches hero "GET STARTED" solid variant */}
+        {/* New Assessment button — kept as latest solid variant matching home */}
         <button
           onClick={onNewAssessment}
           className="flex items-center gap-2 bg-default-text text-background border border-default-text px-[18px] py-[9px] font-staatliches text-[15px] tracking-[0.05em] rounded-[5px] transition-colors duration-200 whitespace-nowrap hover:bg-transparent hover:border-system-red hover:text-system-red"
@@ -51,8 +51,10 @@ export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
           NEW ASSESSMENT
         </button>
 
-        {/* Avatar */}
-        <div className="w-[34px] h-[34px] bg-system-red rounded-[5px] flex items-center justify-center font-staatliches text-base cursor-pointer select-none text-white">
+        {/* Avatar — updated to transparent bg + white text + default border (as requested) */}
+        <div 
+          className="w-[34px] h-[34px] bg-transparent border border-default-border rounded-[5px] flex items-center justify-center font-staatliches text-base cursor-pointer select-none text-white-smoke"
+        >
           AD
         </div>
       </div>

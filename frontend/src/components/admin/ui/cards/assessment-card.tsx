@@ -64,8 +64,8 @@ function AssignDropdown({ assessmentTitle }: { assessmentTitle: string }) {
         onClick={() => setOpen((o) => !o)}
         className={`bg-transparent border p-1 px-2 rounded-[5px] cursor-pointer transition-all duration-150 flex items-center gap-1 ${
           open || assigned.length > 0
-            ? "border-[#D32F2F] text-[#D32F2F]"
-            : "border-[rgba(211,47,47,0.3)] text-[rgba(211,47,47,0.7)] hover:border-[#D32F2F] hover:text-[#D32F2F]"
+            ? "border-system-red text-system-red"
+            : "border-system-red/30 text-system-red/70 hover:border-system-red hover:text-system-red"
         }`}
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -81,11 +81,11 @@ function AssignDropdown({ assessmentTitle }: { assessmentTitle: string }) {
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-1.5 w-[190px] bg-[#1A1C1E] border border-[#333331] rounded-[5px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] z-20 overflow-hidden">
+        <div className="absolute bottom-full right-0 mb-1.5 w-[190px] bg-secondary-surface border border-tertiary-surface rounded-[5px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] z-20 overflow-hidden">
           {/* Header */}
-          <div className="px-3 py-2 border-b border-[#333331]">
-            <div className="font-staatliches text-[12px] tracking-[0.06em] text-[#F5F5F5]">ASSIGN TO</div>
-            <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)] mt-0.5 truncate">
+          <div className="px-3 py-2 border-b border-tertiary-surface">
+            <div className="font-staatliches text-[12px] tracking-[0.06em] text-white-smoke">ASSIGN TO</div>
+            <div className="font-jetbrains text-[9px] text-white-smoke/40 mt-0.5 truncate">
               {assessmentTitle}
             </div>
           </div>
@@ -105,10 +105,10 @@ function AssignDropdown({ assessmentTitle }: { assessmentTitle: string }) {
                       ? "bg-[rgba(56,142,60,0.15)]"
                       : isAssigned
                       ? "opacity-50 cursor-default"
-                      : "hover:bg-[rgba(211,47,47,0.08)] cursor-pointer"
+                      : "hover:bg-system-red/8 cursor-pointer"
                   }`}
                 >
-                  <span className="font-staatliches text-[13px] tracking-[0.04em] text-[#F5F5F5]">
+                  <span className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke">
                     {c.name}
                   </span>
                   {isAssigned ? (
@@ -116,7 +116,7 @@ function AssignDropdown({ assessmentTitle }: { assessmentTitle: string }) {
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
                   ) : (
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(245,245,245,0.28)" strokeWidth="1.8" className="flex-shrink-0">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="flex-shrink-0 text-white-smoke/30">
                       <line x1="12" y1="5" x2="12" y2="19"/>
                       <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
@@ -144,14 +144,14 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
 
   return (
     <div className="
-        bg-[#292C2F] border border-[#333331] rounded-[5px]
+        bg-secondary-surface border border-tertiary-surface rounded-[5px]
         px-5 py-[18px] cursor-pointer relative overflow-hidden
         transition-all duration-150
-        hover:border-[rgba(211,47,47,0.4)] hover:bg-[rgba(41,44,47,0.85)]
+        hover:bg-tertiary-surface hover:border-system-red/40
         group
       "
     >
-      {/* Top accent bar */}
+      {/* Top accent bar — kept exactly as requested */}
       <div
         className="absolute top-0 left-0 right-0 h-0.5 rounded-t-[5px]"
         style={{ background: accentColour[a.status] }}
@@ -159,26 +159,26 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
 
       {/* Title row */}
       <div className="flex items-start justify-between mb-2.5">
-        <div className="font-staatliches text-lg tracking-[0.04em] leading-[1.1] text-[#F5F5F5] flex-1 pr-2.5">
+        <div className="font-staatliches text-lg tracking-[0.04em] leading-[1.1] text-white-smoke flex-1 pr-2.5">
           {a.title}
         </div>
         <StatusBadge status={a.status} />
       </div>
 
       {/* Meta pills */}
-      <div className="flex flex-wrap gap-2.5 mb-3 font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">
+      <div className="flex flex-wrap gap-2.5 mb-3 font-jetbrains text-[10px] text-white-smoke/40">
         <span className="flex items-center gap-1">🎯 {a.role}</span>
         <span className="flex items-center gap-1">📊 {a.difficulty}</span>
         <span className="flex items-center gap-1">❓ {a.questions} Qs</span>
-        <span className="text-[9px] text-[rgba(245,245,245,0.28)]">{a.langs.join(", ")}</span>
+        <span className="text-[9px] text-white-smoke/30">{a.langs.join(", ")}</span>
       </div>
 
-      {/* Type tags */}
+      {/* Type tags — updated to grey from globals.css (tertiary-surface) */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         {a.types.map((t) => (
           <span
             key={t}
-            className="font-jetbrains text-[9px] px-2 py-0.5 bg-[#222426] border border-[#333331] rounded-[5px] text-[rgba(245,245,245,0.22)] tracking-[0.04em]"
+            className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface border border-default-border/30 rounded-[5px] text-white-smoke/40 tracking-[0.04em]"
           >
             {t}
           </span>
@@ -186,43 +186,43 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 border-t border-[#333331] pt-3">
+      <div className="grid grid-cols-3 gap-2 border-t border-tertiary-surface pt-3">
         <div className="text-center">
-          <div className="font-staatliches text-[20px] tracking-[0.02em] leading-none text-[#F5F5F5]">
+          <div className="font-staatliches text-[20px] tracking-[0.02em] leading-none text-white-smoke">
             {a.candidates}
           </div>
-          <div className="font-jetbrains text-[8px] text-[rgba(245,245,245,0.42)] tracking-[0.06em] uppercase mt-0.5">
+          <div className="font-jetbrains text-[8px] text-white-smoke/40 tracking-[0.06em] uppercase mt-0.5">
             Candidates
           </div>
         </div>
         <div className="text-center">
-          <div className="font-staatliches text-[20px] tracking-[0.02em] leading-none text-[#F5F5F5]">
+          <div className="font-staatliches text-[20px] tracking-[0.02em] leading-none text-white-smoke">
             {completionPct}%
           </div>
-          <div className="font-jetbrains text-[8px] text-[rgba(245,245,245,0.42)] tracking-[0.06em] uppercase mt-0.5">
+          <div className="font-jetbrains text-[8px] text-white-smoke/40 tracking-[0.06em] uppercase mt-0.5">
             Completed
           </div>
         </div>
         <div className="text-center">
-          <div className={`font-staatliches text-[20px] tracking-[0.02em] leading-none ${aiHighlight ? "text-[#EF5350]" : "text-[#F5F5F5]"}`}>
+          <div className={`font-staatliches text-[20px] tracking-[0.02em] leading-none ${aiHighlight ? "text-system-red" : "text-white-smoke"}`}>
             {a.aiRate > 0 ? `${a.aiRate}%` : "—"}
           </div>
-          <div className="font-jetbrains text-[8px] text-[rgba(245,245,245,0.42)] tracking-[0.06em] uppercase mt-0.5">
+          <div className="font-jetbrains text-[8px] text-white-smoke/40 tracking-[0.06em] uppercase mt-0.5">
             AI Detect
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#333331]">
-        <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-tertiary-surface">
+        <div className="font-jetbrains text-[10px] text-white-smoke/40">
           {a.created}
         </div>
         <div className="flex gap-1.5">
           {/* Edit */}
           <button
             aria-label="Edit assessment"
-            className="bg-transparent border border-[#333331] text-[rgba(245,245,245,0.42)] p-1 px-2 rounded-[5px] cursor-pointer transition-all duration-150 flex items-center hover:border-[#D32F2F] hover:text-[#D32F2F]"
+            className="bg-transparent border border-tertiary-surface text-white-smoke/40 p-1 px-2 rounded-[5px] cursor-pointer transition-all duration-150 flex items-center hover:border-system-red hover:text-system-red"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
