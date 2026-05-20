@@ -41,11 +41,10 @@ The Candidate is the primary end-user of the system. This user interacts with AI
 The Admin is responsible for managing assessments.
 
 **Characteristics:**
-- Selects specific assessments to assign a candidate to
-- Assigns assessments to candidates
+- Assigns assessments to candidates.
 
 **System Usage:**
-- Assign assessments to specific users
+- Assign predefined assessments to specific candidates.
 
 ---
 
@@ -87,7 +86,7 @@ The functional requirements are grouped into subsystems based on system architec
 ## Subsystem 1: Assessment Engine
 
 FR1. The system shall allow a candidate to start an assessment.  
-FR2. The system shall present questions from the predefined question bank.  
+FR2. The system shall present questions from the predefined assessment with questions from the question bank.  
 FR3. The system shall support multiple question types including:
 - Fill-in-the-blank
 - Multiple Choice Questions 
