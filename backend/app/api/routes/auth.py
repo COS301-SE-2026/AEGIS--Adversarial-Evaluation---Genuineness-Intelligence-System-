@@ -12,9 +12,13 @@ from app.services.auth import (
     get_google_auth_url,
     get_or_create_user,
     register_user,
+    login_user,
 )
 
-from app.schema.auth import RegisterRequest, RegisterResponse
+from app.schema.auth import (RegisterRequest,
+                             RegisterResponse,
+                             LoginRequest,
+                             LoginResponse)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -77,6 +81,20 @@ def register(
             detail=str(e),
         )
     return RegisterResponse(
+        user={"id": user.user_id, "email": user.email,
+              "full_name": user.full_name},
+        access_token=access_token,
+    )
+
+
+@router.post("/login", response_model=LoginResponse,
+             status_code=status.HTTP_200_OK)
+def login(
+    payload: LoginRequest,
+    db: Session = Depends(get_db),
+) -> LoginResponse:
+    user, access_token = login_user(db, payload)
+    return LoginResponse(
         user={"id": user.user_id, "email": user.email,
               "full_name": user.full_name},
         access_token=access_token,

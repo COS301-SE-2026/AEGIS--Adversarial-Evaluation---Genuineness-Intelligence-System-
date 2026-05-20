@@ -8,6 +8,7 @@ import GoogleIcon from "@/components/hero/ui/google-icon";
 import GithubIcon from "@/components/hero/ui/github-icon";
 import { validateEmail, validatePassword } from "@/lib/validation";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 const Login = () => {
   const router = useRouter();
@@ -15,6 +16,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState({email: "", password: ""});
   const [touched, setTouched] = useState({ email: false, password: false });
+  const [serverError, setServerError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleEmailChange(value: string) {
     setEmail(value);
@@ -53,10 +56,35 @@ const Login = () => {
     return !emailError && !passwordError;
   }
 
-  function handleSubmit() {
-    //TODO: wire up registration logic
-    if (validate()) {
-      router.push("/assessment");      
+  async function handleSubmit() {
+    setServerError("");
+    if (!validate()) return;
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const detail = data.detail;
+        if (Array.isArray(detail)) {
+          setServerError(detail.map((e: { msg: string }) => e.msg).join(" "));
+        } else {
+          setServerError(detail ?? "Login failed. Please try again.");
+        }
+        return;
+      }
+
+      localStorage.setItem("access_token", data.access_token);
+      router.push("/assessment");
+    } catch {
+      setServerError("Server unreachable.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -116,8 +144,13 @@ const Login = () => {
               onBlur={handlePasswordBlur}
             />
           </div>
-          <Button variant="solid" onClick={handleSubmit} className="w-full">
-            Sign In
+          {serverError && (
+            <p className="text-center font-ibm-plex text-sm text-system-red">
+              {serverError}
+            </p>
+          )}
+          <Button variant="solid" onClick={handleSubmit} className="w-full" disabled={loading}>
+            {loading ? "Signing in..." : "Sign In"}
           </Button>
           <p className="text-center font-ibm-plex text-sm text-default-text">
             Don&apos;t have an account?{" "}

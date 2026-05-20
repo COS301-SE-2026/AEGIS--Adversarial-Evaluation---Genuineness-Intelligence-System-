@@ -20,7 +20,7 @@ from app.main import app
 from app.database.database import get_db
 
 _REGISTER_PATCH = "app.api.routes.auth.register_user"
-
+_LOGIN_PATCH = "app.api.routes.auth.login_user"
 
 @pytest.fixture
 def mock_db():
@@ -184,3 +184,128 @@ def test_register_returns_500_when_candidate_role_missing(client):
         )
 
     assert response.status_code == 500
+
+def test_login_returns_200(client):
+    mock_user = _make_mock_user()
+    mock_token = "mocked.jwt.token"
+
+    with patch(_LOGIN_PATCH, return_value=(mock_user, mock_token)):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "test@example.com", "password": "Test1234!"},
+        )
+
+    assert response.status_code == 200
+
+
+def test_login_response_contains_access_token(client):
+    mock_user = _make_mock_user()
+    mock_token = "mocked.jwt.token"
+
+    with patch(_LOGIN_PATCH, return_value=(mock_user, mock_token)):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "test@example.com", "password": "Test1234!"},
+        )
+
+    body = response.json()
+    assert "access_token" in body
+    assert body["access_token"] == mock_token
+    assert body["token_type"] == "bearer"
+
+
+def test_login_response_contains_user(client):
+    mock_user = _make_mock_user(user_id=5, email="test@example.com", full_name="Test User")
+    mock_token = "mocked.jwt.token"
+
+    with patch(_LOGIN_PATCH, return_value=(mock_user, mock_token)):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "test@example.com", "password": "Test1234!"},
+        )
+
+    body = response.json()
+    assert "user" in body
+    assert body["user"]["id"] == 5
+    assert body["user"]["email"] == "test@example.com"
+    assert body["user"]["full_name"] == "Test User"
+
+
+def test_login_returns_401_when_email_not_found(client):
+    from fastapi import HTTPException
+
+    with patch(
+        _LOGIN_PATCH,
+        side_effect=HTTPException(
+            status_code=401,
+            detail="Invalid email or password",
+        ),
+    ):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "nobody@example.com", "password": "Test1234!"},
+        )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid email or password"
+
+
+def test_login_returns_401_when_password_wrong(client):
+    from fastapi import HTTPException
+
+    with patch(
+        _LOGIN_PATCH,
+        side_effect=HTTPException(
+            status_code=401,
+            detail="Invalid email or password",
+        ),
+    ):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "test@example.com", "password": "Wrong1234!"},
+        )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid email or password"
+
+
+def test_login_returns_401_for_google_only_account(client):
+    from fastapi import HTTPException
+
+    with patch(
+        _LOGIN_PATCH,
+        side_effect=HTTPException(
+            status_code=401,
+            detail="Invalid email or password",
+        ),
+    ):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "googleuser@example.com", "password": "Test1234!"},
+        )
+
+    assert response.status_code == 401
+
+
+def test_login_returns_422_when_email_missing(client):
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"password": "Test1234!"},
+    )
+    assert response.status_code == 422
+
+
+def test_login_returns_422_when_password_missing(client):
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "test@example.com"},
+    )
+    assert response.status_code == 422
+
+
+def test_login_returns_422_when_email_invalid(client):
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": "notanemail", "password": "Test1234!"},
+    )
+    assert response.status_code == 422
