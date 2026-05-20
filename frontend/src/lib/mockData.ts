@@ -39,7 +39,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 1,
       questionTitle: "JavaScript Promise Resolution",
-      questionText: "What is the output of this code?\n\nconst p = Promise.resolve(5);\np.then(x => x * 2).then(x => console.log(x));",
+      questionContent: "What is the output of this code?\n\nconst p = Promise.resolve(5);\np.then(x => x * 2).then(x => console.log(x));",
       type: 'multiple-choice',
       options: [
         "5",
@@ -54,7 +54,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 2,
       questionTitle: "Reverse a String Function",
-      questionText: "Write a function that reverses a string without using the built-in reverse() method.\n\nExample: reverseString('hello') should return 'olleh'",
+      questionContent: "Write a function that reverses a string without using the built-in reverse() method.\n\nExample: reverseString('hello') should return 'olleh'",
       type: 'coding',
       options: [],
       correctAnswer: "function reverseString(str) { return str.split('').reduce((rev, char) => char + rev, ''); }",
@@ -64,10 +64,10 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 3,
       questionTitle: "Array Method Completion",
-      questionText: "Complete the code:\n\nconst numbers = [1, 2, 3, 4];\nconst doubled = numbers._____(x => x * 2);\n// doubled = [2, 4, 6, 8]",
+      questionContent: "\n\nconst numbers = [1, 2, 3, 4];\nconst doubled = numbers.___A___(x => x * 2);\nconst total = doubled.___B___((a, b) => a + b, 0);\n// total = 20",
       type: 'fill-in-the-blank',
-      options: ["map", "filter", "reduce", "forEach"],
-      correctAnswer: "map",
+      options: ["map", "reduce"],
+      correctAnswer: "map, reduce",
       tags: ["javascript", "arrays", "functional-programming"],
       attempted: true
     }
@@ -76,7 +76,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 4,
       questionTitle: "Variable Hoisting",
-      questionText: "What will be printed to the console?\n\nconsole.log(x);\nvar x = 5;",
+      questionContent: "What will be printed to the console?\n\nconsole.log(x);\nvar x = 5;",
       type: 'multiple-choice',
       options: [
         "5",
@@ -91,7 +91,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 5,
       questionTitle: "Closure Definition",
-      questionText: "What is a closure in JavaScript?",
+      questionContent: "What is a closure in JavaScript?",
       type: 'multiple-choice',
       options: [
         "A function that closes the program",
@@ -106,7 +106,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 6,
       questionTitle: "Array Destructuring",
-      questionText: "What does this code output?\n\nconst [a, b, c] = [1, 2, 3];\nconsole.log(b);",
+      questionContent: "What does this code output?\n\nconst [a, b, c] = [1, 2, 3];\nconsole.log(b);",
       type: 'multiple-choice',
       options: ["1", "2", "3", "undefined"],
       correctAnswer: "2",
@@ -118,7 +118,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 7,
       questionTitle: "React Component Lifecycle",
-      questionText: "Which lifecycle method is called after a component is mounted?",
+      questionContent: "Which lifecycle method is called after a component is mounted?",
       type: 'multiple-choice',
       options: [
         "componentWillMount",
@@ -133,7 +133,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 8,
       questionTitle: "Hooks in Functional Components",
-      questionText: "Which hook is used to manage state in functional components?",
+      questionContent: "Which hook is used to manage state in functional components?",
       type: 'multiple-choice',
       options: [
         "useEffect",
@@ -148,7 +148,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 9,
       questionTitle: "Virtual DOM Purpose",
-      questionText: "What is the primary purpose of React's Virtual DOM?",
+      questionContent: "What is the primary purpose of React's Virtual DOM?",
       type: 'multiple-choice',
       options: [
         "To store data permanently",
@@ -165,7 +165,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 10,
       questionTitle: "CSS Flexbox Direction",
-      questionText: "What does the 'flex-direction: column' property do?",
+      questionContent: "What does the 'flex-direction: column' property do?",
       type: 'multiple-choice',
       options: [
         "Arranges items horizontally",
@@ -180,7 +180,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 11,
       questionTitle: "CSS Grid Template Columns",
-      questionText: "What does 'grid-template-columns: repeat(3, 1fr)' create?",
+      questionContent: "What does 'grid-template-columns: repeat(3, 1fr)' create?",
       type: 'multiple-choice',
       options: [
         "3 rows of equal height",
@@ -195,10 +195,10 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 12,
       questionTitle: "CSS Box Model",
-      questionText: "Write the CSS property to set padding on all sides to 10px",
+      questionContent: "Complete the CSS:\n\n.box {\n  {1}: 10px;\n  {2}: 0;\n}",
       type: 'fill-in-the-blank',
-      options: ["margin: 10px", "padding: 10px", "border: 10px", "padding-all: 10px"],
-      correctAnswer: "padding: 10px",
+      options: ["padding", "margin"],
+      correctAnswer: "padding, margin",
       tags: ["css", "box-model", "properties"],
       attempted: false
     }
@@ -207,7 +207,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 13,
       questionTitle: "TypeScript Type Annotation",
-      questionText: "How do you annotate a variable as a string in TypeScript?",
+      questionContent: "How do you annotate a variable as a string in TypeScript?",
       type: 'multiple-choice',
       options: [
         "let x: string = 'hello';",
@@ -222,7 +222,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 14,
       questionTitle: "TypeScript Interfaces",
-      questionText: "What is the purpose of an interface in TypeScript?",
+      questionContent: "What is the purpose of an interface in TypeScript?",
       type: 'multiple-choice',
       options: [
         "To define class inheritance",
@@ -237,7 +237,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 15,
       questionTitle: "Union Types",
-      questionText: "What does 'string | number' represent in TypeScript?",
+      questionContent: "What does 'string | number' represent in TypeScript?",
       type: 'multiple-choice',
       options: [
         "A string and number together",
@@ -254,7 +254,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 16,
       questionTitle: "SQL SELECT Statement",
-      questionText: "Write a query to select all columns from a 'users' table where age > 18",
+      questionContent: "Write a query to select all columns from a 'users' table where age > 18",
       type: 'coding',
       options: [],
       correctAnswer: "SELECT * FROM users WHERE age > 18;",
@@ -264,7 +264,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 17,
       questionTitle: "SQL JOIN Types",
-      questionText: "What is the difference between INNER JOIN and LEFT JOIN?",
+      questionContent: "What is the difference between INNER JOIN and LEFT JOIN?",
       type: 'multiple-choice',
       options: [
         "INNER JOIN returns all rows, LEFT JOIN returns matching rows",
@@ -279,7 +279,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 18,
       questionTitle: "SQL GROUP BY",
-      questionText: "What is the purpose of the GROUP BY clause?",
+      questionContent: "What is the purpose of the GROUP BY clause?",
       type: 'multiple-choice',
       options: [
         "To order results",
@@ -296,7 +296,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 19,
       questionTitle: "HTTPS Encryption",
-      questionText: "What is the main purpose of HTTPS?",
+      questionContent: "What is the main purpose of HTTPS?",
       type: 'multiple-choice',
       options: [
         "To make websites load faster",
@@ -311,7 +311,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 20,
       questionTitle: "SQL Injection Prevention",
-      questionText: "What is the best way to prevent SQL injection attacks?",
+      questionContent: "What is the best way to prevent SQL injection attacks?",
       type: 'multiple-choice',
       options: [
         "Use parameterized queries",
@@ -326,15 +326,13 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 21,
       questionTitle: "CORS Explanation",
-      questionText: "What does CORS stand for and why is it important?",
+      questionContent: "CORS stands for {1} {2}.",
       type: 'fill-in-the-blank',
       options: [
-        "Cross-Origin Request Security",
-        "Cross-Origin Resource Sharing",
-        "Cross-Origin Response System",
-        "Cross-Origin Routing Service"
+        "Cross-Origin",
+        "Resource Sharing"
       ],
-      correctAnswer: "Cross-Origin Resource Sharing",
+      correctAnswer: "Cross-Origin, Resource Sharing",
       tags: ["web-security", "cors", "headers"],
       attempted: false
     }
@@ -343,7 +341,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 22,
       questionTitle: "Code Splitting",
-      questionText: "What is code splitting in web applications?",
+      questionContent: "What is code splitting in web applications?",
       type: 'multiple-choice',
       options: [
         "Breaking code into multiple files",
@@ -358,7 +356,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 23,
       questionTitle: "Lazy Loading",
-      questionText: "What is lazy loading?",
+      questionContent: "What is lazy loading?",
       type: 'multiple-choice',
       options: [
         "Loading all assets at once",
@@ -373,7 +371,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     {
       questionId: 24,
       questionTitle: "Cache Strategy",
-      questionText: "Which caching strategy is best for static assets with version numbers?",
+      questionContent: "Which caching strategy is best for static assets with version numbers?",
       type: 'multiple-choice',
       options: [
         "No-cache",

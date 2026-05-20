@@ -42,8 +42,8 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    }
 
     return (
-        <main className="flex flex-col items-center justify-start min-h-screen gap-8">
-            <div className="flex flex-row items-center gap-4">
+        <main className="flex flex-col items-center justify-start min-h-screen 2xl:gap-8">
+            <div className="flex flex-row items-center 2xl:gap-4">
                <TestDescriptionCard question={currentQuestion} />
                <TestAnswerCard question={currentQuestion} />
 
