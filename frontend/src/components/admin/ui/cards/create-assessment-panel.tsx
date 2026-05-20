@@ -28,12 +28,12 @@ function ToggleSwitch({
       aria-checked={checked}
       onClick={onChange}
       className={`relative w-9 h-5 rounded-[5px] transition-colors duration-200 flex-shrink-0 ${
-        checked ? "bg-[#D32F2F]" : "bg-[#333331]"
+        checked ? "bg-system-red" : "bg-tertiary-surface"
       }`}
     >
       <span
         className={`absolute top-[3px] w-3.5 h-3.5 rounded-[3px] transition-all duration-200 ${
-          checked ? "left-[19px] bg-white" : "left-[3px] bg-[rgba(245,245,245,0.42)]"
+          checked ? "left-[19px] bg-white" : "left-[3px] bg-white-smoke/40"
         }`}
       />
     </button>
@@ -42,9 +42,9 @@ function ToggleSwitch({
 
 function TechBadge({ eff }: { eff: "HIGH" | "MED" | "LOW" }) {
   const styles = {
-    HIGH: "bg-[rgba(211,47,47,0.15)] text-[#EF5350] border border-[rgba(211,47,47,0.25)]",
-    MED:  "bg-[rgba(249,168,37,0.12)] text-[#FFCA28] border border-[rgba(249,168,37,0.25)]",
-    LOW:  "bg-[rgba(56,142,60,0.12)] text-[#66BB6A] border border-[rgba(56,142,60,0.25)]",
+    HIGH: "bg-system-red/15 text-system-red border border-system-red/25",
+    MED:  "bg-[#F9A825]/12 text-[#FFCA28] border border-[#F9A825]/25",
+    LOW:  "bg-[#388E3C]/12 text-[#66BB6A] border border-[#388E3C]/25",
   };
   return (
     <span className={`font-jetbrains text-[9px] px-[7px] py-0.5 rounded-[5px] ${styles[eff]}`}>
@@ -53,13 +53,15 @@ function TechBadge({ eff }: { eff: "HIGH" | "MED" | "LOW" }) {
   );
 }
 
-// ─── Shared label styles ───────────────────────────────────────────────────
+// ─── Shared label styles (updated for consistency with assessments page) ───
 const labelCls =
-  "font-jetbrains text-[10px] tracking-[0.1em] text-[rgba(245,245,245,0.42)] uppercase font-medium";
+  "font-jetbrains text-[10px] tracking-[0.1em] text-white-smoke/40 uppercase font-medium";
+
 const inputCls =
-  "w-full bg-[#292C2F] border border-[#333331] text-[#F5F5F5] px-3.5 py-2.5 font-ibm text-[13px] rounded-[5px] outline-none transition-colors duration-150 placeholder:text-[rgba(245,245,245,0.42)] focus:border-[#D32F2F]";
+  "w-full bg-secondary-surface border border-default-border text-white-smoke px-3.5 py-2.5 font-ibm text-[13px] rounded-[5px] outline-none transition-colors duration-150 placeholder:text-white-smoke/40 focus:border-system-red";
+
 const sectionTitleCls =
-  "font-staatliches text-base tracking-[0.07em] text-[#F5F5F5] mb-3.5 flex items-center gap-2 after:flex-1 after:h-px after:bg-[#333331] after:content-['']";
+  "font-staatliches text-base tracking-[0.07em] text-white-smoke mb-3.5 flex items-center gap-2 after:flex-1 after:h-px after:bg-default-border after:content-['']";
 
 // ─── Step 0 — Basic Info ───────────────────────────────────────────────────
 
@@ -116,22 +118,22 @@ function StepBasicInfo({
 
           <div>
             <label className={`${labelCls} block mb-1.5`}>Seniority Level</label>
-            <div className="flex border border-[#333331] rounded-[5px] overflow-hidden">
+            <div className="flex border border-default-border rounded-[5px] overflow-hidden">
               {DIFFICULTY_LEVELS.map((d) => (
                 <button
                   key={d}
                   onClick={() => set("difficulty", d as Difficulty)}
-                  className={`flex-1 py-2 font-staatliches text-[13px] tracking-[0.04em] text-center transition-all duration-150 border-r border-[#333331] last:border-r-0 ${
+                  className={`flex-1 py-2 font-staatliches text-[13px] tracking-[0.04em] text-center transition-all duration-150 border-r border-default-border last:border-r-0 ${
                     form.difficulty === d
-                      ? "bg-[rgba(211,47,47,0.15)] text-[#D32F2F]"
-                      : "text-[rgba(245,245,245,0.42)] hover:bg-[rgba(211,47,47,0.06)] hover:text-[#F5F5F5]"
+                      ? "bg-system-red/15 text-system-red"
+                      : "text-white-smoke/40 hover:bg-system-red/8 hover:text-white-smoke"
                   }`}
                 >
                   {d}
                 </button>
               ))}
             </div>
-            <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)] mt-1">
+            <div className="font-jetbrains text-[9px] text-white-smoke/30 mt-1">
               Sets question complexity and AI trap intensity
             </div>
           </div>
@@ -141,7 +143,7 @@ function StepBasicInfo({
   );
 }
 
-// ─── Step 1 — Targeting & Pool ────────────────────────────────────────────
+// ─── Step 1 — Targeting & Pool ──────────────────────────────────────────── (kept mostly as-is for this increment)
 
 function StepTargeting({
   form,
@@ -154,7 +156,6 @@ function StepTargeting({
 }) {
   const [refRoleFilter, setRefRoleFilter] = useState<string>("match");
 
-  // Assessments to show in the pool/arsenal reference panel
   const referencePool: Assessment[] = MOCK_ASSESSMENTS.filter((a) => {
     if (refRoleFilter === "match") return a.role === form.role;
     if (refRoleFilter === "all") return true;
@@ -177,7 +178,7 @@ function StepTargeting({
     rate >= 70 ? "#EF5350" : rate >= 40 ? "#FFCA28" : "#66BB6A";
 
   const statusDot: Record<Candidate["status"], string> = {
-    "pending":     "bg-[rgba(245,245,245,0.28)]",
+    "pending":     "bg-white-smoke/30",
     "in-progress": "bg-[#FFCA28]",
     "completed":   "bg-[#66BB6A]",
   };
@@ -189,7 +190,7 @@ function StepTargeting({
       {/* ── Candidates ──────────────────────────────────────────────────── */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Assign Candidates</div>
-        <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mb-3 leading-relaxed">
+        <p className="font-jetbrains text-[10px] text-white-smoke/40 mb-3 leading-relaxed">
           Select candidates to assign this assessment to. They will receive access
           once the assessment is set to <span className="text-[#66BB6A]">ACTIVE</span>.
         </p>
@@ -202,36 +203,34 @@ function StepTargeting({
                 key={c.id}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-[5px] border transition-all duration-150 ${
                   assigned
-                    ? "border-[rgba(211,47,47,0.35)] bg-[rgba(211,47,47,0.05)]"
-                    : "border-[#333331] bg-[#292C2F]"
+                    ? "border-system-red/35 bg-system-red/5"
+                    : "border-default-border bg-secondary-surface"
                 }`}
               >
-                {/* Avatar + info */}
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-[5px] bg-[#D32F2F] flex items-center justify-center font-staatliches text-sm text-white flex-shrink-0 select-none">
+                  <div className="w-8 h-8 rounded-[5px] bg-system-red flex items-center justify-center font-staatliches text-sm text-white flex-shrink-0 select-none">
                     {c.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <div className="font-staatliches text-sm tracking-[0.04em] text-[#F5F5F5]">
+                    <div className="font-staatliches text-sm tracking-[0.04em] text-white-smoke">
                       {c.name}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)]">
+                      <span className="font-jetbrains text-[9px] text-white-smoke/40">
                         {c.email}
                       </span>
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">·</span>
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)]">
+                      <span className="font-jetbrains text-[9px] text-white-smoke/25">·</span>
+                      <span className="font-jetbrains text-[9px] text-white-smoke/40">
                         {c.role}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Status + assign button */}
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="flex items-center gap-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot[c.status]}`} />
-                    <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)] capitalize">
+                    <span className="font-jetbrains text-[9px] text-white-smoke/40 capitalize">
                       {c.status.replace("-", " ")}
                     </span>
                   </div>
@@ -239,8 +238,8 @@ function StepTargeting({
                     onClick={() => toggleArr("assignedCandidates", String(c.id))}
                     className={`font-jetbrains text-[10px] tracking-[0.05em] px-3 py-1.5 rounded-[5px] border cursor-pointer transition-all duration-150 ${
                       assigned
-                        ? "bg-[rgba(211,47,47,0.15)] border-[#D32F2F] text-[#D32F2F] hover:bg-[rgba(211,47,47,0.25)]"
-                        : "bg-transparent border-[#333331] text-[rgba(245,245,245,0.42)] hover:border-[#D32F2F] hover:text-[#D32F2F]"
+                        ? "bg-system-red/15 border-system-red text-system-red hover:bg-system-red/25"
+                        : "bg-transparent border-default-border text-white-smoke/40 hover:border-system-red hover:text-system-red"
                     }`}
                   >
                     {assigned ? "✓ ASSIGNED" : "+ ASSIGN"}
@@ -252,7 +251,7 @@ function StepTargeting({
         </div>
 
         {assignedIds.length > 0 && (
-          <div className="mt-2 font-jetbrains text-[9px] text-[rgba(211,47,47,0.8)] flex items-center gap-1.5">
+          <div className="mt-2 font-jetbrains text-[9px] text-system-red/80 flex items-center gap-1.5">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
@@ -264,12 +263,11 @@ function StepTargeting({
       {/* ── Assessment Pool / Arsenal ────────────────────────────────────── */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Assessment Pool</div>
-        <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mb-3 leading-relaxed">
+        <p className="font-jetbrains text-[10px] text-white-smoke/40 mb-3 leading-relaxed">
           Browse the existing arsenal. Filter by role to find assessments similar
           to the one you&apos;re creating — useful for benchmarking configuration.
         </p>
 
-        {/* Role filter tabs */}
         <div className="flex gap-1.5 mb-3 flex-wrap">
           {[
             { key: "match", label: `Match Role (${form.role})` },
@@ -281,8 +279,8 @@ function StepTargeting({
               onClick={() => setRefRoleFilter(key)}
               className={`font-jetbrains text-[9px] tracking-[0.05em] px-2.5 py-1 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
                 refRoleFilter === key
-                  ? "bg-[rgba(211,47,47,0.15)] border-[#D32F2F] text-[#D32F2F]"
-                  : "bg-[#222426] border-[#333331] text-[rgba(245,245,245,0.42)] hover:border-[rgba(245,245,245,0.3)] hover:text-[#F5F5F5]"
+                  ? "bg-system-red/15 border-system-red text-system-red"
+                  : "bg-secondary-surface border-default-border text-white-smoke/40 hover:border-white-smoke/30 hover:text-white-smoke"
               }`}
             >
               {label}
@@ -290,14 +288,13 @@ function StepTargeting({
           ))}
         </div>
 
-        {/* Compact assessment list */}
         <div className="flex flex-col gap-1.5 max-h-[220px] overflow-y-auto pr-1
           [&::-webkit-scrollbar]:w-[3px]
           [&::-webkit-scrollbar-track]:bg-transparent
-          [&::-webkit-scrollbar-thumb]:bg-[#333331]
+          [&::-webkit-scrollbar-thumb]:bg-default-border
           [&::-webkit-scrollbar-thumb]:rounded-full">
           {referencePool.length === 0 ? (
-            <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.28)] text-center py-5">
+            <div className="font-jetbrains text-[10px] text-white-smoke/30 text-center py-5">
               No assessments found for this filter.
             </div>
           ) : (
@@ -306,19 +303,18 @@ function StepTargeting({
                 a.candidates > 0 ? Math.round((a.completed / a.candidates) * 100) : 0;
               const statusColours: Record<string, string> = {
                 active:  "text-[#66BB6A]",
-                closed:  "text-[rgba(245,245,245,0.28)]",
+                closed:  "text-white-smoke/30",
                 pending: "text-[#FFCA28]",
                 draft:   "text-[#64B5F6]",
               };
               return (
                 <div
                   key={a.id}
-                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] border border-[#333331] bg-[#292C2F]"
+                  className="flex items-center gap-3 px-3.5 py-2.5 rounded-[5px] border border-default-border bg-secondary-surface"
                 >
-                  {/* Title + tags */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <div className="font-staatliches text-sm tracking-[0.04em] text-[#F5F5F5] truncate">
+                      <div className="font-staatliches text-sm tracking-[0.04em] text-white-smoke truncate">
                         {a.title}
                       </div>
                       <span className={`font-jetbrains text-[8px] uppercase tracking-[0.06em] flex-shrink-0 ${statusColours[a.status]}`}>
@@ -326,21 +322,20 @@ function StepTargeting({
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-0.5">
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)]">{a.role}</span>
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">·</span>
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)]">{a.difficulty}</span>
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">·</span>
-                      <span className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)]">{a.questions} Qs</span>
+                      <span className="font-jetbrains text-[9px] text-white-smoke/40">{a.role}</span>
+                      <span className="font-jetbrains text-[9px] text-white-smoke/25">·</span>
+                      <span className="font-jetbrains text-[9px] text-white-smoke/40">{a.difficulty}</span>
+                      <span className="font-jetbrains text-[9px] text-white-smoke/25">·</span>
+                      <span className="font-jetbrains text-[9px] text-white-smoke/40">{a.questions} Qs</span>
                     </div>
                   </div>
 
-                  {/* Stats */}
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <div className="text-right">
-                      <div className="font-staatliches text-[14px] leading-none text-[#F5F5F5]">
+                      <div className="font-staatliches text-[14px] leading-none text-white-smoke">
                         {completionPct}%
                       </div>
-                      <div className="font-jetbrains text-[8px] text-[rgba(245,245,245,0.28)] uppercase">done</div>
+                      <div className="font-jetbrains text-[8px] text-white-smoke/30 uppercase">done</div>
                     </div>
                     {a.aiRate > 0 && (
                       <div className="text-right">
@@ -350,7 +345,7 @@ function StepTargeting({
                         >
                           {a.aiRate}%
                         </div>
-                        <div className="font-jetbrains text-[8px] text-[rgba(245,245,245,0.28)] uppercase">AI</div>
+                        <div className="font-jetbrains text-[8px] text-white-smoke/30 uppercase">AI</div>
                       </div>
                     )}
                   </div>
@@ -365,7 +360,6 @@ function StepTargeting({
       <div className="mb-6">
         <div className={sectionTitleCls}>Scoring &amp; Results</div>
 
-        {/* Scoring method */}
         <div className="mb-4">
           <label className={`${labelCls} block mb-2`}>Scoring Method</label>
           <div className="grid grid-cols-3 gap-2">
@@ -377,21 +371,20 @@ function StepTargeting({
                   onClick={() => set("scoringMethod", key as CreateAssessmentForm["scoringMethod"])}
                   className={`flex flex-col gap-1 px-3 py-2.5 rounded-[5px] border text-left cursor-pointer transition-all duration-150 ${
                     selected
-                      ? "border-[#D32F2F] bg-[rgba(211,47,47,0.08)]"
-                      : "border-[#333331] bg-[#292C2F] hover:border-[rgba(211,47,47,0.3)]"
+                      ? "border-system-red bg-system-red/8"
+                      : "border-default-border bg-secondary-surface hover:border-white-smoke/30"
                   }`}
                 >
-                  <div className={`font-staatliches text-sm tracking-[0.04em] transition-colors ${selected ? "text-[#D32F2F]" : "text-[#F5F5F5]"}`}>
+                  <div className={`font-staatliches text-sm tracking-[0.04em] transition-colors ${selected ? "text-system-red" : "text-white-smoke"}`}>
                     {label}
                   </div>
-                  <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)] leading-[1.3]">{sub}</div>
+                  <div className="font-jetbrains text-[9px] text-white-smoke/40 leading-[1.3]">{sub}</div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Result visibility */}
         <div className="mb-4">
           <label className={`${labelCls} block mb-2`}>Result Visibility</label>
           <div className="grid grid-cols-3 gap-2">
@@ -403,76 +396,25 @@ function StepTargeting({
                   onClick={() => set("resultVisibility", key as CreateAssessmentForm["resultVisibility"])}
                   className={`flex flex-col gap-1 px-3 py-2.5 rounded-[5px] border text-left cursor-pointer transition-all duration-150 ${
                     selected
-                      ? "border-[#D32F2F] bg-[rgba(211,47,47,0.08)]"
-                      : "border-[#333331] bg-[#292C2F] hover:border-[rgba(211,47,47,0.3)]"
+                      ? "border-system-red bg-system-red/8"
+                      : "border-default-border bg-secondary-surface hover:border-white-smoke/30"
                   }`}
                 >
-                  <div className={`font-staatliches text-sm tracking-[0.04em] transition-colors ${selected ? "text-[#D32F2F]" : "text-[#F5F5F5]"}`}>
+                  <div className={`font-staatliches text-sm tracking-[0.04em] transition-colors ${selected ? "text-system-red" : "text-white-smoke"}`}>
                     {label}
                   </div>
-                  <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)] leading-[1.3]">{sub}</div>
+                  <div className="font-jetbrains text-[9px] text-white-smoke/40 leading-[1.3]">{sub}</div>
                 </button>
               );
             })}
           </div>
-        </div>
-
-        {/* Notify toggle */}
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#292C2F] border border-[#333331] rounded-[5px]">
-          <div>
-            <div className="text-[13px] font-medium text-[#F5F5F5]">Notify Admin on Completion</div>
-            <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)] mt-0.5">
-              Receive an alert when each candidate submits
-            </div>
-          </div>
-          <ToggleSwitch
-            checked={!!(form.notifyOnComplete)}
-            onChange={() => set("notifyOnComplete", !(form.notifyOnComplete))}
-          />
-        </div>
-      </div>
-
-      {/* ── Adversarial Techniques ───────────────────────────────────────── */}
-      <div className="bg-[rgba(211,47,47,0.04)] border border-[rgba(211,47,47,0.2)] rounded-[5px] p-4 mb-3.5">
-        <div className="font-staatliches text-sm tracking-[0.06em] text-[#D32F2F] mb-3 flex items-center gap-2">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          ADVERSARIAL TECHNIQUES
-        </div>
-        <div className="flex flex-col gap-1.5">
-          {ADVERSARIAL_TECHNIQUES.map((t) => {
-            const active = (form.techniques as string[]).includes(t.id);
-            return (
-              <div
-                key={t.id}
-                className={`flex items-center justify-between px-3 py-2 bg-[#292C2F] border rounded-[5px] transition-all ${
-                  active ? "border-[rgba(211,47,47,0.35)] bg-[rgba(211,47,47,0.04)]" : "border-[#333331]"
-                }`}
-              >
-                <div className="flex items-center gap-2.5 flex-1">
-                  <ToggleSwitch
-                    checked={active}
-                    onChange={() => toggleArr("techniques", t.id)}
-                  />
-                  <div>
-                    <div className="text-[12px] font-medium text-[#F5F5F5]">{t.label}</div>
-                    <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)]">{t.sub}</div>
-                  </div>
-                </div>
-                <TechBadge eff={t.eff} />
-              </div>
-            );
-          })}
         </div>
       </div>
     </>
   );
 }
 
-// ─── Step 2 — Settings ─────────────────────────────────────────────────────
+// ─── Step 2 — Settings ───────────────────────────────────────────────────── (kept for now)
 
 function StepSettings({
   form,
@@ -488,14 +430,13 @@ function StepSettings({
 
   return (
     <>
-      {/* Time */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Time Configuration</div>
         <div className="grid grid-cols-2 gap-4 mb-3.5">
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
               <label className={labelCls}>Time Limit (minutes)</label>
-              <span className="font-jetbrains text-[12px] text-[#D32F2F] font-medium">
+              <span className="font-jetbrains text-[12px] text-system-red font-medium">
                 {form.timeLimit} min
               </span>
             </div>
@@ -503,9 +444,9 @@ function StepSettings({
               type="range" min="10" max="180" step="5"
               value={form.timeLimit}
               onChange={(e) => set("timeLimit", Number(e.target.value))}
-              className="w-full h-[3px] rounded-[2px] bg-[#333331] outline-none appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-[3px] [&::-webkit-slider-thumb]:bg-[#D32F2F] [&::-webkit-slider-thumb]:cursor-pointer"
+              className="w-full h-[3px] rounded-[2px] bg-default-border outline-none appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-[3px] [&::-webkit-slider-thumb]:bg-system-red [&::-webkit-slider-thumb]:cursor-pointer"
             />
-            <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">
+            <div className="font-jetbrains text-[9px] text-white-smoke/30">
               Recommended: 60–90 min for most assessments
             </div>
           </div>
@@ -524,25 +465,24 @@ function StepSettings({
               <option>2</option>
               <option>5</option>
             </select>
-            <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">
+            <div className="font-jetbrains text-[9px] text-white-smoke/30">
               Extra time after timer hits zero
             </div>
           </div>
         </div>
       </div>
 
-      {/* Behaviour */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Behaviour</div>
         <div className="flex flex-col gap-2">
           {behaviourToggles.map(({ key, label, desc }) => (
             <div
               key={key}
-              className="flex items-center justify-between px-3.5 py-2.5 bg-[#292C2F] border border-[#333331] rounded-[5px]"
+              className="flex items-center justify-between px-3.5 py-2.5 bg-secondary-surface border border-default-border rounded-[5px]"
             >
               <div>
-                <div className="text-[13px] font-medium text-[#F5F5F5]">{label}</div>
-                <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.42)] mt-0.5">{desc}</div>
+                <div className="text-[13px] font-medium text-white-smoke">{label}</div>
+                <div className="font-jetbrains text-[9px] text-white-smoke/40 mt-0.5">{desc}</div>
               </div>
               <ToggleSwitch
                 checked={form[key] as boolean}
@@ -553,7 +493,6 @@ function StepSettings({
         </div>
       </div>
 
-      {/* Candidate Access */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Candidate Access</div>
         <div className="grid grid-cols-2 gap-3.5">
@@ -564,7 +503,7 @@ function StepSettings({
               className={inputCls}
               style={{ colorScheme: "dark" }}
             />
-            <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">
+            <div className="font-jetbrains text-[9px] text-white-smoke/30">
               Assessment becomes inactive after this date
             </div>
           </div>
@@ -577,7 +516,7 @@ function StepSettings({
               min="0"
               max="100"
             />
-            <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">
+            <div className="font-jetbrains text-[9px] text-white-smoke/30">
               Minimum score to be marked as passed
             </div>
           </div>
@@ -587,7 +526,7 @@ function StepSettings({
   );
 }
 
-// ─── Step 3 — Review ───────────────────────────────────────────────────────
+// ─── Step 3 — Review ─────────────────────────────────────────────────────── (kept for now)
 
 function StepReview({ form }: { form: CreateAssessmentForm }) {
   const scoringLabels: Record<string, string> = {
@@ -610,90 +549,85 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
     <>
       <div className="font-staatliches text-base tracking-[0.07em] mb-3.5 flex items-center gap-2">
         CONFIGURATION SUMMARY
-        <div className="flex-1 h-px bg-[#333331]" />
+        <div className="flex-1 h-px bg-default-border" />
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-3">
-        {/* Identity */}
-        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
-          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">IDENTITY</div>
+        <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-white-smoke/40 mb-2.5">IDENTITY</div>
           {([
             ["Title",       form.name || "(untitled)"],
             ["Target Role", form.role],
             ["Difficulty",  form.difficulty],
           ] as [string, string][]).map(([k, v]) => (
-            <div key={k} className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)] last:border-b-0">
-              <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">{k}</span>
-              <span className="font-ibm text-[12px] font-medium text-[#F5F5F5] text-right max-w-[55%]">{v}</span>
+            <div key={k} className="flex justify-between items-start py-1.5 border-b border-white-smoke/10 last:border-b-0">
+              <span className="font-jetbrains text-[10px] text-white-smoke/40">{k}</span>
+              <span className="font-ibm text-[12px] font-medium text-white-smoke text-right max-w-[55%]">{v}</span>
             </div>
           ))}
         </div>
 
-        {/* Targeting */}
-        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
-          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">TARGETING</div>
-          <div className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)]">
-            <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">Assigned</span>
+        <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-white-smoke/40 mb-2.5">TARGETING</div>
+          <div className="flex justify-between items-start py-1.5 border-b border-white-smoke/10">
+            <span className="font-jetbrains text-[10px] text-white-smoke/40">Assigned</span>
             <div className="flex flex-col gap-1 items-end max-w-[60%]">
               {assignedCandidates.length > 0
                 ? assignedCandidates.map((c) => (
-                    <span key={c.id} className="font-jetbrains text-[9px] px-1.5 py-0.5 bg-[#222426] border border-[#333331] rounded-[5px] text-[rgba(245,245,245,0.42)] truncate max-w-full">
+                    <span key={c.id} className="font-jetbrains text-[9px] px-1.5 py-0.5 bg-tertiary-surface border border-default-border rounded-[5px] text-white-smoke/40 truncate max-w-full">
                       {c.name}
                     </span>
                   ))
-                : <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">none yet</span>}
+                : <span className="font-jetbrains text-[10px] text-white-smoke/40">none yet</span>}
             </div>
           </div>
-          <div className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)]">
-            <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">Scoring</span>
-            <span className="font-ibm text-[12px] font-medium text-[#F5F5F5]">
+          <div className="flex justify-between items-start py-1.5 border-b border-white-smoke/10">
+            <span className="font-jetbrains text-[10px] text-white-smoke/40">Scoring</span>
+            <span className="font-ibm text-[12px] font-medium text-white-smoke">
               {scoringLabels[(form.scoringMethod as string) ?? "auto"] ?? "Auto"}
             </span>
           </div>
           <div className="flex justify-between items-start py-1.5">
-            <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">Results</span>
-            <span className="font-ibm text-[12px] font-medium text-[#F5F5F5]">
+            <span className="font-jetbrains text-[10px] text-white-smoke/40">Results</span>
+            <span className="font-ibm text-[12px] font-medium text-white-smoke">
               {visibilityLabels[(form.resultVisibility as string) ?? "immediate"] ?? "Immediate"}
             </span>
           </div>
         </div>
 
-        {/* Settings */}
-        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
-          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">SETTINGS</div>
+        <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-white-smoke/40 mb-2.5">SETTINGS</div>
           {([
             ["Time Limit",     `${form.timeLimit} min`],
             ["Randomise",      form.randomise      ? "Yes" : "No"],
             ["Shuffle Opts",   form.shuffleOptions ? "Yes" : "No"],
           ] as [string, string][]).map(([k, v]) => (
-            <div key={k} className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)] last:border-b-0">
-              <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">{k}</span>
-              <span className="font-ibm text-[12px] font-medium text-[#F5F5F5]">{v}</span>
+            <div key={k} className="flex justify-between items-start py-1.5 border-b border-white-smoke/10 last:border-b-0">
+              <span className="font-jetbrains text-[10px] text-white-smoke/40">{k}</span>
+              <span className="font-ibm text-[12px] font-medium text-white-smoke">{v}</span>
             </div>
           ))}
         </div>
 
-        {/* Adversarial */}
-        <div className="bg-[#292C2F] border border-[#333331] rounded-[5px] p-4">
-          <div className="font-staatliches text-[13px] tracking-[0.06em] text-[rgba(245,245,245,0.42)] mb-2.5">ADVERSARIAL TECHNIQUES</div>
+        <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4">
+          <div className="font-staatliches text-[13px] tracking-[0.06em] text-white-smoke/40 mb-2.5">ADVERSARIAL TECHNIQUES</div>
           {(form.techniques as string[]).length
             ? (form.techniques as string[]).map((id) => {
                 const t = ADVERSARIAL_TECHNIQUES.find((x) => x.id === id);
                 return t ? (
-                  <div key={id} className="flex justify-between items-start py-1.5 border-b border-[rgba(51,51,49,0.4)] last:border-b-0">
-                    <span className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] max-w-[55%]">{t.label}</span>
+                  <div key={id} className="flex justify-between items-start py-1.5 border-b border-white-smoke/10 last:border-b-0">
+                    <span className="font-jetbrains text-[10px] text-white-smoke/40 max-w-[55%]">{t.label}</span>
                     <TechBadge eff={t.eff} />
                   </div>
                 ) : null;
               })
-            : <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] py-2">No techniques selected</div>}
+            : <div className="font-jetbrains text-[10px] text-white-smoke/40 py-2">No techniques selected</div>}
         </div>
       </div>
 
-      {/* Deploy box */}
-      <div className="bg-[rgba(56,142,60,0.05)] border border-[rgba(56,142,60,0.25)] rounded-[5px] px-4 py-3.5">
+      <div className="bg-[#388E3C]/5 border border-[#388E3C]/25 rounded-[5px] px-4 py-3.5">
         <div className="font-staatliches text-sm tracking-[0.06em] text-[#66BB6A] mb-1.5">✓ READY TO DEPLOY</div>
-        <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] leading-relaxed">
+        <div className="font-jetbrains text-[10px] text-white-smoke/40 leading-relaxed">
           Assessment will be created as a draft and can be activated once questions are assigned from the Question Bank.
           Candidates will not have access until you set the status to{" "}
           <strong className="text-[#66BB6A]">ACTIVE</strong>.
@@ -724,7 +658,6 @@ const DEFAULT_FORM: CreateAssessmentForm = {
   shuffleOptions: true,
   adversarialDensity: 50,
   techniques: ["misdirect", "negsemant"],
-  // targeting fields
   assignedCandidates: [],
   scoringMethod: "auto",
   resultVisibility: "immediate",
@@ -758,25 +691,25 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
 
   return (
     <div
-      className="fixed inset-0 bg-[rgba(0,0,0,0.55)] z-50 flex justify-end"
+      className="fixed inset-0 bg-black/60 z-50 flex justify-end"
       onClick={handleOverlayClick}
     >
-      <div className="w-[720px] max-w-[95vw] bg-[#1A1C1E] border-l border-[#333331] flex flex-col h-full overflow-hidden">
+      <div className="w-[720px] max-w-[95vw] bg-secondary-surface border-l border-tertiary-surface flex flex-col h-full overflow-hidden">
 
         {/* Header */}
-        <div className="px-7 py-5 border-b border-[#333331] flex items-center justify-between flex-shrink-0">
+        <div className="px-7 py-5 border-b border-tertiary-surface flex items-center justify-between flex-shrink-0">
           <div>
-            <div className="font-staatliches text-[22px] tracking-[0.07em] text-[#F5F5F5]">
+            <div className="font-staatliches text-[22px] tracking-[0.07em] text-white-smoke">
               CREATE ASSESSMENT
             </div>
-            <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mt-0.5">
+            <div className="font-jetbrains text-[10px] text-white-smoke/40 mt-0.5">
               {"// configure an adversarial assessment set"}
             </div>
           </div>
           <button
             onClick={onClose}
             aria-label="Close panel"
-            className="bg-transparent border border-[#333331] text-[rgba(245,245,245,0.42)] w-8 h-8 flex items-center justify-center rounded-[5px] cursor-pointer transition-all duration-150 hover:border-[#D32F2F] hover:text-[#D32F2F]"
+            className="bg-transparent border border-default-border text-white-smoke/40 w-8 h-8 flex items-center justify-center rounded-[5px] cursor-pointer transition-all duration-150 hover:border-system-red hover:text-system-red"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
@@ -786,7 +719,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center px-7 py-4 border-b border-[#333331] gap-0 flex-shrink-0">
+        <div className="flex items-center px-7 py-4 border-b border-tertiary-surface gap-0 flex-shrink-0">
           {WIZARD_STEPS.map((s, i) => {
             const isDone = i < step;
             const isCurrent = i === step;
@@ -799,10 +732,10 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
                   <div
                     className={`w-[26px] h-[26px] rounded-[5px] flex items-center justify-center font-jetbrains text-[11px] font-medium border flex-shrink-0 transition-all duration-200 ${
                       isDone
-                        ? "bg-[rgba(56,142,60,0.2)] border-[#388E3C] text-[#66BB6A]"
+                        ? "bg-[#388E3C]/20 border-[#388E3C] text-[#66BB6A]"
                         : isCurrent
-                        ? "bg-[#D32F2F] border-[#D32F2F] text-white"
-                        : "border-[#333331] text-[rgba(245,245,245,0.42)]"
+                        ? "bg-system-red border-system-red text-white"
+                        : "border-default-border text-white-smoke/40"
                     }`}
                   >
                     {isDone ? (
@@ -816,16 +749,16 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
                   <div>
                     <div
                       className={`font-staatliches text-[13px] tracking-[0.05em] transition-colors duration-200 ${
-                        isDone ? "text-[#66BB6A]" : isCurrent ? "text-[#F5F5F5]" : "text-[rgba(245,245,245,0.42)]"
+                        isDone ? "text-[#66BB6A]" : isCurrent ? "text-white-smoke" : "text-white-smoke/40"
                       }`}
                     >
                       {s.label}
                     </div>
-                    <div className="font-jetbrains text-[9px] text-[rgba(245,245,245,0.22)]">{s.sub}</div>
+                    <div className="font-jetbrains text-[9px] text-white-smoke/25">{s.sub}</div>
                   </div>
                 </button>
                 {i < WIZARD_STEPS.length - 1 && (
-                  <div className="w-5 h-px bg-[#333331] flex-shrink-0 mx-1" />
+                  <div className="w-5 h-px bg-tertiary-surface flex-shrink-0 mx-1" />
                 )}
               </div>
             );
@@ -836,7 +769,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
         <div className="flex-1 overflow-y-auto px-7 py-6
           [&::-webkit-scrollbar]:w-[3px]
           [&::-webkit-scrollbar-track]:bg-transparent
-          [&::-webkit-scrollbar-thumb]:bg-[#333331]
+          [&::-webkit-scrollbar-thumb]:bg-default-border
           [&::-webkit-scrollbar-thumb]:rounded-full">
           {step === 0 && <StepBasicInfo form={form} set={set} />}
           {step === 1 && <StepTargeting form={form} toggleArr={toggleArr} set={set} />}
@@ -844,37 +777,37 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
           {step === 3 && <StepReview form={form} />}
         </div>
 
-        {/* Footer */}
-        <div className="px-7 py-4 border-t border-[#333331] flex justify-between items-center flex-shrink-0 bg-[#1A1C1E]">
-          <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)]">
+        {/* Footer — Primary buttons updated to white-bg / dark-text style (matching topbar NEW ASSESSMENT) */}
+        <div className="px-7 py-4 border-t border-tertiary-surface flex justify-between items-center flex-shrink-0 bg-secondary-surface">
+          <div className="font-jetbrains text-[10px] text-white-smoke/40">
             Step {step + 1} of {WIZARD_STEPS.length} — {WIZARD_STEPS[step].label}
           </div>
           <div className="flex gap-2.5">
             {step > 0 && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="flex items-center gap-1.5 bg-transparent text-[rgba(245,245,245,0.42)] border border-[#333331] px-3.5 py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-all duration-150 hover:text-[#F5F5F5] hover:border-[rgba(245,245,245,0.3)]"
+                className="flex items-center gap-1.5 bg-transparent text-white-smoke/40 border border-default-border px-3.5 py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-all duration-150 hover:text-white-smoke hover:border-white-smoke/40"
               >
                 ← BACK
               </button>
             )}
             <button
               onClick={onClose}
-              className="flex items-center gap-1.5 bg-transparent text-[rgba(245,245,245,0.42)] border border-[#333331] px-3.5 py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-all duration-150 hover:text-[#F5F5F5] hover:border-[rgba(245,245,245,0.3)]"
+              className="flex items-center gap-1.5 bg-transparent text-white-smoke/40 border border-default-border px-3.5 py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-all duration-150 hover:text-white-smoke hover:border-white-smoke/40"
             >
               SAVE DRAFT
             </button>
             {step < WIZARD_STEPS.length - 1 ? (
               <button
                 onClick={() => setStep((s) => s + 1)}
-                className="flex items-center gap-2 bg-[#D32F2F] hover:bg-[#EF5350] text-[#F5F5F5] px-[18px] py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-colors duration-150 whitespace-nowrap"
+                className="flex items-center gap-2 bg-default-text text-background border border-default-text px-[18px] py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-colors duration-150 whitespace-nowrap hover:bg-transparent hover:border-system-red hover:text-system-red"
               >
                 CONTINUE →
               </button>
             ) : (
               <button
                 onClick={onClose}
-                className="flex items-center gap-2 bg-[#D32F2F] hover:bg-[#EF5350] text-[#F5F5F5] px-[18px] py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-colors duration-150 whitespace-nowrap"
+                className="flex items-center gap-2 bg-default-text text-background border border-default-text px-[18px] py-2 font-staatliches text-sm tracking-[0.05em] rounded-[5px] cursor-pointer transition-colors duration-150 whitespace-nowrap hover:bg-transparent hover:border-system-red hover:text-system-red"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12"/>
