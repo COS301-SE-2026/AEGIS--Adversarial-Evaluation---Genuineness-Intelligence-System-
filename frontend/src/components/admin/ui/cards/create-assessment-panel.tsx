@@ -46,7 +46,7 @@ function ToggleSwitch({
 //     LOW:  "bg-[#388E3C]/12 text-status-success border border-status-success-dim/25",
 //   };
 //   return (
-//     <span className={`font-jetbrains text-[9px] px-[7px] py-0.5 rounded-[5px] ${styles[eff]}`}>
+//     <span className={`font-ibm-plex text-[9px] px-[7px] py-0.5 rounded-[5px] ${styles[eff]}`}>
 //       {eff}
 //     </span>
 //   );
@@ -54,7 +54,7 @@ function ToggleSwitch({
 
 // ─── Shared label styles (updated for consistency with assessments page) ───
 const labelCls =
-  "font-jetbrains text-[10px] tracking-[0.1em] text-white-smoke/40 uppercase font-medium";
+  "font-ibm-plex text-[10px] tracking-[0.1em] text-white-smoke/40 uppercase font-medium";
 
 const inputCls =
   "w-full bg-secondary-surface border border-default-border text-white-smoke px-3.5 py-2.5 font-ibm text-[13px] rounded-[5px] outline-none transition-colors duration-150 placeholder:text-white-smoke/40 focus:border-system-red";
@@ -136,7 +136,7 @@ function StepBasicInfo({
                 </button>
               ))}
             </div>
-            <div className="font-jetbrains text-[9px] text-white-smoke/30 mt-1">
+            <div className="font-ibm-plex text-[9px] text-white-smoke/30 mt-1">
               Sets question complexity and AI trap intensity
             </div>
           </div>
@@ -193,7 +193,7 @@ function StepTargeting({
       {/* ── Candidates ──────────────────────────────────────────────────── */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Assign Candidates</div>
-        <p className="font-jetbrains text-[10px] text-white-smoke/40 mb-3 leading-relaxed">
+        <p className="font-ibm-plex text-[10px] text-white-smoke/40 mb-3 leading-relaxed">
           Select candidates to assign this assessment to. They will receive access
           once the assessment is set to <span className="text-status-success">ACTIVE</span>.
         </p>
@@ -219,11 +219,11 @@ function StepTargeting({
                       {c.name}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="font-jetbrains text-[9px] text-white-smoke/40">
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/40">
                         {c.email}
                       </span>
-                      <span className="font-jetbrains text-[9px] text-white-smoke/25">·</span>
-                      <span className="font-jetbrains text-[9px] text-white-smoke/40">
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/25">·</span>
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/40">
                         {c.role}
                       </span>
                     </div>
@@ -233,13 +233,13 @@ function StepTargeting({
                 <div className="flex items-center gap-3 flex-shrink-0">
                   <div className="flex items-center gap-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDot[c.status]}`} />
-                    <span className="font-jetbrains text-[9px] text-white-smoke/40 capitalize">
+                    <span className="font-ibm-plex text-[9px] text-white-smoke/40 capitalize">
                       {c.status.replace("-", " ")}
                     </span>
                   </div>
                   <button
                     onClick={() => toggleArr("assignedCandidates", String(c.id))}
-                    className={`font-jetbrains text-[10px] tracking-[0.05em] px-3 py-1.5 rounded-[5px] border cursor-pointer transition-all duration-150 ${
+                    className={`font-ibm-plex text-[10px] tracking-[0.05em] px-3 py-1.5 rounded-[5px] border cursor-pointer transition-all duration-150 ${
                       assigned
                         ? "bg-system-red/15 border-system-red text-system-red hover:bg-system-red/25"
                         : "bg-transparent border-default-border text-white-smoke/40 hover:border-system-red hover:text-system-red"
@@ -254,7 +254,7 @@ function StepTargeting({
         </div>
 
         {assignedIds.length > 0 && (
-          <div className="mt-2 font-jetbrains text-[9px] text-system-red/80 flex items-center gap-1.5">
+          <div className="mt-2 font-ibm-plex text-[9px] text-system-red/80 flex items-center gap-1.5">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
@@ -266,7 +266,7 @@ function StepTargeting({
       {/* ── Assessment Pool / Arsenal ────────────────────────────────────── */}
       <div className="mb-6">
         <div className={sectionTitleCls}>Assessment Pool</div>
-        <p className="font-jetbrains text-[10px] text-white-smoke/40 mb-3 leading-relaxed">
+        <p className="font-ibm-plex text-[10px] text-white-smoke/40 mb-3 leading-relaxed">
           Browse the existing arsenal. Filter by role to find assessments similar
           to the one you&apos;re creating — useful for benchmarking configuration.
         </p>
@@ -280,7 +280,7 @@ function StepTargeting({
             <button
               key={key}
               onClick={() => setRefRoleFilter(key)}
-              className={`font-jetbrains text-[9px] tracking-[0.05em] px-2.5 py-1 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
+              className={`font-ibm-plex text-[9px] tracking-[0.05em] px-2.5 py-1 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
                 refRoleFilter === key
                   ? "bg-system-red/15 border-system-red text-system-red"
                   : "bg-secondary-surface border-default-border text-white-smoke/40 hover:border-white-smoke/30 hover:text-white-smoke"
@@ -297,7 +297,7 @@ function StepTargeting({
           [&::-webkit-scrollbar-thumb]:bg-default-border
           [&::-webkit-scrollbar-thumb]:rounded-full">
           {referencePool.length === 0 ? (
-            <div className="font-jetbrains text-[10px] text-white-smoke/30 text-center py-5">
+            <div className="font-ibm-plex text-[10px] text-white-smoke/30 text-center py-5">
               No assessments found for this filter.
             </div>
           ) : (
@@ -320,16 +320,16 @@ function StepTargeting({
                       <div className="font-staatliches text-sm tracking-[0.04em] text-white-smoke truncate">
                         {a.title}
                       </div>
-                      <span className={`font-jetbrains text-[8px] uppercase tracking-[0.06em] flex-shrink-0 ${statusColours[a.status]}`}>
+                      <span className={`font-ibm-plex text-[8px] uppercase tracking-[0.06em] flex-shrink-0 ${statusColours[a.status]}`}>
                         {a.status}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5 mt-0.5">
-                      <span className="font-jetbrains text-[9px] text-white-smoke/40">{a.role}</span>
-                      <span className="font-jetbrains text-[9px] text-white-smoke/25">·</span>
-                      <span className="font-jetbrains text-[9px] text-white-smoke/40">{a.difficulty}</span>
-                      <span className="font-jetbrains text-[9px] text-white-smoke/25">·</span>
-                      <span className="font-jetbrains text-[9px] text-white-smoke/40">{a.questions} Qs</span>
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/40">{a.role}</span>
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/25">·</span>
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/40">{a.difficulty}</span>
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/25">·</span>
+                      <span className="font-ibm-plex text-[9px] text-white-smoke/40">{a.questions} Qs</span>
                     </div>
                   </div>
 
@@ -338,7 +338,7 @@ function StepTargeting({
                       <div className="font-staatliches text-[14px] leading-none text-white-smoke">
                         {completionPct}%
                       </div>
-                      <div className="font-jetbrains text-[8px] text-white-smoke/30 uppercase">done</div>
+                      <div className="font-ibm-plex text-[8px] text-white-smoke/30 uppercase">done</div>
                     </div>
                     {a.aiRate > 0 && (
                       <div className="text-right">
@@ -348,7 +348,7 @@ function StepTargeting({
                         >
                           {a.aiRate}%
                         </div>
-                        <div className="font-jetbrains text-[8px] text-white-smoke/30 uppercase">AI</div>
+                        <div className="font-ibm-plex text-[8px] text-white-smoke/30 uppercase">AI</div>
                       </div>
                     )}
                   </div>
@@ -381,7 +381,7 @@ function StepTargeting({
                   <div className={`font-staatliches text-sm tracking-[0.04em] transition-colors ${selected ? "text-system-red" : "text-white-smoke"}`}>
                     {label}
                   </div>
-                  <div className="font-jetbrains text-[9px] text-white-smoke/40 leading-[1.3]">{sub}</div>
+                  <div className="font-ibm-plex text-[9px] text-white-smoke/40 leading-[1.3]">{sub}</div>
                 </button>
               );
             })}
@@ -406,7 +406,7 @@ function StepTargeting({
                   <div className={`font-staatliches text-sm tracking-[0.04em] transition-colors ${selected ? "text-system-red" : "text-white-smoke"}`}>
                     {label}
                   </div>
-                  <div className="font-jetbrains text-[9px] text-white-smoke/40 leading-[1.3]">{sub}</div>
+                  <div className="font-ibm-plex text-[9px] text-white-smoke/40 leading-[1.3]">{sub}</div>
                 </button>
               );
             })}
@@ -439,7 +439,7 @@ function StepSettings({
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between items-center">
               <label className={labelCls}>Time Limit (minutes)</label>
-              <span className="font-jetbrains text-[12px] text-system-red font-medium">
+              <span className="font-ibm-plex text-[12px] text-system-red font-medium">
                 {form.timeLimit} min
               </span>
             </div>
@@ -449,7 +449,7 @@ function StepSettings({
               onChange={(e) => set("timeLimit", Number(e.target.value))}
               className="w-full h-[3px] rounded-[2px] bg-default-border outline-none appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-[3px] [&::-webkit-slider-thumb]:bg-system-red [&::-webkit-slider-thumb]:cursor-pointer"
             />
-            <div className="font-jetbrains text-[9px] text-white-smoke/30">
+            <div className="font-ibm-plex text-[9px] text-white-smoke/30">
               Recommended: 60–90 min for most assessments
             </div>
           </div>
@@ -472,7 +472,7 @@ function StepSettings({
               <option>2</option>
               <option>5</option>
             </select>
-            <div className="font-jetbrains text-[9px] text-white-smoke/30">
+            <div className="font-ibm-plex text-[9px] text-white-smoke/30">
               Extra time after timer hits zero
             </div>
           </div>
@@ -489,7 +489,7 @@ function StepSettings({
             >
               <div>
                 <div className="text-[13px] font-medium text-white-smoke">{label}</div>
-                <div className="font-jetbrains text-[9px] text-white-smoke/40 mt-0.5">{desc}</div>
+                <div className="font-ibm-plex text-[9px] text-white-smoke/40 mt-0.5">{desc}</div>
               </div>
               <ToggleSwitch
                 checked={form[key] as boolean}
@@ -510,7 +510,7 @@ function StepSettings({
               className={inputCls}
               style={{ colorScheme: "dark" }}
             />
-            <div className="font-jetbrains text-[9px] text-white-smoke/30">
+            <div className="font-ibm-plex text-[9px] text-white-smoke/30">
               Assessment becomes inactive after this date
             </div>
           </div>
@@ -523,7 +523,7 @@ function StepSettings({
               min="0"
               max="100"
             />
-            <div className="font-jetbrains text-[9px] text-white-smoke/30">
+            <div className="font-ibm-plex text-[9px] text-white-smoke/30">
               Minimum score to be marked as passed
             </div>
           </div>
@@ -568,7 +568,7 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
             ["Difficulty",  form.difficulty],
           ] as [string, string][]).map(([k, v]) => (
             <div key={k} className="flex justify-between items-start py-1.5 border-b border-white-smoke/10 last:border-b-0">
-              <span className="font-jetbrains text-[10px] text-white-smoke/40">{k}</span>
+              <span className="font-ibm-plex text-[10px] text-white-smoke/40">{k}</span>
               <span className="font-ibm text-[12px] font-medium text-white-smoke text-right max-w-[55%]">{v}</span>
             </div>
           ))}
@@ -577,25 +577,25 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
         <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4">
           <div className="font-staatliches text-[13px] tracking-[0.06em] text-white-smoke/40 mb-2.5">TARGETING</div>
           <div className="flex justify-between items-start py-1.5 border-b border-white-smoke/10">
-            <span className="font-jetbrains text-[10px] text-white-smoke/40">Assigned</span>
+            <span className="font-ibm-plex text-[10px] text-white-smoke/40">Assigned</span>
             <div className="flex flex-col gap-1 items-end max-w-[60%]">
               {assignedCandidates.length > 0
                 ? assignedCandidates.map((c) => (
-                    <span key={c.id} className="font-jetbrains text-[9px] px-1.5 py-0.5 bg-tertiary-surface border border-default-border rounded-[5px] text-white-smoke/40 truncate max-w-full">
+                    <span key={c.id} className="font-ibm-plex text-[9px] px-1.5 py-0.5 bg-tertiary-surface border border-default-border rounded-[5px] text-white-smoke/40 truncate max-w-full">
                       {c.name}
                     </span>
                   ))
-                : <span className="font-jetbrains text-[10px] text-white-smoke/40">none yet</span>}
+                : <span className="font-ibm-plex text-[10px] text-white-smoke/40">none yet</span>}
             </div>
           </div>
           <div className="flex justify-between items-start py-1.5 border-b border-white-smoke/10">
-            <span className="font-jetbrains text-[10px] text-white-smoke/40">Scoring</span>
+            <span className="font-ibm-plex text-[10px] text-white-smoke/40">Scoring</span>
             <span className="font-ibm text-[12px] font-medium text-white-smoke">
               {scoringLabels[(form.scoringMethod as string) ?? "auto"] ?? "Auto"}
             </span>
           </div>
           <div className="flex justify-between items-start py-1.5">
-            <span className="font-jetbrains text-[10px] text-white-smoke/40">Results</span>
+            <span className="font-ibm-plex text-[10px] text-white-smoke/40">Results</span>
             <span className="font-ibm text-[12px] font-medium text-white-smoke">
               {visibilityLabels[(form.resultVisibility as string) ?? "immediate"] ?? "Immediate"}
             </span>
@@ -610,7 +610,7 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
             ["Shuffle Opts",   form.shuffleOptions ? "Yes" : "No"],
           ] as [string, string][]).map(([k, v]) => (
             <div key={k} className="flex justify-between items-start py-1.5 border-b border-white-smoke/10 last:border-b-0">
-              <span className="font-jetbrains text-[10px] text-white-smoke/40">{k}</span>
+              <span className="font-ibm-plex text-[10px] text-white-smoke/40">{k}</span>
               <span className="font-ibm text-[12px] font-medium text-white-smoke">{v}</span>
             </div>
           ))}
@@ -621,7 +621,7 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
 
       <div className="bg-status-success-dim/5 border border-status-success-dim/25 rounded-[5px] px-4 py-3.5">
         <div className="font-staatliches text-sm tracking-[0.06em] text-status-success mb-1.5">✓ READY TO DEPLOY</div>
-        <div className="font-jetbrains text-[10px] text-white-smoke/40 leading-relaxed">
+        <div className="font-ibm-plex text-[10px] text-white-smoke/40 leading-relaxed">
           Assessment will be created as a draft and can be activated once questions are assigned from the Question Bank.
           Candidates will not have access until you set the status to{" "}
           <strong className="text-status-success">ACTIVE</strong>.
@@ -696,7 +696,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
             <div className="font-staatliches text-[22px] tracking-[0.07em] text-white-smoke">
               CREATE ASSESSMENT
             </div>
-            <div className="font-jetbrains text-[10px] text-white-smoke/40 mt-0.5">
+            <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-0.5">
               {"// configure an adversarial assessment set"}
             </div>
           </div>
@@ -724,7 +724,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
                   className="flex items-center gap-2 cursor-pointer"
                 >
                   <div
-                    className={`w-[26px] h-[26px] rounded-[5px] flex items-center justify-center font-jetbrains text-[11px] font-medium border flex-shrink-0 transition-all duration-200 ${
+                    className={`w-[26px] h-[26px] rounded-[5px] flex items-center justify-center font-ibm-plex text-[11px] font-medium border flex-shrink-0 transition-all duration-200 ${
                       isDone
                         ? "bg-status-success-dim/20 border-status-success-dim text-status-success"
                         : isCurrent
@@ -748,7 +748,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
                     >
                       {s.label}
                     </div>
-                    <div className="font-jetbrains text-[9px] text-white-smoke/25">{s.sub}</div>
+                    <div className="font-ibm-plex text-[9px] text-white-smoke/25">{s.sub}</div>
                   </div>
                 </button>
                 {i < WIZARD_STEPS.length - 1 && (
@@ -773,7 +773,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
 
         {/* Footer — Primary buttons updated to white-bg / dark-text style (matching topbar NEW ASSESSMENT) */}
         <div className="px-7 py-4 border-t border-tertiary-surface flex justify-between items-center flex-shrink-0 bg-secondary-surface">
-          <div className="font-jetbrains text-[10px] text-white-smoke/40">
+          <div className="font-ibm-plex text-[10px] text-white-smoke/40">
             Step {step + 1} of {WIZARD_STEPS.length} — {WIZARD_STEPS[step].label}
           </div>
           <div className="flex gap-2.5">
