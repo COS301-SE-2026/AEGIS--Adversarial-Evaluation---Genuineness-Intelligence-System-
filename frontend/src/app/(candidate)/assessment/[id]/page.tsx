@@ -225,9 +225,8 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
          await saveCurrentAnswer();
 
          const authToken = getToken() ?? undefined;
-         const result = await apiPost(`/api/v1/candidate-assessments/${candidateAssessId}/submit`, undefined, authToken ? { authToken } : {});
+         await apiPost(`/api/v1/candidate-assessments/${candidateAssessId}/submit`, undefined, authToken ? { authToken } : {});
 
-         // result contains the completed session; show submitted UI
          setIsSubmitted(true);
       } catch (err) {
          const message = err instanceof Error ? err.message : "Unable to submit assessment.";
