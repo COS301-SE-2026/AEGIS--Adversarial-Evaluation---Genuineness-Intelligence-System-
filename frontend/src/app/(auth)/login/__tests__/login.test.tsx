@@ -102,7 +102,7 @@ describe('Login Component', () => {
     const signInButton = screen.getByRole('button', { name: /Sign In/i });
 
     await userEvent.type(emailInput, 'wrong@example.com');
-    await userEvent.type(passwordInput, 'Wrongpassword!');
+    await userEvent.type(passwordInput, 'Wrongpassword12!');
     await userEvent.click(signInButton);
 
     // Check for server error message
