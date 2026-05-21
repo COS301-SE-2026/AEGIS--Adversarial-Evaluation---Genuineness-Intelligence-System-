@@ -9,6 +9,10 @@
   --color-default-text: #E6E6DF; /*pure-white in current theme */
   --color-default-border: #989892; /*bunker-grey in current theme */
   --color-code-editor: #1E2124;
+  --color-status-success: #66BB6A;      /* active / completed / pass — green text */
+  --color-status-success-dim: #388E3C;  /* success bg tints and borders */
+  --color-status-warning: #FFCA28;      /* pending / in-progress — amber */
+  --color-status-info: #64B5F6;         /* draft state — blue */
 
   --font-staatliches: var(--font-staatliches);
   --font-ibm-plex: var(--font-ibm-plex-mono);

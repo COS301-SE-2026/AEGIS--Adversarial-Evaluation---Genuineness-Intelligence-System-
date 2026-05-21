@@ -42,8 +42,8 @@ function ToggleSwitch({
 // function TechBadge({ eff }: { eff: "HIGH" | "MED" | "LOW" }) {
 //   const styles = {
 //     HIGH: "bg-system-red/15 text-system-red border border-system-red/25",
-//     MED:  "bg-[#F9A825]/12 text-[#FFCA28] border border-[#F9A825]/25",
-//     LOW:  "bg-[#388E3C]/12 text-[#66BB6A] border border-[#388E3C]/25",
+//     MED:  "bg-[#F9A825]/12 text-status-warning border border-[#F9A825]/25",
+//     LOW:  "bg-[#388E3C]/12 text-status-success border border-status-success-dim/25",
 //   };
 //   return (
 //     <span className={`font-jetbrains text-[9px] px-[7px] py-0.5 rounded-[5px] ${styles[eff]}`}>
@@ -104,6 +104,10 @@ function StepBasicInfo({
               value={form.role}
               onChange={(e) => set("role", e.target.value)}
               style={{
+                // SVG inside a data: URI is URL-encoded markup — CSS variables cannot be
+                // interpolated here because the browser resolves the URI before parsing CSS.
+                // rgba(245,245,245,0.4) === white-smoke at 40% opacity; update both if the
+                // theme colour changes.
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(245,245,245,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
                 backgroundRepeat: "no-repeat",
                 backgroundPosition: "right 12px center",
@@ -174,12 +178,12 @@ function StepTargeting({
   ] as const;
 
   const aiRateColour = (rate: number) =>
-    rate >= 70 ? "#EF5350" : rate >= 40 ? "#FFCA28" : "#66BB6A";
+    rate >= 70 ? "var(--color-system-red)" : rate >= 40 ? "var(--color-status-warning)" : "var(--color-status-success)";
 
   const statusDot: Record<Candidate["status"], string> = {
     "pending":     "bg-white-smoke/30",
-    "in-progress": "bg-[#FFCA28]",
-    "completed":   "bg-[#66BB6A]",
+    "in-progress": "bg-status-warning",
+    "completed":   "bg-status-success",
   };
 
   const assignedIds = form.assignedCandidates as string[];
@@ -191,7 +195,7 @@ function StepTargeting({
         <div className={sectionTitleCls}>Assign Candidates</div>
         <p className="font-jetbrains text-[10px] text-white-smoke/40 mb-3 leading-relaxed">
           Select candidates to assign this assessment to. They will receive access
-          once the assessment is set to <span className="text-[#66BB6A]">ACTIVE</span>.
+          once the assessment is set to <span className="text-status-success">ACTIVE</span>.
         </p>
 
         <div className="flex flex-col gap-2">
@@ -301,10 +305,10 @@ function StepTargeting({
               const completionPct =
                 a.candidates > 0 ? Math.round((a.completed / a.candidates) * 100) : 0;
               const statusColours: Record<string, string> = {
-                active:  "text-[#66BB6A]",
+                active:  "text-status-success",
                 closed:  "text-white-smoke/30",
-                pending: "text-[#FFCA28]",
-                draft:   "text-[#64B5F6]",
+                pending: "text-status-warning",
+                draft:   "text-status-info",
               };
               return (
                 <div
@@ -455,6 +459,10 @@ function StepSettings({
             <select
               className={`${inputCls} cursor-pointer appearance-none`}
               style={{
+                // SVG inside a data: URI is URL-encoded markup — CSS variables cannot be
+                // interpolated here because the browser resolves the URI before parsing CSS.
+                // rgba(245,245,245,0.4) === white-smoke at 40% opacity; update both if the
+                // theme colour changes.
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(245,245,245,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
                 backgroundRepeat: "no-repeat",
                 backgroundPosition: "right 12px center",
@@ -611,12 +619,12 @@ function StepReview({ form }: { form: CreateAssessmentForm }) {
        
       </div>
 
-      <div className="bg-[#388E3C]/5 border border-[#388E3C]/25 rounded-[5px] px-4 py-3.5">
-        <div className="font-staatliches text-sm tracking-[0.06em] text-[#66BB6A] mb-1.5">✓ READY TO DEPLOY</div>
+      <div className="bg-status-success-dim/5 border border-status-success-dim/25 rounded-[5px] px-4 py-3.5">
+        <div className="font-staatliches text-sm tracking-[0.06em] text-status-success mb-1.5">✓ READY TO DEPLOY</div>
         <div className="font-jetbrains text-[10px] text-white-smoke/40 leading-relaxed">
           Assessment will be created as a draft and can be activated once questions are assigned from the Question Bank.
           Candidates will not have access until you set the status to{" "}
-          <strong className="text-[#66BB6A]">ACTIVE</strong>.
+          <strong className="text-status-success">ACTIVE</strong>.
         </div>
       </div>
     </>
@@ -718,7 +726,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
                   <div
                     className={`w-[26px] h-[26px] rounded-[5px] flex items-center justify-center font-jetbrains text-[11px] font-medium border flex-shrink-0 transition-all duration-200 ${
                       isDone
-                        ? "bg-[#388E3C]/20 border-[#388E3C] text-[#66BB6A]"
+                        ? "bg-status-success-dim/20 border-status-success-dim text-status-success"
                         : isCurrent
                         ? "bg-white text-black border-default-border"
                         : "border-default-border text-white-smoke/40"
@@ -735,7 +743,7 @@ export default function CreateAssessmentPanel({ onClose }: CreateAssessmentPanel
                   <div>
                     <div
                       className={`font-staatliches text-[13px] tracking-[0.05em] transition-colors duration-200 ${
-                        isDone ? "text-[#66BB6A]" : isCurrent ? "text-white-smoke" : "text-white-smoke/40"
+                        isDone ? "text-status-success" : isCurrent ? "text-white-smoke" : "text-white-smoke/40"
                       }`}
                     >
                       {s.label}
