@@ -15,7 +15,7 @@ The platform integrates adversarial machine learning principles with technical a
 
 The domain model can be found here:
 
-[View Domain Model Diagram (PDF)](AEGIS Domain Model.drawio (6).pdf)
+[View Domain Model Diagram (PDF)](DomainModel.pdf)
 
 ---
 
