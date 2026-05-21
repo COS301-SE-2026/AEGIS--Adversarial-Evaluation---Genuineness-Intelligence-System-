@@ -5,7 +5,7 @@ import Link from "next/link";
 import Input from "@/components/hero/ui/input";
 import Button from "@/components/hero/ui/button";
 import GoogleIcon from "@/components/hero/ui/google-icon";
-import GithubIcon from "@/components/hero/ui/github-icon";
+// import GithubIcon from "@/components/hero/ui/github-icon";
 import { validateEmail, validatePassword } from "@/lib/validation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -93,10 +93,10 @@ const Login = () => {
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
   }
 
-  function handleGithub() {
-    //TODO: wire up github
-    router.push("/assessment");
-  }
+  // function handleGithub() {
+  //   //TODO: wire up github
+  //   router.push("/assessment");
+  // }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">

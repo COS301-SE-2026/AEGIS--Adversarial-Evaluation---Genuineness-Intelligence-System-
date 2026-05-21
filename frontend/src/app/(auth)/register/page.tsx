@@ -5,7 +5,7 @@ import Link from "next/link";
 import Input from "@/components/hero/ui/input";
 import Button from "@/components/hero/ui/button";
 import GoogleIcon from "@/components/hero/ui/google-icon";
-import GithubIcon from "@/components/hero/ui/github-icon";
+// import GithubIcon from "@/components/hero/ui/github-icon";
 
 import { validateEmail, validatePassword, validatePasswordMatch } from "@/lib/validation";
 
@@ -119,10 +119,10 @@ const Register = () => {
     router.push("/assessment");
   }
 
-  function handleGithub() {
-    //TODO: wire up github
-    router.push("/assessment");
-  }
+  // function handleGithub() {
+  //   //TODO: wire up github
+  //   router.push("/assessment");
+  // }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
@@ -187,11 +187,11 @@ const Register = () => {
           </p>
         )}
 
-        <Button variant="solid" onClick={handleSubmit} className="w-full" disabled={loading}>
+        <Button variant="solid" onClick={handleSubmit} className="w-full mt-8" disabled={loading}>
           {loading ? "Creating account..." : "Sign Up"}
         </Button>
  
-        <p className="text-center font-ibm-plex text-sm text-default-text">
+        <p className="text-center font-ibm-plex text-sm text-default-text mt-4">
           Already have an account?{" "}
           <Link href="/login" className="text-system-red hover:underline">
             Sign In Now.
