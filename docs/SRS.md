@@ -37,7 +37,7 @@ The Candidate is the primary end-user of the system. This user interacts with AI
 **System Usage:**
 - Start and complete assessments
 - Navigate between questions
-- Answer fill-in-the-blank and scenario-based questions
+- Answer multiple choice scenario-based questions
 - View timer during assessments
 - Save and resume progress
 
@@ -113,3 +113,75 @@ FR7. The system shall persist user responses in a database.
 ## Subsystem 3: Assessment Management (Admin)
 
 FR8. The system shall allow assignment of assessments to specific users.
+
+---
+
+## API Services Contracts
+
+The API Service Contract can be found here:
+
+[View API Service Contracts(PDF)](FastAPI-Swagger.pdf)
+
+---
+
+
+## Architectural Requirements
+
+---
+
+## Quality Requirements
+
+### Security
+
+---
+
+**Authentication enforcement**: Protected backend resources require JWT-based authentication before access is granted. FastAPI dependency injection is used to enforce authentication centrally, ensuring that unauthorized requests are rejected automatically with HTTP 401 responses when tokens are missing, expired, or invalid.
+
+**Password hashing**: User passwords are never stored in plain text. Passwords are hashed using the bcrypt algorithm through Passlib’s CryptContext. Input validation enforces minimum password complexity requirements, including length, uppercase characters, digits, and special characters, before credentials are accepted.
+
+**JWT signing**: Authentication tokens are signed using the HS256 algorithm with a secret key loaded securely from environment variables at application startup. Invalid or expired tokens are rejected during verification to prevent unauthorized access.
+
+**CORS policy**: The backend uses a controlled CORS configuration to allow secure communication between the frontend and backend applications hosted on different origins while still permitting authenticated requests containing authorization headers.
+
+---
+
+### Maintainability
+
+The system follows a layered architecture that separates routing, business logic, and data access responsibilities. This modular structure improves maintainability by isolating changes to specific layers of the application. Database schema modifications, for example, are generally limited to the data and service layers without requiring changes to API handlers.
+
+Application configuration is centralized through a typed settings management system based on pydantic-settings. Environment variables are validated during application startup, allowing configuration errors to be detected early rather than during runtime.
+
+---
+
+### Architectural Pattern
+
+AEGIS follows a two-tier client-server architecture.
+
+The frontend, implemented using Next.js, executes in the client browser and is responsible for rendering the user interface, handling user interactions, and performing client-side validation.
+
+The backend, implemented using FastAPI, manages business logic, authentication, data persistence, and security enforcement. Communication between the frontend and backend occurs through a RESTful JSON API, ensuring clear separation of concerns between presentation and application logic.
+
+---
+
+### Design Patterns
+
+
+### Singleton
+
+A singleton configuration object is used to manage application settings. The configuration is instantiated once during application startup and shared across the backend through module imports. This ensures consistent access to environment variables and avoids repeated configuration loading.
+
+### Observer
+
+The frontend uses the observer pattern through React event handling mechanisms. Components subscribe to browser events and react dynamically to state changes, such as closing interactive UI elements when user actions occur outside component boundaries.
+
+---
+
+### Constraints
+
+
+### POPIA Act
+
+**POPIA compliance**: AEGIS processes sensitive candidate information, including names, email addresses, and assessment responses. The system must therefore comply with the Protection of Personal Information Act (POPIA). This constrains how personal data may be stored, processed, and transmitted, particularly regarding future integrations with external AI services. Candidate-identifiable information may not be shared with third-party AI providers without appropriate safeguards and compliance measures.
+
+**Alembic migrations out of sync with Supabase**: The current database migration history is not fully synchronized with the live Supabase database schema. As a result, future schema changes require careful reconciliation between ORM models and migration scripts before deployment to prevent schema inconsistencies or data integrity issues.
+

@@ -24,8 +24,13 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 ## Functional Requirements / SRS
 - [Software Requirements Specification (SRS)](docs/SRS.md)
 
----
+## Design Specifications
 
+- [Design Style](docs/DesignStyle.pdf)
+
+- [Design Wireframes](docs/WIREFRAME.pdf)
+
+---
 
 # GitHub Project Board
 
