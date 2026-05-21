@@ -84,6 +84,7 @@ def register(
         user={"id": user.user_id, "email": user.email,
               "full_name": user.full_name},
         access_token=access_token,
+        role=user.role.role_name,
     )
 
 
@@ -98,4 +99,5 @@ def login(
         user={"id": user.user_id, "email": user.email,
               "full_name": user.full_name},
         access_token=access_token,
+        role=user.role.role_name,
     )

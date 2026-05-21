@@ -40,6 +40,7 @@ def _make_mock_user(user_id=1, email="test@example.com", full_name="Test User"):
     mock_user.user_id = user_id
     mock_user.email = email
     mock_user.full_name = full_name
+    mock_user.role.role_name = "CANDIDATE"
     return mock_user
 
 def test_register_returns_201(client):

@@ -136,7 +136,8 @@ def register_user(db: Session, payload: RegisterRequest) -> tuple[User, str]:
     access_token = create_access_token(
         data={"sub": str(user.user_id),
               "email": user.email,
-              "role": candidate_role.role_name}
+              "role": candidate_role.role_name,
+              "user_id": str(user.user_id)}
     )
 
     oauth_record = OAuth(
@@ -172,7 +173,8 @@ def login_user(db: Session, payload: LoginRequest) -> tuple[User, str]:
         data={
             "sub": str(user.user_id),
             "email": user.email,
-            "role": user.role.role_name
+            "role": user.role.role_name,
+            "user_id": str(user.user_id)
         }
     )
 
