@@ -314,7 +314,8 @@ def start_candidate_assessment(
     )
     start_time = datetime.utcnow()
     session.start_time = start_time
-    session.end_time = start_time + timedelta(minutes=assessment.duration_mins)
+    # Hardcode test duration to 30 minutes instead of using assessment.duration_mins
+    session.end_time = start_time + timedelta(minutes=30)
     session.status = SessionStatus.IN_PROGRESS
     db.commit()
     db.refresh(session)

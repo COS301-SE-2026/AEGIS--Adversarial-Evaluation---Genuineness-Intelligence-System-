@@ -7,7 +7,7 @@ import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-butt
 import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-button";
 import { TestSubmitButton } from "@/components/candidate/ui/buttons/test-submit-button";
 import type { Question } from "@/components/candidate/ui/cards/question.type";
-import { apiGet } from "@/lib/apiClient";
+import { apiGet, apiPost } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 
 type CandidateAssessmentQuestionApi = {
@@ -23,6 +23,15 @@ type CandidateAssessmentQuestionApi = {
       tags?: string[] | null;
       question_metadata?: Record<string, unknown> | null;
    } | null;
+};
+
+type CandidateResponseApi = {
+   response_id: number;
+   candidate_assessment_id: number;
+   assessment_question_id: number;
+   candidate_answer?: string | null;
+   score?: number | null;
+   is_correct?: string | null;
 };
 
 function mapQuestionType(value: string): Question["type"] {
@@ -70,7 +79,12 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [candidateAssessId, setCandidateAssessId] = useState<string | null>(null);
    const [questions, setQuestions] = useState<Question[]>([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [isSaving, setIsSaving] = useState(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   const [isSubmitted, setIsSubmitted] = useState(false);
+   const [submitError, setSubmitError] = useState<string | null>(null);
    const [error, setError] = useState<string | null>(null);
+   const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
 
    useEffect(() => {
       params.then(p => setCandidateAssessId(p.id));
@@ -88,12 +102,18 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
             setIsLoading(true);
             setError(null);
             const authToken = getToken() ?? undefined;
-            const data = await apiGet<CandidateAssessmentQuestionApi[]>(
-               `/api/v1/assessments/candidate/${candidateAssessId}/questions`,
-               authToken ? { authToken } : {}
-            );
+            const [questionData, responseData] = await Promise.all([
+               apiGet<CandidateAssessmentQuestionApi[]>(
+                  `/api/v1/assessments/candidate/${candidateAssessId}/questions`,
+                  authToken ? { authToken } : {}
+               ),
+               apiGet<CandidateResponseApi[]>(
+                  `/api/v1/candidate-assessments/${candidateAssessId}/responses`,
+                  authToken ? { authToken } : {}
+               )
+            ]);
 
-            const mapped = data
+            const mapped = questionData
                .filter((item) => item.question)
                .map((item) => {
                   const question = item.question as NonNullable<
@@ -114,9 +134,20 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                   } satisfies Question;
                });
 
+            const existingAnswers = responseData.reduce<Record<number, string>>(
+               (acc, response) => {
+                  if (response.candidate_answer) {
+                     acc[response.assessment_question_id] = response.candidate_answer;
+                  }
+                  return acc;
+               },
+               {}
+            );
+
             if (isMounted) {
                setQuestions(mapped);
                setCurrentQuestionIndex(0);
+               setAnswersByQuestionId(existingAnswers);
             }
          } catch (err) {
             const message = err instanceof Error
@@ -143,15 +174,66 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const totalQuestions = questions.length;
    const isLastQuestion = totalQuestions > 0 && currentQuestionIndex === totalQuestions - 1;
 
-   const handleNext = () => {
-      if (currentQuestionIndex < totalQuestions - 1) {
+   const saveCurrentAnswer = async () => {
+      if (!candidateAssessId || !currentQuestion) {
+         return;
+      }
+
+      const answer = answersByQuestionId[currentQuestion.questionId];
+      if (!answer) {
+         return;
+      }
+
+      const authToken = getToken() ?? undefined;
+      await apiPost<CandidateResponseApi, { assessment_question_id: number; candidate_answer: string }>(
+         `/api/v1/candidate-assessments/${candidateAssessId}/responses`,
+         {
+            assessment_question_id: currentQuestion.questionId,
+            candidate_answer: answer,
+         },
+         authToken ? { authToken } : {}
+      );
+   };
+
+   const handleNext = async () => {
+      if (isSaving || currentQuestionIndex >= totalQuestions - 1) {
+         return;
+      }
+
+      try {
+         setIsSaving(true);
+         await saveCurrentAnswer();
          setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } finally {
+         setIsSaving(false);
       }
    };
 
    const handlePrevious = () => {
       if (currentQuestionIndex > 0) {
          setCurrentQuestionIndex(currentQuestionIndex - 1);
+      }
+   };
+
+   const handleSubmit = async () => {
+      if (isSubmitting || !candidateAssessId) return;
+
+      try {
+         setSubmitError(null);
+         setIsSubmitting(true);
+         // ensure last answer is saved
+         await saveCurrentAnswer();
+
+         const authToken = getToken() ?? undefined;
+         const result = await apiPost(`/api/v1/candidate-assessments/${candidateAssessId}/submit`, undefined, authToken ? { authToken } : {});
+
+         // result contains the completed session; show submitted UI
+         setIsSubmitted(true);
+      } catch (err) {
+         const message = err instanceof Error ? err.message : "Unable to submit assessment.";
+         setSubmitError(message);
+      } finally {
+         setIsSubmitting(false);
       }
    };
 
@@ -179,11 +261,30 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       );
    }
 
+     if (isSubmitted) {
+        return (
+           <main className="flex flex-col items-center justify-center min-h-screen">
+              <h2 className="text-2xl">Assessment submitted</h2>
+              <p className="mt-4 text-default-text">Thank you — your assessment has been submitted.</p>
+              {submitError && <p className="mt-2 text-system-red">{submitError}</p>}
+           </main>
+        );
+     }
+
     return (
         <main className="flex flex-col items-center justify-start min-h-screen 2xl:gap-8">
             <div className="flex flex-row items-center 2xl:gap-4">
                <TestDescriptionCard question={currentQuestion} />
-               <TestAnswerCard question={currentQuestion} />
+               <TestAnswerCard
+                  question={currentQuestion}
+                  value={answersByQuestionId[currentQuestion.questionId] ?? ""}
+                  onChange={(value) => {
+                     setAnswersByQuestionId((prev) => ({
+                        ...prev,
+                        [currentQuestion.questionId]: value,
+                     }));
+                  }}
+               />
 
             </div>
 
@@ -192,9 +293,14 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                   <TestPreviousButton handlePrevious={handlePrevious} />
                   <p>{currentQuestionIndex + 1} / {totalQuestions}</p>
                   <TestNextButton handleNext={handleNext} />
+                  {isSaving && (
+                     <span className="text-xs text-default-text/70">Saving...</span>
+                  )}
                </div>
                <div className="absolute right-18">
-                  {isLastQuestion && <TestSubmitButton />}
+                  {isLastQuestion && (
+                     <TestSubmitButton onClick={handleSubmit} disabled={isSaving || isSubmitting} isSubmitting={isSubmitting} />
+                  )}
                </div>
             </div>
             

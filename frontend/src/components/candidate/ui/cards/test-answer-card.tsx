@@ -1,16 +1,40 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TestMultipleChoiceCard } from "./test-multiple-choice-card";
 import { Question } from "./question.type";
 import CodeEditorCard from "./test-code-editor-card";
-import { TestFillInTheBlanksCard } from "./test-fill-in-the-blanks-card";
 
-export function TestAnswerCard({ question }: { question: Question }) {
-    const [code, setCode] = useState<string>('');
+type TestAnswerCardProps = {
+    question: Question;
+    value?: string;
+    onChange?: (value: string) => void;
+};
+
+export function TestAnswerCard({ question, value, onChange }: TestAnswerCardProps) {
+    const [code, setCode] = useState<string>(value ?? "");
+
+    useEffect(() => {
+        setCode(value ?? "");
+    }, [question.questionId, value]);
 
     const answerComponents = {
-        'multiple-choice': <TestMultipleChoiceCard question={question} />,
-        'coding': <CodeEditorCard code={code} setCode={setCode} />,
-        'fill-in-the-blank': <TestFillInTheBlanksCard question={question}/>
+        'multiple-choice': (
+            <TestMultipleChoiceCard
+                question={question}
+                value={value}
+                onChange={onChange}
+            />
+        ),
+        'coding': (
+            <CodeEditorCard
+                code={code}
+                setCode={(next) => {
+                    const resolved = typeof next === "function" ? next(code) : next;
+                    setCode(resolved);
+                    onChange?.(resolved);
+                }}
+            />
+        ),
+        'fill-in-the-blank': null
     };
 
     const selectedComponent = answerComponents[question.type as keyof typeof answerComponents];
