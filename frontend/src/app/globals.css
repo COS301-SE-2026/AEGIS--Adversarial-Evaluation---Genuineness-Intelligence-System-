@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0F0F0E; /*chinese-black in current theme */
+  --color-secondary-surface: #121211; /*bunker-grey in current theme */
+  --color-tertiary-surface: #30302E; /*black-wool in current theme */
+  --color-white-smoke: #F5F5F5; /*white-smoke in current theme */
+  --color-system-red: #F4381F; /*signal-red in current theme */
+  --color-default-text: #E6E6DF; /*pure-white in current theme */
+  --color-default-border: #989892; /*bunker-grey in current theme */
+  --color-code-editor: #1E2124;
+  --color-status-success: #66BB6A;      /* active / completed / pass — green text */
+  --color-status-success-dim: #388E3C;  /* success bg tints and borders */
+  --color-status-warning: #FFCA28;      /* pending / in-progress — amber */
+  --color-status-info: #64B5F6;         /* draft state — blue */
+
+  --font-staatliches: var(--font-staatliches);
+  --font-ibm-plex: var(--font-ibm-plex-mono);
+  --font-jetbrains-mono: var(--font-jetbrains-mono);
+
+  --shadow-glow-red: 0 0 16px rgba(180, 39, 21, 0.6);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-default-text);
+    font-family: var(--font-ibm-plex), sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-staatliches), sans-serif;
+    text-transform: uppercase;
+  }
+}
+
+@layer components {
+  .icon-white-smoke {
+    filter: invert(92%) sepia(10%) brightness(100);
+  }
+}
+
+@layer utilities {
+  .font-staatliches {
+    font-family: var(--font-staatliches), sans-serif;
+  }
+  .font-ibm {
+    font-family: var(--font-ibm-plex-sans), sans-serif;
+  }
+  .font-jetbrains {
+    font-family: var(--font-jetbrains-mono), monospace;
+  }
+}

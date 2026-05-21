@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+node_modules
+.pnp
+.pnp.js
+
+.env
+
+.docker
+
+.DS_Store
+Thumbs.db
+
+dist/
+build/
+backend/alembic.ini
