@@ -35,6 +35,12 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 
 ---
 
+## Documentation Specifications
+- [Design styles](docs/pdfs/AEGIS Design Specification.pdf)
+- [Wireframes](docs/pdfs/WIREFRAME.pdf)
+
+---
+
 
 # GitHub Project Board
 
