@@ -35,7 +35,7 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 
 ---
 
-## Documentation Specifications
+## Design Specifications
 - [Design styles](docs/DesignStyle.pdf)
 - [Wireframes](docs/pdfs/WIREFRAME.pdf)
 
