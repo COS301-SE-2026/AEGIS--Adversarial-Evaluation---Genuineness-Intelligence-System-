@@ -115,8 +115,7 @@ const Register = () => {
   }
 
   function handleGoogle() {
-    //TODO: wire up google auth
-    router.push("/assessment");
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
   }
 
   // function handleGithub() {
