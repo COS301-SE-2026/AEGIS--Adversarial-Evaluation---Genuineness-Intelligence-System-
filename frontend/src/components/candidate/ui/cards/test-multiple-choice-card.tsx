@@ -1,11 +1,34 @@
 'use client';
 import { Question } from "./question.type";
-import React, { useState } from "react";
+import React from "react";
 
-export function TestMultipleChoiceCard({question}: {question: Question}) {
+type MultipleChoiceProps = {
+    question: Question;
+    value?: string;
+    onChange?: (value: string) => void;
+};
 
+function indexToLetter(index: number): string {
+    return String.fromCharCode(97 + index);
+}
+
+function letterToIndex(value?: string): number | null {
+    if (!value) {
+        return null;
+    }
+
+    const normalized = value.trim().toLowerCase();
+    if (normalized.length !== 1) {
+        return null;
+    }
+
+    const code = normalized.charCodeAt(0) - 97;
+    return code >= 0 ? code : null;
+}
+
+export function TestMultipleChoiceCard({ question, value, onChange }: MultipleChoiceProps) {
     const options = question.options;
-    const [selectedOption, setSelectedOption] = useState<string | null>(null);
+    const selectedIndex = letterToIndex(value);
 
     return (
         <div>
@@ -17,15 +40,15 @@ export function TestMultipleChoiceCard({question}: {question: Question}) {
                     <label 
                         key={index} 
                         className={`flex items-center gap-4 p-4 rounded-md cursor-pointer border transition-colors ${
-                            selectedOption === option ? 'border-blue-400' : 'border-default-border'
+                            selectedIndex === index ? 'border-blue-400' : 'border-default-border'
                         }`}
                     >
                         <input
                             type="radio"
-                            name="multiple-choice"
+                            name={`multiple-choice-${question.questionId}`}
                             value={option}
-                            checked={selectedOption === option}
-                            onChange={() => setSelectedOption(option)}
+                            checked={selectedIndex === index}
+                            onChange={() => onChange?.(indexToLetter(index))}
                             className="hidden"
                         />
                         <span className="text-lg min-w-fit">{String.fromCharCode(65 + index)}.</span>

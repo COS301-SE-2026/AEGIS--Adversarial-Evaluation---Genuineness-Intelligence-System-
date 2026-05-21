@@ -372,7 +372,7 @@ def test_start_candidate_assessment_end_time_is_start_plus_duration():
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 
     start_candidate_assessment(mock_db, "valid-token")
-    assert mock_session.end_time == mock_session.start_time + timedelta(minutes=45)
+    assert mock_session.end_time == mock_session.start_time + timedelta(minutes=30)
 
 
 def test_start_candidate_assessment_end_time_greater_than_start_time():

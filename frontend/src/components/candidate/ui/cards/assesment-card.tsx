@@ -9,7 +9,7 @@ function formatStatus(status: string): string {
 }
 
 export function AssessmentCard({
-    assessmentId,
+    candidateAssessId,
     title,
     description,
     durationMins,
@@ -44,7 +44,7 @@ export function AssessmentCard({
                 </div>
             </div>
             <div className="mt-auto">
-                <Link href={`/assessment/${assessmentId}`}>
+                <Link href={`/assessment/${candidateAssessId}`}>
                     <StartAssessmentButton />
                 </Link>
             </div>

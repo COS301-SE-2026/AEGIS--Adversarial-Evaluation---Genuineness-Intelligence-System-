@@ -1,19 +1,38 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { TestMultipleChoiceCard } from "./test-multiple-choice-card";
 import { Question } from "./question.type";
 import CodeEditorCard from "./test-code-editor-card";
-import { TestFillInTheBlanksCard } from "./test-fill-in-the-blanks-card";
 
-export function TestAnswerCard({ question }: { question: Question }) {
-    const [code, setCode] = useState<string>('');
+type TestAnswerCardProps = {
+    question: Question;
+    value?: string;
+    onChange?: (value: string) => void;
+};
 
-    const answerComponents = {
-        'multiple-choice': <TestMultipleChoiceCard question={question} />,
-        'coding': <CodeEditorCard code={code} setCode={setCode} />,
-        'fill-in-the-blank': <TestFillInTheBlanksCard question={question}/>
-    };
+export function TestAnswerCard({ question, value, onChange }: TestAnswerCardProps) {
+    const answerComponent = useMemo(() => {
+        return {
+            'multiple-choice': (
+            <TestMultipleChoiceCard
+                question={question}
+                value={value}
+                onChange={onChange}
+            />
+            ),
+            'coding': (
+            <CodeEditorCard
+                code={value ?? ""}
+                setCode={(next) => {
+                    const resolved = typeof next === "function" ? next(value ?? "") : next;
+                    onChange?.(resolved);
+                }}
+            />
+            ),
+            'fill-in-the-blank': null,
+        } as const;
+    }, [onChange, question, value]);
 
-    const selectedComponent = answerComponents[question.type as keyof typeof answerComponents];
+    const selectedComponent = answerComponent[question.type as keyof typeof answerComponent];
     
     const getHeaderTitle = () => {
         switch(question.type) {

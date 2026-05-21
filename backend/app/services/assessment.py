@@ -307,14 +307,9 @@ def start_candidate_assessment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assessment has expired",
         )
-    assessment = (
-        db.query(Assessment)
-        .filter(Assessment.assessment_id == session.assessment_id)
-        .first()
-    )
     start_time = datetime.utcnow()
     session.start_time = start_time
-    session.end_time = start_time + timedelta(minutes=assessment.duration_mins)
+    session.end_time = start_time + timedelta(minutes=30)
     session.status = SessionStatus.IN_PROGRESS
     db.commit()
     db.refresh(session)
