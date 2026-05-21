@@ -46,7 +46,7 @@ const Input = ({
                 />
 
         </div>
-        {error && <p className="text-signal-red text-xs">{error}</p>}
+        {error && <p className="text-system-red text-xs">{error}</p>}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { SearchBar } from "../ui/buttons/search-bar";
 import { NotificationBell } from "../ui/buttons/notification-bell-button";
 import { UserIcon } from "../ui/buttons/user-profile-button";
-import { TestSaveButton } from "../ui/buttons/test-save-button";
+// import { TestSaveButton } from "../ui/buttons/test-save-button";
 import { ExitSessionButton } from "../ui/buttons/exit-session-button";
 
 export function Navbar() {
@@ -40,7 +40,7 @@ export function Navbar() {
                         </Link>
                         <div className="flex items-center ml-2 gap-x-8 text-base text-default-text">
                             <Link href="/assessment" className="hover:underline hover:underline-offset-8 hover:decoration-system-red decoration-2 hover:scale-105 hover:-translate-y-0.5 transition-transform duration-200 origin-bottom">Assessments</Link>
-                            <Link href="/reports" className="hover:underline hover:underline-offset-8 hover:decoration-system-red decoration-2 hover:scale-105 hover:-translate-y-0.5 transition-transform duration-400 origin-bottom">Reports</Link>
+                            {/* <Link href="/reports" className="hover:underline hover:underline-offset-8 hover:decoration-system-red decoration-2 hover:scale-105 hover:-translate-y-0.5 transition-transform duration-400 origin-bottom">Reports</Link> */}
                         </div>
                     </div>
                     <div className="flex items-center gap-16">
@@ -68,7 +68,7 @@ export function Navbar() {
                     </div>
                     
                     <div className="flex items-center gap-8">
-                        <TestSaveButton />
+                        {/* <TestSaveButton /> */}
                         <Link href="/assessment">
                             <ExitSessionButton />
                         </Link>
