@@ -1,45 +1,100 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import AdminSidebar from "../../../../components/admin/layouts/sidebar";
 import AdminTopbar from "../../../../components/admin/layouts/topbar";
 import AssessmentCard from "../../../../components/admin/ui/cards/assessment-card";
 import AssessmentFilterBar from "../../../../components/admin/ui/buttons/assessment-filter-bar";
 import CreateAssessmentPanel from "../../../../components/admin/ui/cards/create-assessment-panel";
-import { MOCK_ASSESSMENTS } from "../../types/mock-data";
 import type { AssessmentStatus } from "../../types/assessment";
+import { isAuthenticated, getRole, getAuthHeaders } from "@/lib/auth";
+import { apiGet } from "@/lib/apiClient";
 
 type FilterValue = AssessmentStatus | "all";
 
+interface ApiAssessment {
+  assessment_id: number;
+  title: string;
+  description?: string | null;
+  duration_mins: number;
+  created_at: string;
+}
+
 export default function AssessmentsPage() {
-  const [filter, setFilter]   = useState<FilterValue>("all");
-
-  const [search, setSearch]   = useState("");
-
+  const router = useRouter();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [filter, setFilter] = useState<FilterValue>("all");
+  const [search, setSearch] = useState("");
   const [panelOpen, setPanelOpen] = useState(false);
+  const [assessments, setAssessments] = useState<ApiAssessment[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
 
-  const filtered = MOCK_ASSESSMENTS.filter((a) => {
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!isAuthenticated() || getRole() !== "RECRUITER") {
+        router.replace("/login");
+        return;
+      }
+      setAuthChecked(true);
+    };
+    checkAuth();
+  }, [router]);
 
-    const matchStatus = filter === "all" || a.status === filter;
-    
+  useEffect(() => {
+    if (!authChecked) return;
+
+    let isMounted = true;
+    const loadAssessments = async () => {
+      try {
+        setLoadingData(true);
+        setDataError(null);
+        const data = await apiGet<ApiAssessment[]>("/api/v1/assessments", {
+          headers: getAuthHeaders(),
+        });
+        if (isMounted) setAssessments(data);
+      } catch (err) {
+        if (isMounted) {
+          setDataError(
+            err instanceof Error ? err.message : "Failed to load assessments."
+          );
+        }
+      } finally {
+        if (isMounted) setLoadingData(false);
+      }
+    };
+
+    loadAssessments();
+    return () => {
+      isMounted = false;
+    };
+  }, [authChecked]);
+
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen bg-background text-white-smoke items-center justify-center">
+        <div className="font-jetbrains text-[12px] text-white-smoke/40">
+          Checking access...
+        </div>
+      </div>
+    );
+  }
+
+  const filtered = assessments.filter((a) => {
     const matchSearch =
       !search || a.title.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
+    return matchSearch;
   });
 
   return (
     <div className="flex min-h-screen bg-background text-white-smoke">
-      {/* Sidebar */}
       <AdminSidebar />
 
-      {/* Main area */}
       <div className="flex flex-col flex-1 min-w-0">
-        {/* Topbar — transparent per Figma */}
         <AdminTopbar onNewAssessment={() => setPanelOpen(true)} />
 
-        {/* Content */}
         <main className="flex-1 overflow-y-auto px-7 py-6">
-          {/* Page header */}
           <div className="flex items-start justify-between mb-5">
             <div>
               <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-[#F5F5F5]">
@@ -51,7 +106,6 @@ export default function AssessmentsPage() {
             </div>
           </div>
 
-          {/* Filter bar */}
           <AssessmentFilterBar
             filter={filter}
             search={search}
@@ -59,11 +113,22 @@ export default function AssessmentsPage() {
             onSearchChange={setSearch}
           />
 
-          {/* Grid */}
-          {filtered.length > 0 ? (
+          {loadingData ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="font-jetbrains text-[12px] text-white-smoke/40">
+                Loading assessments...
+              </div>
+            </div>
+          ) : dataError ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="font-jetbrains text-[12px] text-system-red">
+                {dataError}
+              </div>
+            </div>
+          ) : filtered.length > 0 ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(310px,1fr))] gap-3.5">
               {filtered.map((a) => (
-                <AssessmentCard key={a.id} assessment={a} />
+                <AssessmentCard key={a.assessment_id} assessment={a} />
               ))}
             </div>
           ) : (
@@ -79,7 +144,6 @@ export default function AssessmentsPage() {
         </main>
       </div>
 
-      {/* Create assessment slide-over panel */}
       {panelOpen && (
         <CreateAssessmentPanel onClose={() => setPanelOpen(false)} />
       )}
