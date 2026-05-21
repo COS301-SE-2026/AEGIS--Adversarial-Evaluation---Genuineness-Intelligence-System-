@@ -113,9 +113,9 @@ const Login = () => {
               <Button variant="social" icon={<GoogleIcon size={20}/>} onClick={handleGoogle} className="flex-1">
                 Google
               </Button>
-                <Button variant="social" icon={<GithubIcon size={20}/>} onClick={handleGithub} className="flex-1">
+              {/* <Button variant="social" icon={<GithubIcon size={20}/>} onClick={handleGithub} className="flex-1">
                 GitHub
-              </Button>
+              </Button> */}
             </div>
           </div>
           <div className="flex items-center gap-4">
