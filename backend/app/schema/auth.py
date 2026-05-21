@@ -76,6 +76,10 @@ class RegisterResponse(BaseModel):
         "bearer",
         description="Token type. Always 'bearer' for JWT auth"
     )
+    role: str = Field(
+        ...,
+        description="The user's role name (CANDIDATE or RECRUITER)",
+    )
 
 
 LoginResponse = RegisterResponse

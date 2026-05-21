@@ -79,7 +79,8 @@ const Login = () => {
         return;
       }
 
-      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("aegis_token", data.access_token);
+      localStorage.setItem("aegis_role", data.role);
       router.push("/assessment");
     } catch {
       setServerError("Server unreachable.");
