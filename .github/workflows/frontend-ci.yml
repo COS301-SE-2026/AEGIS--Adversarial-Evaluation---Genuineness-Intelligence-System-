@@ -45,7 +45,7 @@ jobs:
         run: pnpm build
 
       - name: Run tests with coverage
-        run: pnpm test --coverage --coverageReporters=lcov --passWithNoTests
+        run: pnpm jest --coverage --coverageReporters=lcov --passWithNoTests
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
