@@ -49,11 +49,11 @@ describe('Login Component', () => {
 
     // Simulate user typing
     await userEvent.type(emailInput, 'test@example.com');
-    await userEvent.type(passwordInput, 'password123!');
+    await userEvent.type(passwordInput, 'Password123!');
 
     // Check if the inputs have the correct values
     expect(emailInput).toHaveValue('test@example.com');
-    expect(passwordInput).toHaveValue('password123!');
+    expect(passwordInput).toHaveValue('Password123!');
 
     // Click the sign-in button
     await userEvent.click(signInButton);
@@ -68,7 +68,7 @@ describe('Login Component', () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: 'test@example.com',
-            password: 'password123!',
+            password: 'Password123!',
           }),
         })
       );
@@ -102,7 +102,7 @@ describe('Login Component', () => {
     const signInButton = screen.getByRole('button', { name: /Sign In/i });
 
     await userEvent.type(emailInput, 'wrong@example.com');
-    await userEvent.type(passwordInput, 'wrongpassword!');
+    await userEvent.type(passwordInput, 'Wrongpassword!');
     await userEvent.click(signInButton);
 
     // Check for server error message
