@@ -2,6 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Login from '../page';
 
+// integration test for Login Component.
+
 // Mock the useRouter hook
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
