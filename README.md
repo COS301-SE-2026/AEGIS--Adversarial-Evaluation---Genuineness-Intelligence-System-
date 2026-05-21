@@ -1,5 +1,13 @@
 # The Alchemists - AEGIS - Adversarial Evaluation Genuineness Intelligence System
 
+[![Dev CI](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/dev-ci.yml/badge.svg)](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/dev-ci.yml)
+[![Frontend CI](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/frontend-ci.yml)
+[![Node](https://img.shields.io/badge/node-20-brightgreen)](https://nodejs.org)
+[![Python](https://img.shields.io/badge/python-3.11-blue)](https://python.org)
+[![Next.js](https://img.shields.io/badge/next.js-16.2.4-black)](https://nextjs.org)
+[![FastAPI](https://img.shields.io/badge/fastapi-latest-009688)](https://fastapi.tiangolo.com)
+[![GitHub Issues](https://img.shields.io/github/issues/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-)](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/issues)
+
 AEGIS is an adversarial AI-powered technical assessment platform focused on investigating how modern Large Language Models (LLMs) reason, fail, hallucinate, and can be manipulated through carefully engineered adversarial prompting techniques.
 
 The platform aims to generate assessment questions that remain solvable by humans while deliberately confusing AI systems through AI traps. AEGIS combines adversarial machine learning research with assessment management and AI-assisted authenticity verification.
