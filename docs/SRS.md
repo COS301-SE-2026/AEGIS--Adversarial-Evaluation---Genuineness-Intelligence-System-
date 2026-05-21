@@ -11,6 +11,13 @@ AEGIS (Adversarial Evaluation Genuineness Intelligence System) is an adversarial
 The platform integrates adversarial machine learning principles with technical assessment workflows, enabling the creation, management, and evaluation of structured assessments across multiple question types, including coding challenges, system design problems, debugging tasks, and reasoning-based questions.
 
 ---
+## Domain Model
+
+The domain model can be found here:
+
+[View Domain Model Diagram (PDF)](AEGIS Domain Model.drawio (6).pdf)
+
+---
 
 ## User Characteristics
 
