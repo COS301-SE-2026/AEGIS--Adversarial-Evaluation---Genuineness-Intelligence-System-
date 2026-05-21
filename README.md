@@ -52,6 +52,7 @@ I enjoy solving problems, learning new technologies, and applying computer scien
 **Role:** Data Engineer  
 
 **Profile description:**
+I am a passionate Full Stack Developer experienced in building end to end web applications using modern technologies like Next.js, React, and TypeScript. I enjoy bridging the gap between robust, scalable backend architectures and intuitive, user centric frontends. Whether it's implementing real time, dynamic UI development or designing secure APIs, I am driven by the challenge of creating seamless digital experiences. I pride myself on writing clean, maintainable code and continuously exploring new ways to refine my craft across the entire stack.
 
 **LinkedIn:** (https://www.linkedin.com/in/sambulo-zikhali-468669261)
 
@@ -72,9 +73,11 @@ I like to create cutting-edge, useful applications by fusing the logical side of
 
 ## Myron Wheeler
 
-**Role:** AI Research & Prompt Engineer 
+**Role:** Backend Developer & AI research 
 
 **Profile description:**
+Final-year Computer Science student at the University of Pretoria currently interning at Korridor, with industry experience focused on database systems and data-driven development. I enjoy building efficient, reliable solutions and have a strong interest in frontend development and creating intuitive user experiences.
+What I enjoy most about software development is the rewarding process of solving difficult problems and finally fixing issues that have been challenging for a long time. I am passionate about continuously improving my technical skills and applying them to real-world projects.
 
 **LinkedIn:** (https://www.linkedin.com/in/myron-wheeler-8b5847233)
 
