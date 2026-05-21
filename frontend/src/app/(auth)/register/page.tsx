@@ -178,18 +178,8 @@ const Register = () => {
               error={errors.confirmPassword}
               onBlur={handleConfirmPasswordBlur}
             />
-          </div>
-          <Button variant="solid" onClick={handleSubmit} className="w-full">
-            Sign Up
-          </Button>
-          <p className="text-center font-ibm-plex text-sm text-default-text">
-            Already have an account?{" "}
-            <Link href="/login" className="text-system-red hover:underline">
-              Sign In Now.
-            </Link>
-          </p>        
+          </div>   
         </div>
- 
         {serverError && (
           <p className="text-center font-ibm-plex text-sm text-system-red">
             {serverError}
