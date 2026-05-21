@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AssessmentCard } from "@/components/candidate/ui/cards/assesment-card";
 import type { AssessmentCardProps } from "@/components/candidate/ui/cards/assessment-card.types";
 import { apiGet } from "@/lib/apiClient";
-import { getToken } from "@/lib/auth";
+import { getToken, isAuthenticated, getRole } from "@/lib/auth";
 
 type CandidateAssessmentApi = {
     candidate_assess_id: number;
@@ -42,11 +43,26 @@ function getStoredAuthToken(): string | undefined {
 }
 
 export default function AssessmentPage() {
+    const router = useRouter();
+    const [authChecked, setAuthChecked] = useState(false);
     const [assessments, setAssessments] = useState<AssessmentCardProps[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const checkAuth = async () => {
+            if (!isAuthenticated() || getRole() !== "CANDIDATE") {
+                router.replace("/login");
+                return;
+            }
+            setAuthChecked(true);
+        };
+        checkAuth();
+    }, [router]);
+
+    useEffect(() => {
+        if (!authChecked) return;
+
         let isMounted = true;
 
         const loadAssessments = async () => {
@@ -86,7 +102,15 @@ export default function AssessmentPage() {
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [authChecked]);
+
+    if (!authChecked) {
+        return (
+            <main>
+                <div className="pt-8 text-white-smoke">Checking access...</div>
+            </main>
+        );
+    }
 
     return (
         <main>
@@ -117,6 +141,5 @@ export default function AssessmentPage() {
                 </div>
             )}
         </main>
-       
     );
 }
