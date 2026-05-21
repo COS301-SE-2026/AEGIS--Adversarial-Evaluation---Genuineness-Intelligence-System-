@@ -28,6 +28,7 @@ fastapi-cors==0.0.6
 # Testing
 pytest==7.4.3
 pytest-asyncio==0.21.1
+pytest-cov
 
 # Development
 black==23.12.0

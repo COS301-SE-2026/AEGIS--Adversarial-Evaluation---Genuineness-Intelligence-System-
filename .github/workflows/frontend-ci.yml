@@ -13,24 +13,20 @@ jobs:
         working-directory: frontend
 
     steps:
-      # Get the code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Install pnpm on the runner
       - name: Install pnpm
         uses: pnpm/action-setup@v3
         with:
-          version: 9 # Adjust this to match your local pnpm version if needed
+          version: 9
 
-      # Set up Node.js and cache pnpm store
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
-      # Cache Next.js build folder to speed up future runs
       - name: Next.js Cache
         uses: actions/cache@v4
         with:
@@ -39,14 +35,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
 
-      # Install dependencies strictly using the lockfile
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Running ESLint explicitly catches errors faster rather than relying on the automatic run.
       - name: Run Linter
         run: pnpm lint
 
-      #Build the Next.js production bundle
       - name: Build Application
         run: pnpm build
+
+      - name: Run tests with coverage
+        run: pnpm test --coverage --coverageReporters=lcov --passWithNoTests
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
