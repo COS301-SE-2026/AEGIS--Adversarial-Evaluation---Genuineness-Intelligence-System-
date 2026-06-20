@@ -1,4 +1,13 @@
-# The Alchemists - AEGIS - Adversarial Evaluation Genuineness Intelligence System
+<center>
+
+# AEGIS - Adversarial Evaluation Genuineness Intelligence System
+## THE ALCHEMISTS
+
+</center>
+<p align="center">
+  <img src="docs/images/AEGIS-logo.png" alt="The Alchemists Logo" width="400"/>
+</p>
+<br>
 
 [![Dev CI](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/dev-ci.yml/badge.svg)](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/dev-ci.yml)
 [![Frontend CI](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/actions/workflows/frontend-ci.yml)
@@ -7,10 +16,9 @@
 [![Next.js](https://img.shields.io/badge/next.js-16.2.4-black)](https://nextjs.org)
 [![FastAPI](https://img.shields.io/badge/fastapi-latest-009688)](https://fastapi.tiangolo.com)
 [![GitHub Issues](https://img.shields.io/github/issues/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-)](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/issues)
+[![codecov](https://codecov.io/gh/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/graph/badge.svg?token=iTzEdic5tV)](https://codecov.io/gh/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-)
 
 AEGIS is an adversarial AI-powered technical assessment platform focused on investigating how modern Large Language Models (LLMs) reason, fail, hallucinate, and can be manipulated through carefully engineered adversarial prompting techniques.
-
-The platform aims to generate assessment questions that remain solvable by humans while deliberately confusing AI systems through AI traps. AEGIS combines adversarial machine learning research with assessment management and AI-assisted authenticity verification.
 
 ---
 
@@ -24,6 +32,12 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 
 ## Functional Requirements / SRS
 - [Software Requirements Specification (SRS)](docs/SRS.md)
+
+---
+
+## Design Specifications
+- [Design styles](docs/DesignStyle.pdf)
+- [Wireframes](docs/pdfs/WIREFRAME.pdf)
 
 ---
 
@@ -53,6 +67,7 @@ I enjoy solving problems, learning new technologies, and applying computer scien
 **Role:** Data Engineer  
 
 **Profile description:**
+I am a passionate Full Stack Developer experienced in building end to end web applications using modern technologies like Next.js, React, and TypeScript. I enjoy bridging the gap between robust, scalable backend architectures and intuitive, user centric frontends. Whether it's implementing real time, dynamic UI development or designing secure APIs, I am driven by the challenge of creating seamless digital experiences. I pride myself on writing clean, maintainable code and continuously exploring new ways to refine my craft across the entire stack.
 
 **LinkedIn:** (https://www.linkedin.com/in/sambulo-zikhali-468669261)
 
@@ -73,9 +88,11 @@ I like to create cutting-edge, useful applications by fusing the logical side of
 
 ## Myron Wheeler
 
-**Role:** AI Research & Prompt Engineer 
+**Role:** Backend Developer & AI research 
 
 **Profile description:**
+Final-year Computer Science student at the University of Pretoria currently interning at Korridor, with industry experience focused on database systems and data-driven development. I enjoy building efficient, reliable solutions and have a strong interest in frontend development and creating intuitive user experiences.
+What I enjoy most about software development is the rewarding process of solving difficult problems and finally fixing issues that have been challenging for a long time. I am passionate about continuously improving my technical skills and applying them to real-world projects.
 
 **LinkedIn:** (https://www.linkedin.com/in/myron-wheeler-8b5847233)
 
@@ -86,5 +103,6 @@ I like to create cutting-edge, useful applications by fusing the logical side of
 **Role:** Frontend Developer  
 
 **Profile description:**
+Final-year Computer Science student at the University of Pretoria with experience in backend & frontend development having built reliable, well-structured systems. I enjoy working on projects that have real-world impact and am currently exploring the intersection of AI and security through my capstone project. Always looking to learn, contribute, and grow through meaningful technical challenge
 
-**LinkedIn:** (https://linkedin.com/in/USERNAME)
+**LinkedIn:** (https://www.linkedin.com/in/lusanda-mtembu-aa0938247/)
