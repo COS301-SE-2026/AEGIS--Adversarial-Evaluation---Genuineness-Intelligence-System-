@@ -4,7 +4,7 @@ from app.models.base import Base
 from app.models.role import Role
 from app.models.user import User
 from app.models.oauth import OAuth
-from app.models.question import QuestionBank, QuestionType
+from backend.app.models.question_bank import QuestionBank, QuestionType
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
