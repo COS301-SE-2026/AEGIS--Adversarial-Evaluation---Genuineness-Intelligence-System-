@@ -30,4 +30,4 @@ class QuestionBank(Base):
 
     category = relationship("QuestionCategory")
     adversarial_questions = relationship("AdversarialQuestion", back_populates="source_question")
-    coding_test_cases = relationship("CodingTestCases", back_populates="question")
+    coding_test_cases = relationship("CodingTestCase", back_populates="question")
