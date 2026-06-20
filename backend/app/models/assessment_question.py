@@ -11,14 +11,14 @@ class AssessmentQuestion(Base):
     assessments_id = Column(Integer,
                             ForeignKey("assessments.assessment_id"),
                             nullable=False)
-    questions_id = Column(Integer,
-                          ForeignKey("question_bank.question_bank_id"),
-                          nullable=True)
+    adv_question_id = Column(Integer,
+                          ForeignKey("adversarial_questions.adv_question_id"),
+                          nullable=False)
     display_order = Column(BigInteger, nullable=True)
     marks = Column(Float, nullable=True)
 
     assessment = relationship("Assessment",
                               back_populates="assessment_questions")
-    question_bank = relationship("QuestionBank")
+    adversarial_question = relationship("AdversarialQuestion")
     responses = relationship("CandidateResponse",
                              back_populates="assessment_question")
