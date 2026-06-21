@@ -1,6 +1,7 @@
 from sqlalchemy import (Column, Integer, String, TIMESTAMP, func)
 from app.models.base import Base
 
+
 class QuestionCategory(Base):
     __tablename__ = "question_categories"
 

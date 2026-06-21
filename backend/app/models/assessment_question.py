@@ -11,9 +11,10 @@ class AssessmentQuestion(Base):
     assessments_id = Column(Integer,
                             ForeignKey("assessments.assessment_id"),
                             nullable=False)
-    adv_question_id = Column(Integer,
-                          ForeignKey("adversarial_questions.adv_question_id"),
-                          nullable=False)
+    adv_question_id = Column(
+        Integer,
+        ForeignKey("adversarial_questions.adv_question_id"),
+        nullable=False)
     display_order = Column(BigInteger, nullable=True)
     marks = Column(Float, nullable=True)
 
