@@ -25,10 +25,12 @@ class AssessmentQuestion(Base):
                              back_populates="assessment_question")
     question_bank = relationship(
         "QuestionBank",
+        uselist=False,
         foreign_keys=[adv_question_id],
-        primaryjoin="and_(AssessmentQuestion.adv_question_id == "
+        primaryjoin="and_(foreign(AssessmentQuestion.adv_question_id) == "
                     "AdversarialQuestion.adv_question_id, "
-                    "AdversarialQuestion.source_question_id == "
-                    "QuestionBank.question_bank_id)",
-        viewonly=True
+                    "foreign(AdversarialQuestion.source_question_id) == "
+                    "remote(QuestionBank.question_bank_id))",
+        viewonly=True,
+        lazy="joined"
     )
