@@ -24,11 +24,11 @@ class AssessmentQuestion(Base):
     responses = relationship("CandidateResponse",
                              back_populates="assessment_question")
     question_bank = relationship(
-    "QuestionBank",
-    foreign_keys=[adv_question_id],
-    primaryjoin="and_(AssessmentQuestion.adv_question_id == "
-                "AdversarialQuestion.adv_question_id, "
-                "AdversarialQuestion.source_question_id == "
-                "QuestionBank.question_bank_id)",
-    viewonly=True
-)
+        "QuestionBank",
+        foreign_keys=[adv_question_id],
+        primaryjoin="and_(AssessmentQuestion.adv_question_id == "
+                    "AdversarialQuestion.adv_question_id, "
+                    "AdversarialQuestion.source_question_id == "
+                    "QuestionBank.question_bank_id)",
+        viewonly=True
+    )
