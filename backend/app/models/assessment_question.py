@@ -20,17 +20,13 @@ class AssessmentQuestion(Base):
 
     assessment = relationship("Assessment",
                               back_populates="assessment_questions")
-    adversarial_question = relationship("AdversarialQuestion")
+    adversarial_question = relationship("AdversarialQuestion",
+                                        back_populates="assessment_questions")
     responses = relationship("CandidateResponse",
                              back_populates="assessment_question")
-    question_bank = relationship(
-        "QuestionBank",
-        uselist=False,
-        foreign_keys=[adv_question_id],
-        primaryjoin="and_(foreign(AssessmentQuestion.adv_question_id) == "
-                    "AdversarialQuestion.adv_question_id, "
-                    "foreign(AdversarialQuestion.source_question_id) == "
-                    "remote(QuestionBank.question_bank_id))",
-        viewonly=True,
-        lazy="joined"
-    )
+
+    @property
+    def question_bank(self):
+        if self.adversarial_question is not None:
+            return self.adversarial_question.source_question
+        return None

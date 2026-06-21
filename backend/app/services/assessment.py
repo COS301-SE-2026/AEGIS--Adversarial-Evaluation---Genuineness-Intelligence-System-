@@ -9,6 +9,7 @@ from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.models.adversarial_question import AdversarialQuestion
 from app.models.user import User
 from app.schema.candidate_response import ResponseCreate
 
@@ -105,7 +106,8 @@ def get_assessment_by_id(
         db.query(Assessment)
         .options(
             selectinload(Assessment.assessment_questions)
-            .selectinload(AssessmentQuestion.question_bank)
+            .selectinload(AssessmentQuestion.adversarial_question)
+            .selectinload(AdversarialQuestion.source_question)
         )
         .filter(Assessment.assessment_id == assessment_id)
         .first()
@@ -163,7 +165,10 @@ def save_candidate_response(
 
     assessment_q = (
         db.query(AssessmentQuestion)
-        .options(selectinload(AssessmentQuestion.question_bank))
+        .options(
+            selectinload(AssessmentQuestion.adversarial_question)
+            .selectinload(AdversarialQuestion.source_question)
+        )
         .filter(
             AssessmentQuestion.assessment_q_id
             == response_in.assessment_question_id
@@ -193,6 +198,7 @@ def save_candidate_response(
 
 
 def get_candidate_responses(
+
     db: Session,
     candidate_assessment_id: int,
 ) -> list[CandidateResponse]:
@@ -230,7 +236,8 @@ def submit_candidate_assessment(
             selectinload(CandidateAssessment.responses),
             selectinload(CandidateAssessment.assessment)
             .selectinload(Assessment.assessment_questions)
-            .selectinload(AssessmentQuestion.question_bank),
+            .selectinload(AssessmentQuestion.adversarial_question)
+            .selectinload(AdversarialQuestion.source_question),
         )
         .filter(
             CandidateAssessment.candidate_assess_id
@@ -326,7 +333,8 @@ def get_questions_for_candidate_assessment(
         .options(
             selectinload(CandidateAssessment.assessment)
             .selectinload(Assessment.assessment_questions)
-            .selectinload(AssessmentQuestion.question_bank)
+            .selectinload(AssessmentQuestion.adversarial_question)
+            .selectinload(AdversarialQuestion.source_question)
         )
         .filter(CandidateAssessment.candidate_assess_id == candidate_assess_id)
         .first()

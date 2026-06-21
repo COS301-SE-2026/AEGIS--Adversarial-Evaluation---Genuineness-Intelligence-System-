@@ -17,3 +17,5 @@ class AdversarialQuestion(Base):
 
     source_question = relationship("QuestionBank",
                                    back_populates="adversarial_questions")
+    assessment_questions = relationship("AssessmentQuestion",
+                                        back_populates="adversarial_question")
