@@ -23,7 +23,9 @@ class CandidateResponse(Base):
     candidate_answer = Column(String, nullable=True)
     score = Column(Float, nullable=True)
     is_correct = Column(Enum(CorrectnessStatus), nullable=True)
-
+    test_cases_total = Column(Integer, default=0)
+    test_cases_passed = Column(Integer, default=0)
+    test_cases_failed = Column(Integer, default=0)
     candidate_assessment = relationship(
         "CandidateAssessment", back_populates="responses")
     assessment_question = relationship(

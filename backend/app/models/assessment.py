@@ -11,6 +11,7 @@ class Assessment(Base):
     description = Column(String, nullable=True)
     duration_mins = Column(Integer, nullable=False)
     creator_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    status = Column(String, default="Draft")
     created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
     updated_at = Column(TIMESTAMP, server_default=func.now(),
                         onupdate=func.now(), nullable=False)
