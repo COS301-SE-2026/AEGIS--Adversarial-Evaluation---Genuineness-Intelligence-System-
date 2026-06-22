@@ -9,6 +9,9 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.user import router as user_router
 from app.core.config import settings
 
+from app.api.routes.question_management import router as question_router
+
+
 app = FastAPI()
 
 app.add_middleware(
@@ -23,6 +26,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessment_router, prefix="/api/v1")
 app.include_router(candidate_response_router, prefix="/api/v1")
 app.include_router(user_router, prefix="/api/v1")
+app.include_router(question_router, prefix="/api/v1")
 
 
 @app.on_event("startup")

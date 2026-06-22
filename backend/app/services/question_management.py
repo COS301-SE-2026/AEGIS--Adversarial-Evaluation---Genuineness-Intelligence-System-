@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.question_bank import QuestionBank, QuestionType
 from app.models.question_category import QuestionCategory
-from app.schema.question import QuestionCreate
+from app.schema.question import QuestionCreation
 
 
 def convert_question_type(raw_type: str) -> QuestionType:
@@ -16,7 +16,7 @@ def convert_question_type(raw_type: str) -> QuestionType:
     )
 
 
-def create_source_question(db: Session,payload: QuestionCreate,)-> QuestionBank:
+def create_source_question(db: Session,payload: QuestionCreation,)-> QuestionBank:
     category = (
         db.query(QuestionCategory).
         filter(QuestionCategory.category_id == payload.category_id)
