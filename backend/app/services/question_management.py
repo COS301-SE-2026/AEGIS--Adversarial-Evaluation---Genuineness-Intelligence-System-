@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-
+from typing import Optional
 from app.models.question_bank import QuestionBank, QuestionType
 from app.models.question_category import QuestionCategory
 from app.schema.question import QuestionCreation
@@ -49,3 +49,16 @@ def get_all_questions(db: Session) -> list[QuestionBank]:
     return(
         db.query(QuestionBank).order_by(QuestionBank.question_bank_id.desc()).all()
     )
+
+def get_filtered_questions (db: Session,tags: Optional[list[str]] = None, difficulty: Optional[str] = None, category_id: Optional[int] = None) -> list[QuestionBank]:
+    query = db.query(QuestionBank)
+    if tags:
+        query = query.filter(QuestionBank.tags.overlap(tags)) #overlap will ensure that it returns questions that contain any of those tags
+
+    if difficulty:
+        query = query.filter(QuestionBank.difficulty == difficulty)
+
+    if category_id is not None:
+        query = query.filter(QuestionBank.category_id == category_id)
+
+    return query.order_by(QuestionBank.question_bank_id.desc()).all()
