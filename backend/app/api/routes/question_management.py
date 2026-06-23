@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from app.core.security import get_current_user
 from app.database.database import get_db
-from app.schema.question import QuestionCreation, QuestionResponse
-from app.services.question_management import create_source_question,get_all_questions, get_filtered_questions
+from app.schema.question import QuestionCreation, QuestionResponse, QuestionUpdate
+from app.services.question_management import create_source_question,get_all_questions, get_filtered_questions, update_question
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
@@ -83,3 +83,21 @@ async def filter_questions(tags: Optional[str] = Query(None, description="Comma-
         }
         for q in questions
     ]
+
+
+@router.patch("/source/{question_bank_id}",response_model=QuestionResponse,status_code=status.HTTP_200_OK)
+async def edit_source_question(question_bank_id: int, payload: QuestionUpdate, db: Session = Depends(get_db),current_user: dict = Depends(get_current_user)):
+
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can edit source questions.")
+    question = update_question(db, question_bank_id, payload)
+    return {
+        "question_bank_id": question.question_bank_id,
+        "title": question.title,
+        "content": question.content,
+        "type": question.type.value,
+        "maximum_score": question.maximum_score,
+        "tags": question.tags or [],
+    }
