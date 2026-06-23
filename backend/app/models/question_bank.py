@@ -5,6 +5,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship
 from app.models.base import Base
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class QuestionType(enum.Enum):
