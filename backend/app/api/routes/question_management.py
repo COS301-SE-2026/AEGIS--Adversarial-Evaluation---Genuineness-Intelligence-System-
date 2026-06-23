@@ -14,13 +14,19 @@ router = APIRouter(prefix="/questions", tags=["questions"])
     response_model=QuestionResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_source_question(payload: QuestionCreation,db: Session = Depends(get_db),
-                              current_user: dict = Depends(get_current_user),):
+async def add_source_question(
+    payload: QuestionCreation,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
 
     if current_user.get("role") != "RECRUITER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only recruiters can add source questions to the question bank.",)
+            detail=(
+                "Only recruiters can add source questions."
+            ),
+        )
 
     question = create_source_question(db, payload)
 
@@ -30,5 +36,5 @@ async def add_source_question(payload: QuestionCreation,db: Session = Depends(ge
         "content": question.content,
         "type": question.type.value,
         "maximum_score": question.maximum_score,
-        "tags": question.tags or [],
+        "tags": question.tags or []
     }
