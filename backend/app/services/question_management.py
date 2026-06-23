@@ -45,4 +45,7 @@ def create_source_question(db: Session,payload: QuestionCreation,)-> QuestionBan
 
 
     
-
+def get_all_questions(db: Session) -> list[QuestionBank]:
+    return(
+        db.query(QuestionBank).order_by(QuestionBank.question_bank_id.desc()).all()
+    )
