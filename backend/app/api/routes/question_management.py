@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.database.database import get_db
 from app.schema.question import QuestionCreation, QuestionResponse
-from app.services.question_management import create_source_question
+from app.services.question_management import create_source_question,get_all_questions
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
@@ -15,12 +15,12 @@ router = APIRouter(prefix="/questions", tags=["questions"])
     status_code=status.HTTP_201_CREATED,
 )
 async def add_source_question(payload: QuestionCreation,db: Session = Depends(get_db),
-                              current_user: dict = Depends(get_current_user),):
+                              current_user: dict = Depends(get_current_user)):
 
     if current_user.get("role") != "RECRUITER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only recruiters can add source questions to the question bank.",)
+            detail="Only recruiters can add source questions to the question bank.")
 
     question = create_source_question(db, payload)
 
@@ -32,3 +32,21 @@ async def add_source_question(payload: QuestionCreation,db: Session = Depends(ge
         "maximum_score": question.maximum_score,
         "tags": question.tags or [],
     }
+
+@router.get("/",status_code=status.HTTP_200_OK)
+
+async def list_questions(db:Session = Depends(get_db),current_user: dict = Depends(get_current_user)):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can get all source questions.")
+    questions = get_all_questions(db)
+    return [
+        {   "question_bank_id": q.question_bank_id,
+            "title": q.title,
+            "content": q.content,
+            "type": q.type.value,
+            "maximum_score": q.maximum_score,
+            "tags": q.tags or [],
+        }
+        for q in questions
+    ]
