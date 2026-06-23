@@ -38,5 +38,18 @@ class QuestionCreation(BaseModel):
     category_id: int = Field(1, ge=1)
     difficulty: str = Field("Easy")
 
+
+class QuestionUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1)
+    content: Optional[str] = Field(None, min_length=1)
+    type: Optional[str] = Field(None, description="Allowed: MULTIPLE_CHOICE, TEXT, CODING")
+    maximum_score: Optional[float] = Field(None, ge=0)
+    correct_answer: Optional[Any] = None
+    question_metadata: Optional[dict] = None
+    tags: Optional[List[str]] = None
+    category_id: Optional[int] = Field(None, ge=1)
+    difficulty: Optional[str] = None
+
+
     class Config:
         orm_mode = True
