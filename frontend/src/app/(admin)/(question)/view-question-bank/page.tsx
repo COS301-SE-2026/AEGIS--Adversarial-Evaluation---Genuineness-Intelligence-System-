@@ -13,7 +13,7 @@ export default function ViewQuestionsPage() {
   return (
     <div>
       <AdminSidebar/>
-      {/* <QuestionFilters/> */}
+      <QuestionFilters/>
     </div>
   );
 }

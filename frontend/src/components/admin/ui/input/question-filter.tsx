@@ -1,11 +1,12 @@
 import { Search, ChevronDown} from "lucide-react"
+import { QuestionCategory } from "@/app/(admin)/types/questions"
 
 interface QuestionFilterProps {
     searchTerm: string,
     onSearchChange: (value: string) => void,
     categoryFilter: string,
     onChangeCategory: (value: string) => void,
-    categories: string[],
+    categories: QuestionCategory[],
     difficultyFilter: string,
     onDifficultyChange: (value: string) => void,
     onClearFilters: () => void,
@@ -44,8 +45,10 @@ export default function QuestionFilters({
                         className="w-full px-3 sm:px-4 py-2 bg-secondary-surface border border-default-border rounded text-default-text text-sm focus:outline-none focus:border-white-smoke appearance-none cursor-pointer"
                     >
                         <option value="all">Category</option>
-                        {categories.filter((category) => category !== "all").map((cat) => (
-                            <option key={cat} value={cat}></option>
+                        {categories.map((cat) => (
+                            <option key={cat.category_id} value={String(cat.category_id)}>
+                                {cat.category_name}
+                            </option>
                         ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-3 text-default-border pointer-events-none shrink-0" size={18}/>
