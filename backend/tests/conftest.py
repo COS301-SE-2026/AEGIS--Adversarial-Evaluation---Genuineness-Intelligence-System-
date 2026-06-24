@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 
-DB_URL = "sqlite:///:memory"
+DB_URL = "postgresql://test:test@localhost/test"
 
 engine = create_engine(
     DB_URL,
