@@ -10,6 +10,9 @@ from app.api.routes.user import router as user_router
 from app.api.routes.question import router as question_router2, category_router
 from app.core.config import settings
 
+from app.api.routes.question_management import router as question_router
+
+
 app = FastAPI()
 
 app.add_middleware(
