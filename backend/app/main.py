@@ -27,6 +27,7 @@ app.include_router(user_router, prefix="/api/v1")
 app.include_router(question_router, prefix="/api/v1")
 app.include_router(category_router, prefix="/api/v1")
 
+
 @app.on_event("startup")
 async def startup_event():
     env = "development" if settings.debug else "production"

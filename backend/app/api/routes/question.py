@@ -9,6 +9,7 @@ from app.core.security import get_current_user
 router = APIRouter(prefix="/questions", tags=["question"])
 category_router = APIRouter(prefix="/categories", tags=["categories"])
 
+
 @category_router.get(
     "/",
     response_model=List[CategoryResponse],
@@ -19,6 +20,7 @@ async def list_categories(
     db: Session = Depends(get_db)
 ):
     return get_all_categories(db)
+
 
 @router.delete(
     "/{question_id}",
@@ -36,5 +38,5 @@ async def delete_question(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters are allowed to delete questions"
         )
-    
+
     delete_source_question(db, question_id)
