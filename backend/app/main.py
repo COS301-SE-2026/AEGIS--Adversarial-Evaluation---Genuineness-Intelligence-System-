@@ -7,7 +7,7 @@ from app.api.routes.assessment import (
 )
 from app.api.routes.auth import router as auth_router
 from app.api.routes.user import router as user_router
-from app.api.routes.question import router as question_router, category_router
+from app.api.routes.question import router as question_router2, category_router
 from app.core.config import settings
 
 app = FastAPI()
@@ -24,7 +24,7 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessment_router, prefix="/api/v1")
 app.include_router(candidate_response_router, prefix="/api/v1")
 app.include_router(user_router, prefix="/api/v1")
-app.include_router(question_router, prefix="/api/v1")
+app.include_router(question_router2, prefix="/api/v1")
 app.include_router(category_router, prefix="/api/v1")
 
 
