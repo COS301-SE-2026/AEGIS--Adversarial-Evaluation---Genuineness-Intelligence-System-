@@ -10,6 +10,7 @@ from app.models.base import Base
 class QuestionType(enum.Enum):
     MULTIPLE_CHOICE = "MULTIPLE_CHOICE"
     TEXT = "TEXT"
+    CODING = "CODING"
 
 
 class QuestionBank(Base):
