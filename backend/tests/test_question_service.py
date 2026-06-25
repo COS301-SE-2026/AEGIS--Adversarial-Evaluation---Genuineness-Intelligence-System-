@@ -81,7 +81,7 @@ def test_delete_question_not_found():
 
 def test_delete_question_blocked_by_adversarial():
     mock_question = MagicMock()
-    mock_adversarial = [MagicMock()]  # non-empty = blocked
+    mock_adversarial = [MagicMock()]
     mock_db = _mock_delete_db(question=mock_question, adversarial=mock_adversarial)
 
     with pytest.raises(HTTPException) as exc:
@@ -92,7 +92,7 @@ def test_delete_question_blocked_by_adversarial():
 
 def test_delete_question_blocked_by_test_cases():
     mock_question = MagicMock()
-    mock_test_cases = [MagicMock()]  # non-empty = blocked
+    mock_test_cases = [MagicMock()]
     mock_db = _mock_delete_db(question=mock_question, adversarial=[], test_cases=mock_test_cases)
 
     with pytest.raises(HTTPException) as exc:
