@@ -46,3 +46,66 @@ def test_required_fields():
     assert hasattr(category, "category_id")
     assert hasattr(category, "category_name")
     assert hasattr(category, "created_at")
+
+def _mock_delete_db(question=None, adversarial=[], test_cases=[]):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        from app.models.question_bank import QuestionBank
+        from app.models.adversarial_question import AdversarialQuestion
+        from app.models.coding_test_cases import CodingTestCase
+
+        mock_query = MagicMock()
+
+        if model is QuestionBank:
+            mock_query.filter.return_value.first.return_value = question
+        elif model is AdversarialQuestion:
+            mock_query.filter.return_value.all.return_value = adversarial
+        elif model is CodingTestCase:
+            mock_query.filter.return_value.all.return_value = test_cases
+        
+        return mock_query
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_delete_question_not_found():
+    mock_db = _mock_delete_db(question=None)
+
+    with pytest.raises(HTTPException) as exc:
+        delete_source_question(mock_db, question_id=9999)
+
+    assert exc.value.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_delete_question_blocked_by_adversarial():
+    mock_question = MagicMock()
+    mock_adversarial = [MagicMock()]  # non-empty = blocked
+    mock_db = _mock_delete_db(question=mock_question, adversarial=mock_adversarial)
+
+    with pytest.raises(HTTPException) as exc:
+        delete_source_question(mock_db, question_id=1)
+
+    assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_delete_question_blocked_by_test_cases():
+    mock_question = MagicMock()
+    mock_test_cases = [MagicMock()]  # non-empty = blocked
+    mock_db = _mock_delete_db(question=mock_question, adversarial=[], test_cases=mock_test_cases)
+
+    with pytest.raises(HTTPException) as exc:
+        delete_source_question(mock_db, question_id=1)
+
+    assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
+
+
+def test_delete_question_success():
+    mock_question = MagicMock()
+    mock_db = _mock_delete_db(question=mock_question, adversarial=[], test_cases=[])
+
+    delete_source_question(mock_db, question_id=1)
+
+    mock_db.delete.assert_called_once_with(mock_question)
+    mock_db.commit.assert_called_once()
