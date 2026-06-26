@@ -11,15 +11,19 @@ def convert_question_type(raw_type: str) -> QuestionType:
     for enum_value in QuestionType:
         if normalized in {enum_value.name, enum_value.value}:
             return enum_value
-    raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+    raise HTTPException(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         detail="Invalid question type. Use MULTIPLE_CHOICE, CODING or TEXT.",
     )
 
 
-def create_source_question(db: Session,payload: QuestionCreation,)-> QuestionBank:
+def create_source_question(
+    db: Session,
+    payload: QuestionCreation,
+) -> QuestionBank:
     category = (
-        db.query(QuestionCategory).
-        filter(QuestionCategory.category_id == payload.category_id)
+        db.query(QuestionCategory)
+        .filter(QuestionCategory.category_id == payload.category_id)
         .first()
     )
     if category is None:
@@ -30,7 +34,7 @@ def create_source_question(db: Session,payload: QuestionCreation,)-> QuestionBan
     question = QuestionBank(
         title=payload.title.strip(),
         content=payload.content.strip(),
-        type= convert_question_type(payload.type),
+        type=convert_question_type(payload.type),
         question_metadata=payload.question_metadata,
         maximum_score=payload.maximum_score,
         correct_answer=payload.correct_answer,
