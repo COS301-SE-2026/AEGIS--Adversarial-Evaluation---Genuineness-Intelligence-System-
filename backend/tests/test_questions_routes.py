@@ -54,3 +54,25 @@ def test_add_source_question_returns_201(recruiter_client):
     assert response.status_code == 201
     assert response.json()["title"] == "Python Basics"
     assert response.json()["type"] == "TEXT"
+
+    def test_get_all_questions_returns_200(recruiter_client):
+        mock_question = MagicMock()
+        mock_question.question_bank_id = 1
+        mock_question.title = "Python Basics"
+        mock_question.content = "What is Python?"
+        mock_question.type.value = "TEXT"
+        mock_question.maximum_score = 10
+        mock_question.tags = ["python"]
+
+        with patch(
+            "app.api.routes.question_management.get_all_questions",
+            return_value=[mock_question],
+        ) as mock_get_all:
+            response = recruiter_client.get("/api/v1/questions/")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert len(body) == 1
+        assert body[0]["title"] == "Python Basics"
+        assert body[0]["type"] == "TEXT"
+        mock_get_all.assert_called_once()
