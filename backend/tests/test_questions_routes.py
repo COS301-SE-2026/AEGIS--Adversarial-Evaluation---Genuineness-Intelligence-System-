@@ -55,27 +55,27 @@ def test_add_source_question_returns_201(recruiter_client):
     assert response.json()["title"] == "Python Basics"
     assert response.json()["type"] == "TEXT"
 
-    def test_get_all_questions_returns_200(recruiter_client):
-        mock_question = MagicMock()
-        mock_question.question_bank_id = 1
-        mock_question.title = "Python Basics"
-        mock_question.content = "What is Python?"
-        mock_question.type.value = "TEXT"
-        mock_question.maximum_score = 10
-        mock_question.tags = ["python"]
+def test_get_all_questions_returns_200(recruiter_client):
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "Python Basics"
+    mock_question.content = "What is Python?"
+    mock_question.type.value = "TEXT"
+    mock_question.maximum_score = 10
+    mock_question.tags = ["python"]
 
-        with patch(
-            "app.api.routes.question_management.get_all_questions",
-            return_value=[mock_question],
-        ) as mock_get_all:
-            response = recruiter_client.get("/api/v1/questions/")
+    with patch(
+        "app.api.routes.question_management.get_all_questions",
+        return_value=[mock_question],
+    ) as mock_get_all:
+        response = recruiter_client.get("/api/v1/questions/")
 
-        assert response.status_code == 200
-        body = response.json()
-        assert len(body) == 1
-        assert body[0]["title"] == "Python Basics"
-        assert body[0]["type"] == "TEXT"
-        mock_get_all.assert_called_once()
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["title"] == "Python Basics"
+    assert body[0]["type"] == "TEXT"
+    mock_get_all.assert_called_once()
 
 def test_get_filtered_questions_returns_200(recruiter_client):
     mock_question = MagicMock()
@@ -98,3 +98,35 @@ def test_get_filtered_questions_returns_200(recruiter_client):
     assert body[0]["title"] == "Python Basics"
     assert body[0]["type"] == "TEXT"
     mock_get_filtered.assert_called_once()
+
+def test_update_source_question_returns_200(recruiter_client):
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "New title"
+    mock_question.content = "New content"
+    mock_question.type.value = "TEXT"
+    mock_question.maximum_score = 10
+    mock_question.tags = ["python"]
+    with patch(
+        "app.api.routes.question_management.update_question",
+        return_value=mock_question,
+    ) as mock_update:
+        response = recruiter_client.patch(
+            "/api/v1/questions/source/1",
+            json={
+                "title": "New title",
+                "content": "New content",
+                "type": "TEXT",
+                "maximum_score": 10,
+                "correct_answer": None,
+                "question_metadata": {},
+                "tags": ["python"],
+                "category_id": 1,
+                "difficulty": "Easy",
+            },
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "New title"
+    assert body["type"] == "TEXT"
+    mock_update.assert_called_once()
