@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.schema.question import QuestionCreation
-from app.services.question_management import create_source_question, get_all_questions
+from app.services.question_management import create_source_question, get_all_questions, get_filtered_questions
 
 def test_create_source_question_success():
     mock_db = MagicMock()
@@ -46,3 +46,23 @@ def test_get_all_questions_success():
     assert questions[0].title == "Python Basics"
     assert questions[0].type.value == "TEXT"
     mock_db.query.return_value.order_by.assert_called_once()
+
+def test_get_filtered_questions_by_tags_success():
+    mock_db = MagicMock()
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "Python Basics"
+    mock_question.type.value = "TEXT"
+    mock_question.tags = ["python"]
+    mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [
+        mock_question
+    ]
+    questions = get_filtered_questions(
+        mock_db,
+        tags=["python"],
+        difficulty=None,
+        category_id=None,
+    )
+    assert len(questions) == 1
+    assert questions[0].title == "Python Basics"
+    mock_db.query.return_value.filter.assert_called_once()
