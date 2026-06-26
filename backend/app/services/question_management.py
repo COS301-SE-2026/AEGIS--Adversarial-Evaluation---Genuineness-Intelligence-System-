@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from app.models.question_bank import QuestionBank, QuestionType
 from app.models.question_category import QuestionCategory
-from app.schema.question import QuestionCreation,QuestionUpdate
+from app.schema.question import QuestionCreation, QuestionUpdate
 
 
 def convert_question_type(raw_type: str) -> QuestionType:
@@ -48,16 +48,24 @@ def create_source_question(
     return question
 
 
-    
 def get_all_questions(db: Session) -> list[QuestionBank]:
-    return(
-        db.query(QuestionBank).order_by(QuestionBank.question_bank_id.desc()).all()
+    return (
+        db.query(QuestionBank)
+        .order_by(QuestionBank.question_bank_id.desc())
+        .all()
     )
 
-def get_filtered_questions (db: Session,tags: Optional[list[str]] = None, difficulty: Optional[str] = None, category_id: Optional[int] = None) -> list[QuestionBank]:
+
+def get_filtered_questions(
+    db: Session,
+    tags: Optional[list[str]] = None,
+    difficulty: Optional[str] = None,
+    category_id: Optional[int] = None,
+) -> list[QuestionBank]:
     query = db.query(QuestionBank)
     if tags:
-        query = query.filter(QuestionBank.tags.overlap(tags)) #overlap will ensure that it returns questions that contain any of those tags
+        # overlap ensures any matching tag is returned
+        query = query.filter(QuestionBank.tags.overlap(tags))
 
     if difficulty:
         query = query.filter(QuestionBank.difficulty == difficulty)
@@ -67,18 +75,36 @@ def get_filtered_questions (db: Session,tags: Optional[list[str]] = None, diffic
 
     return query.order_by(QuestionBank.question_bank_id.desc()).all()
 
-def update_question(db: Session, question_bank_id: int, payload: QuestionUpdate) -> QuestionBank:
-    question = (db.query(QuestionBank).filter(QuestionBank.question_bank_id == question_bank_id).first())
+
+def update_question(
+    db: Session,
+    question_bank_id: int,
+    payload: QuestionUpdate,
+) -> QuestionBank:
+    question = (
+        db.query(QuestionBank)
+        .filter(QuestionBank.question_bank_id == question_bank_id)
+        .first()
+    )
 
     if question is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,detail="Question not found")
-    
-    #check/validate the given category id.
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question not found",
+        )
+
+    # Validate the given category id.
     if payload.category_id is not None:
-        category = (db.query(QuestionCategory).filter(QuestionCategory.category_id == payload.category_id).first())
+        category = (
+            db.query(QuestionCategory)
+            .filter(QuestionCategory.category_id == payload.category_id)
+            .first()
+        )
         if category is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Question category not valid/found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Question category not valid/found",
+            )
         question.category_id = payload.category_id
 
     if payload.title is not None:
@@ -88,7 +114,8 @@ def update_question(db: Session, question_bank_id: int, payload: QuestionUpdate)
         question.content = payload.content.strip()
 
     if payload.type is not None:
-        question.type = convert_question_type(payload.type)#calling convert service to ensure valid question type
+        # Ensure valid question type.
+        question.type = convert_question_type(payload.type)
 
     if payload.maximum_score is not None:
         question.maximum_score = payload.maximum_score
