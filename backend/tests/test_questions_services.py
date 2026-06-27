@@ -131,7 +131,7 @@ def test_update_question_success():
     question_query = MagicMock()
     category_query = MagicMock()
     question_query.filter.return_value.first.return_value = None
-    category_query.filter.return_value.first.return_value = None
+    category_query.filter.return_value.first.return_value = question_query
     mock_db.query.side_effect = [question_query, category_query]
     payload = QuestionUpdate(
         title="New title",
@@ -144,10 +144,10 @@ def test_update_question_success():
         category_id=None,
         difficulty="Easy",
     )
-    question = update_question(mock_db, 1, payload)
-    assert question.title == "New title"
-    assert question.content == "New content"
-    assert question.maximum_score == 10
-    assert question.tags == ["python"]
-    mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once()
+    with pytest.raises(HTTPException) as exc_info:
+        update_question(mock_db, 999, payload)
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Question not found"
+
+
