@@ -135,6 +135,8 @@ def test_returns_403_for_non_recruiter(mock_db):
     app.dependency_overrides[get_db] = lambda: mock_db
     app.dependency_overrides[get_current_user] = lambda: {"role": "CANDIDATE"}
     client = TestClient(app)
+    response = client.get("/api/v1/questions/source/1")
+    response = client.get("/api/v1/questions/source")
     response = client.get("/api/v1/questions/filter?tags=python")
     app.dependency_overrides.clear()
     assert response.status_code == 403
