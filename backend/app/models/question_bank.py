@@ -1,10 +1,11 @@
 import enum
 from sqlalchemy import (
-    Column, Integer, String, Enum, TIMESTAMP, Float, JSON, ARRAY,
+    Column, Integer, String, Enum, TIMESTAMP, Float, JSON,
     func, ForeignKey
 )
 from sqlalchemy.orm import relationship
 from app.models.base import Base
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class QuestionType(enum.Enum):

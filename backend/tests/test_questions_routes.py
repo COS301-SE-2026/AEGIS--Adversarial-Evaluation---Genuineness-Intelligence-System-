@@ -54,3 +54,96 @@ def test_add_source_question_returns_201(recruiter_client):
     assert response.status_code == 201
     assert response.json()["title"] == "Python Basics"
     assert response.json()["type"] == "TEXT"
+
+def test_get_all_questions_returns_200(recruiter_client):
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "Python Basics"
+    mock_question.content = "What is Python?"
+    mock_question.type.value = "TEXT"
+    mock_question.maximum_score = 10
+    mock_question.tags = ["python"]
+
+    with patch(
+        "app.api.routes.question_management.get_all_questions",
+        return_value=[mock_question],
+    ) as mock_get_all:
+        response = recruiter_client.get("/api/v1/questions/")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["title"] == "Python Basics"
+    assert body[0]["type"] == "TEXT"
+    mock_get_all.assert_called_once()
+
+def test_get_filtered_questions_returns_200(recruiter_client):
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "Python Basics"
+    mock_question.content = "What is Python?"
+    mock_question.type.value = "TEXT"
+    mock_question.maximum_score = 10
+    mock_question.tags = ["python"]
+    with patch(
+        "app.api.routes.question_management.get_filtered_questions",
+        return_value=[mock_question],
+    ) as mock_get_filtered:
+        response = recruiter_client.get(
+            "/api/v1/questions/filter?tags=python&difficulty=Easy&category_id=1"
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["title"] == "Python Basics"
+    assert body[0]["type"] == "TEXT"
+    mock_get_filtered.assert_called_once()
+
+def test_update_source_question_returns_200(recruiter_client):
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "New title"
+    mock_question.content = "New content"
+    mock_question.type.value = "TEXT"
+    mock_question.maximum_score = 10
+    mock_question.tags = ["python"]
+    with patch(
+        "app.api.routes.question_management.update_question",
+        return_value=mock_question,
+    ) as mock_update:
+        response = recruiter_client.patch(
+            "/api/v1/questions/source/1",
+            json={
+                "title": "New title",
+                "content": "New content",
+                "type": "TEXT",
+                "maximum_score": 10,
+                "correct_answer": None,
+                "question_metadata": {},
+                "tags": ["python"],
+                "category_id": 1,
+                "difficulty": "Easy",
+            },
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["title"] == "New title"
+    assert body["type"] == "TEXT"
+    mock_update.assert_called_once()
+
+def test_returns_403_for_non_recruiter(mock_db):
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "CANDIDATE"}
+    client = TestClient(app)
+    response = client.get("/api/v1/questions/source/1")
+    response = client.get("/api/v1/questions/source")
+    response = client.get("/api/v1/questions/filter?tags=python")
+    response = client.get("/api/v1/questions/")
+    app.dependency_overrides.clear()
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+def test_returns_400_when_no_filters(recruiter_client):
+    response = recruiter_client.get("/api/v1/questions/filter")
+    assert response.status_code == 400
+    assert "At least one filter" in response.json()["detail"]
