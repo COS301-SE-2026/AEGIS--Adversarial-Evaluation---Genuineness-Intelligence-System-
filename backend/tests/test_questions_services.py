@@ -67,6 +67,28 @@ def test_get_filtered_questions_by_tags_success():
     assert questions[0].title == "Python Basics"
     mock_db.query.return_value.filter.assert_called_once()
 
+def test_get_filtered_questions_by_all_filters_success():
+    mock_db = MagicMock()
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "Python Basics"
+    mock_question.type.value = "TEXT"
+    mock_question.tags = ["python"]
+    mock_db.query.return_value.filter.return_value.filter.return_value.filter.return_value.order_by.return_value.all.return_value = [
+        mock_question
+    ]
+    questions = get_filtered_questions(
+        mock_db,
+        tags=["python"],
+        difficulty="Easy",
+        category_id=1,
+    )
+
+    assert len(questions) == 1
+    assert questions[0].title == "Python Basics"
+
+
+
 def test_update_question_success():
     mock_db = MagicMock()
     mock_question = MagicMock()
@@ -101,4 +123,3 @@ def test_update_question_success():
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
-    
