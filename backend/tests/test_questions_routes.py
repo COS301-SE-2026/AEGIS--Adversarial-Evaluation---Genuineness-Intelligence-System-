@@ -138,6 +138,7 @@ def test_returns_403_for_non_recruiter(mock_db):
     response = client.get("/api/v1/questions/source/1")
     response = client.get("/api/v1/questions/source")
     response = client.get("/api/v1/questions/filter?tags=python")
+    response = client.get("/api/v1/questions/")
     app.dependency_overrides.clear()
     assert response.status_code == 403
     assert "Only recruiters" in response.json()["detail"]

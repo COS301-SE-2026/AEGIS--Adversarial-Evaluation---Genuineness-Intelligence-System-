@@ -144,3 +144,30 @@ def test_update_question_raises_404_when_question_not_found():
     
     assert output.value.status_code == 404
     assert output.value.detail == "Question not found"
+
+def test_update_question_raises_404_when_category_not_found():
+    mock_db = MagicMock()
+    mock_question = MagicMock()
+    question_query = MagicMock()
+    category_query = MagicMock()
+    # Question exists
+    question_query.filter.return_value.first.return_value = mock_question
+    # Category does not exist
+    category_query.filter.return_value.first.return_value = None
+    mock_db.query.side_effect = [question_query, category_query]
+    payload = QuestionUpdate(
+        title="New title",
+        content="New content",
+        type="TEXT",
+        maximum_score=10,
+        correct_answer=None,
+        question_metadata={},
+        tags=["python"],
+        category_id=99,  # non-existent category
+        difficulty="Easy",
+    )
+
+    with pytest.raises(HTTPException) as output:
+        update_question(mock_db, 1, payload)
+    assert output.value.status_code == 404
+    assert output.value.detail == "Question category not valid/found"
