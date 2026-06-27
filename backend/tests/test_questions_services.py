@@ -163,7 +163,7 @@ def test_update_question_raises_404_when_category_not_found():
         correct_answer=None,
         question_metadata={},
         tags=["python"],
-        category_id=99,  # non-existent category
+        category_id=99,  # category does not exist
         difficulty="Easy",
     )
 
@@ -171,3 +171,28 @@ def test_update_question_raises_404_when_category_not_found():
         update_question(mock_db, 1, payload)
     assert output.value.status_code == 404
     assert output.value.detail == "Question category not valid/found"
+
+def test_update_question_updates_correct_answer():
+    mock_db = MagicMock()
+    mock_question = MagicMock()
+    mock_category = MagicMock()
+    question_query = MagicMock()
+    category_query = MagicMock()
+    question_query.filter.return_value.first.return_value = mock_question
+    category_query.filter.return_value.first.return_value = mock_category
+    mock_db.query.side_effect = [question_query, category_query]
+    payload = QuestionUpdate(
+        title=None,
+        content=None,
+        type=None,
+        maximum_score=None,
+        correct_answer={"answer": "option_a"},#we will use a correct answer
+        question_metadata=None,
+        tags=None,
+        category_id=1,
+        difficulty=None,
+    )
+    question = update_question(mock_db, 1, payload)
+    assert question.correct_answer == {"answer": "option_a"}
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
