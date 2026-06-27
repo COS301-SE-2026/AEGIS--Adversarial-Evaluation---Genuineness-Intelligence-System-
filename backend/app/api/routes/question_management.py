@@ -6,13 +6,13 @@ from app.database.database import get_db
 from app.schema.question import (
     QuestionCreation,
     QuestionResponse,
-    QuestionUpdate,
+    QuestionUpdate
 )
 from app.services.question_management import (
     create_source_question,
     get_all_questions,
     get_filtered_questions,
-    update_question,
+    update_question
 )
 
 router = APIRouter(prefix="/questions", tags=["questions"])
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/questions", tags=["questions"])
 async def add_source_question(
     payload: QuestionCreation,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user)
 ):
 
     if current_user.get("role") != "RECRUITER":
@@ -57,7 +57,7 @@ async def list_questions(
     if current_user.get("role") != "RECRUITER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only recruiters can get all source questions.",
+            detail="Only recruiters can get all source questions."
         )
     questions = get_all_questions(db)
     return [
@@ -127,13 +127,13 @@ async def edit_source_question(
     question_bank_id: int,
     payload: QuestionUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user)
 ):
 
     if current_user.get("role") != "RECRUITER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only recruiters can edit source questions.",
+            detail="Only recruiters can edit source questions."
         )
     question = update_question(db, question_bank_id, payload)
     return {

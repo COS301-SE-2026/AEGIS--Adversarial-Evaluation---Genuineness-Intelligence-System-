@@ -130,3 +130,17 @@ def test_update_source_question_returns_200(recruiter_client):
     assert body["title"] == "New title"
     assert body["type"] == "TEXT"
     mock_update.assert_called_once()
+
+def test_returns_403_for_non_recruiter(mock_db):
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "CANDIDATE"}
+    client = TestClient(app)
+    response = client.get("/api/v1/questions/filter?tags=python")
+    app.dependency_overrides.clear()
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+def test_returns_400_when_no_filters(recruiter_client):
+    response = recruiter_client.get("/api/v1/questions/filter")
+    assert response.status_code == 400
+    assert "At least one filter" in response.json()["detail"]
