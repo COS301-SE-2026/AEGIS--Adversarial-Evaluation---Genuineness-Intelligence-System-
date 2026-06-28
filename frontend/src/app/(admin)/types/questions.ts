@@ -42,14 +42,14 @@ export const Mock_Questions: QuestionBank[] = [
 export const Question_Categories: QuestionCategory[] = [
     {
         category_id: 1,
-        category_name: "Easy"
+        category_name: "Algorithms"
     },
     {
         category_id: 2,
-        category_name: "Medium"
+        category_name: "Reasoning"
     },
     {
         category_id: 3,
-        category_name: "Hard"
+        category_name: "Trees"
     }
 ]
