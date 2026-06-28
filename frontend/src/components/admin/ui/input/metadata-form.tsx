@@ -1,7 +1,7 @@
 "use client"
 
 import { QuestionCategory } from "@/app/(admin)/types/questions"
-import { Tags } from "lucide-react";
+
 
 interface MetadataFormProps {
     title: string,
@@ -28,28 +28,28 @@ export default function MetaDataForm({
     const difficulties = ["Easy", "Medium", "Hard"];
 
     return (
-        <div className="">
-            <h2 className="">
+        <div className="space-y-6 bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
+            <h2 className="text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2">
                 Question Metadata
             </h2>
             
-            <div className="">
-                <label className="">Question Title</label>
+            <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-wider text-default-border">Question Title</label>
                 <input
                     type="text"
                     value="title"
                     onChange={(event) => setTitle(event.target.value)}
                     placeholder="e.g ZigZag Conversion"
-                    className=""
+                    className="w-full px-4 py-2 bg-background border border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors"
                 />
             </div>
 
-            <div className="">
-                <label className="">Category</label>
+            <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-wider">Category</label>
                 <select
                     value={category_id}
                     onChange={(event) => setCategoryId(Number(event.target.value))}
-                    className=""
+                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-xs focus:outline-none focus:border-system-red transition-colors cursor-pointer"
                 >
                     <option>Select Category...</option>
                     {categories.map((category)=> (
@@ -58,9 +58,9 @@ export default function MetaDataForm({
                 </select>
             </div>
 
-            <div className="">
-                <label className="">Difficulty</label>
-                <div className="">
+            <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-wider text-default-border">Difficulty</label>
+                <div className="grid grid-cols-3 gap-2">
                     {difficulties.map((level) => {
                         const isActive = difficulty === level;
                         const activeColors =
@@ -73,7 +73,9 @@ export default function MetaDataForm({
                                 type="button"
                                 key={level}
                                 onClick={() => setDifficulty(level)}
-                                className={``}
+                                className={`py-2 text-center rounded font-staatliches text-sm tracking-wider border transition-all duration-150 cursor-pointer
+                                    ${isActive ? activeColors : "border-default-border/45 text-default-border hover:text-default-text hover:border-default-border"
+                                    }`}
                             >
                                 {level}
                             </button>
@@ -82,25 +84,25 @@ export default function MetaDataForm({
                 </div>
             </div>
 
-            <div className="">
-                <label className="">Score Allocation</label>
+            <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-wider text-default-border">Score Allocation</label>
                 <input
                     type="number"
                     value={maxScore || ""}
                     onChange={(event) => setMaxScore(Number(event.target.value))}
                     placeholder="e.g. 14"
-                    className=""
+                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-xs focus:outline-none focus:border-system-red transition-colors"
                 />
             </div>
 
-            <div className="">
-                <label className="">Indexed Tags (Comma Seperated)</label>
+            <div className="space-y-2">
+                <label className="block text-xs uppercase tracking-wider text-default-border">Indexed Tags (Comma Seperated)</label>
                 <input
                     type="text"
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
                     placeholder="e.g. 14"
-                    className=""
+                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-xs focus:outline-none focus:border-system-red transition-colors"
                 />
             </div>
         </div>
