@@ -1,42 +1,31 @@
 "use client"
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { X, Save } from "lucide-react";
 import MetaDataForm from "@/components/admin/ui/input/metadata-form";
 import EditorPanel from "@/components/admin/ui/input/editor-panel";
-import { Question_Categories, Mock_Questions } from "../../types/questions";
+import { Question_Categories, Mock_Questions, QuestionPayload } from "../../types/questions";
 
 interface EditQuestionModalProps {
+    isOpen:boolean
     question_id: number | null;
     onClose: () => void;
-    onSave: (payload: any) => void;
+    onSave: (payload: QuestionPayload) => void;
 }
 
-export default function EditQuestionModal({question_id, onClose, onSave}: EditQuestionModalProps) {
-    const [title, setTitle] = useState("");
-    const [category_id, setCategoryId] = useState<number>(0);
-    const [difficulty, setDifficulty] = useState("Easy");
-    const [tags, setTags] = useState("");
-    const [maxScore, setMaxScore] = useState<number>(10);
-    const [content, setContent] = useState("");
-    const [correctAnswer, setCorrectAnswer] = useState("");
+export default function EditQuestionModal({isOpen, question_id, onClose, onSave}: EditQuestionModalProps) {
 
-    useEffect(() => {
-        if(question_id === null) return;
+    const questionTargeted = Mock_Questions.find((question) => question.question_bank_id === question_id);
+    
+    const [title, setTitle] = useState(questionTargeted?.title || "");
+    const [category_id, setCategoryId] = useState<number>(questionTargeted?.category_id || 0);
+    const [difficulty, setDifficulty] = useState(questionTargeted?.difficulty || "Easy");
+    const [tags, setTags] = useState(Array.isArray(questionTargeted?.tags) ? questionTargeted.tags.join(", ") : "");
+    const [maxScore, setMaxScore] = useState<number>(questionTargeted?.maximum_score || 10);
+    const [content, setContent] = useState(questionTargeted?.content || "");
+    const [correctAnswer, setCorrectAnswer] = useState(questionTargeted?.correct_answer || "");
 
-        const questionTargeted = Mock_Questions.find((question) => question.question_bank_id === question_id);
-        if(questionTargeted) {
-            setTitle(questionTargeted.title);
-            setCategoryId(questionTargeted.category_id);
-            setDifficulty(questionTargeted.difficulty);
-            setTags(Array.isArray(questionTargeted.tags) ? questionTargeted.tags.join(", ") : "");
-            setMaxScore(questionTargeted.maximum_score || 10);
-            setContent(questionTargeted.content);
-            setCorrectAnswer(questionTargeted.correct_answer || "");
-        }
-    }, [question_id]);
-
-    if(question_id === null) return null;
+    if(!isOpen || question_id === null) return null;
 
         const handleSubmit = (event: React.FormEvent) => {
         event.preventDefault();
@@ -44,7 +33,7 @@ export default function EditQuestionModal({question_id, onClose, onSave}: EditQu
             title,
             category_id: category_id,
             difficulty,
-            tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
+            tags: tags.split(",").map((tag: string) => tag.trim()).filter(Boolean),
             content,
             maximum_score: maxScore,
             correct_answer: correctAnswer,
@@ -63,7 +52,7 @@ export default function EditQuestionModal({question_id, onClose, onSave}: EditQu
                 <div className="flex justify-between items-center px-6 py-4 border border-tertiary-surface bg-secondary-surface">
                     <div>
                         <h2 className="text-xl text-default-text tracking-wide">
-                            Edit Question
+                            Edit Question: {question_id}
                         </h2>
                         <p className="text-[9px] text-default-text uppercase tracking-widest mt-1">
                             Override Data Cache

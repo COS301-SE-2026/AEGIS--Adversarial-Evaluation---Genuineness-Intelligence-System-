@@ -18,6 +18,17 @@ export interface QuestionCategory {
     category_name: string,
 }
 
+export interface QuestionPayload {
+    title: string,
+    category_id: number,
+    difficulty: string,
+    tags?: string[],
+    content?: string,
+    correct_answer?: string,
+    created_at?: string,
+    updated_at?: string
+}
+
 export const Mock_Questions: QuestionBank[] = [
     {
         question_bank_id: 1,

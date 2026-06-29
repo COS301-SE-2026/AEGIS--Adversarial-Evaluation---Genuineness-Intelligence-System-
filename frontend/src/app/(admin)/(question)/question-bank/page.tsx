@@ -1,6 +1,5 @@
 "use client"
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
@@ -8,10 +7,9 @@ import QuestionTable from "@/components/admin/ui/cards/question-table";
 import CreateQuestionModal from "./create-question-modal";
 import EditQuestionModal from "./edit-question-modal";
 import { Plus } from "lucide-react";
-import { Mock_Questions, Question_Categories } from "../../types/questions";
+import { Mock_Questions, Question_Categories, QuestionPayload } from "../../types/questions";
 
 export default function ViewQuestionsPage() {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
@@ -91,13 +89,13 @@ export default function ViewQuestionsPage() {
     setDifficultyFilter("all");
     setCurrentPage(1);
   }
-  const handleSavedChanges = (updatedData: any) => {
+  const handleSavedChanges = (updatedData: QuestionPayload) => {
     console.log("Saving changes:", updatedData);
     //
     setEditQuestionId(null);
   }
 
-  const handleDeployment = (newQuestion: any) => {
+  const handleDeployment = (newQuestion: QuestionPayload) => {
     console.log("Deploying New Question:", newQuestion);
      // In the real application, you would append local array state changes here, 
     // or trigger an automatic data mutation reload query to fetch your database records.
@@ -235,6 +233,8 @@ export default function ViewQuestionsPage() {
       />
 
       <EditQuestionModal
+        key={editQuestionId ?? "closed"}
+        isOpen={editQuestionId !== null}
         question_id={editQuestionId}
         onClose={() => setEditQuestionId(null)}
         onSave={handleSavedChanges}

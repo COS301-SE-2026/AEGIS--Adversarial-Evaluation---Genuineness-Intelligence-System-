@@ -4,12 +4,13 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import MetaDataForm from "@/components/admin/ui/input/metadata-form";
 import EditorPanel from "@/components/admin/ui/input/editor-panel";
-import { Question_Categories } from "../../types/questions";
+import { Question_Categories, QuestionPayload } from "../../types/questions";
+
 
 interface CreateQuestionModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onDeploy: (payload: any) => void;
+    onDeploy: (payload: QuestionPayload) => void;
 }
 
 export default function CreateQuestionModal({isOpen, onClose, onDeploy}: CreateQuestionModalProps) {
