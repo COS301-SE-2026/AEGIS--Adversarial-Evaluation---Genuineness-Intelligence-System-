@@ -4,8 +4,7 @@ import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
-import CreateQuestionModal from "./create-question-modal";
-import EditQuestionModal from "./edit-question-modal";
+import QuestionModal from "./question-modal";
 import { Plus } from "lucide-react";
 import { Mock_Questions, Question_Categories, QuestionPayload } from "../../types/questions";
 
@@ -18,6 +17,7 @@ export default function ViewQuestionsPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
+  
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
 
@@ -91,7 +91,7 @@ export default function ViewQuestionsPage() {
   }
   const handleSavedChanges = (updatedData: QuestionPayload) => {
     console.log("Saving changes:", updatedData);
-    //
+    //set up api point
     setEditQuestionId(null);
   }
 
@@ -226,18 +226,23 @@ export default function ViewQuestionsPage() {
         </main> 
       </div>
 
-      <CreateQuestionModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onDeploy={handleDeployment}
-      />
-
-      <EditQuestionModal
-        key={editQuestionId ?? "closed"}
-        isOpen={editQuestionId !== null}
+      <QuestionModal
+        key={isCreateOpen ? "create" : (editQuestionId ?? "closed")}
+        isOpen={isCreateOpen || editQuestionId !== null}
+        mode={isCreateOpen ? "create" : "edit"}
         question_id={editQuestionId}
-        onClose={() => setEditQuestionId(null)}
-        onSave={handleSavedChanges}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setEditQuestionId(null);
+        }}
+        onSubmit={(payload) => {
+          if(isCreateOpen) {
+            handleDeployment(payload);
+          }
+          else{
+            handleSavedChanges(payload);
+          }
+        }}
       />
     </div>
   );
