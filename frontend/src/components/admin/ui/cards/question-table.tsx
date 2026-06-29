@@ -38,9 +38,6 @@ export default function QuestionTable({
                 <table className="w-full">
                     <thead>
                         <tr className="border-b border-default-border">
-                            <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">
-                                <input type="checkbox" className="w-4 h-4 cursor-pointer" />
-                            </th>
                             <th onClick= {() => onSort("title")} className="px-4 sm:px-6 py-3 sm:py-4 text-left text-default-text font-semibold text-xs sm:text-sm cursor-pointer hover:text-system-red transistion-colors">
                                 <div className="flex items-center gap-2">
                                     Title {sortColumn === "title" && (sortDirection === "asc" ? <ArrowUp size={14}/> : <ArrowDown size={14}/>)}
@@ -67,9 +64,6 @@ export default function QuestionTable({
                     <tbody>
                         {questions.map((question) => (
                             <tr key={question.question_bank_id} className="border-b border-default-border hover:bg-tertiary-surface transition-colors">
-                                <td className="px-4 sm:px-6 py-3 sm:py-4">
-                                    <input type="checkbox" className="w-4 h-4 cursor-pointer"/>
-                                </td>
                                 <td className="px-4 sm:px-6 py-3 sm:py-4 text-default-text font-medium text-sm">{question.title}</td>
                                 <td className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm max-w-xs truncate">{question.content}</td>
                                 <td className="hidden lg:table-cell px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm">
@@ -87,7 +81,7 @@ export default function QuestionTable({
                                             <MoreVertical size={16} className="text-default-border"/>
                                     </button>
                                     {openMenuId === question.question_bank_id && (
-                                        <div className="absolute right-0 top-full mt-1 bg-secondary-surface border border-default-border rounded shadow-lg z-10">
+                                        <div className="absolute right-full top-1/2 -translate-y-1/2 px-4 py-2 mr-2 w-28 bg-secondary-surface border border-default-border rounded shadow-lg z-10">
                                             <button onClick={() => onEdit(question.question_bank_id)} className="block w-full text-left px-4 py-2 text-sm text-default-text hover:bg-tertiary-surface transition-colors">Edit</button>
                                             <button onClick={() => onDelete(question.question_bank_id)} className="block w-full text-left px-4 py-2 text-sm text-system-red hover:bg-tertiary-surface transition-colors border-t border-default-border">Delete</button>
                                         </div>

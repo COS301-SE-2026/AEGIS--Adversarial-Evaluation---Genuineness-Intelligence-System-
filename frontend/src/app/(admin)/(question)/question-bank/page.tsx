@@ -1,15 +1,14 @@
 "use client"
 import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
+import QuestionModal from "./question-modal";
 import { Plus } from "lucide-react";
-import { Mock_Questions, Question_Categories } from "../../types/questions";
+import { Mock_Questions, Question_Categories, QuestionPayload } from "../../types/questions";
 
 export default function ViewQuestionsPage() {
-  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
@@ -18,6 +17,9 @@ export default function ViewQuestionsPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
+  
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
 
   const categoriesMap = useMemo( () => { //use memo caches the results for quicker sorting
     return Question_Categories.reduce((accumulator, currentCategory) => {
@@ -56,7 +58,7 @@ export default function ViewQuestionsPage() {
     else {
       const difficultyOrder = {"Easy" : 1, "Medium" : 2, "Hard" : 3};
       aValue = difficultyOrder[a.difficulty as keyof typeof difficultyOrder] || 0;
-      aValue = difficultyOrder[a.difficulty as keyof typeof difficultyOrder] || 0;
+      bValue = difficultyOrder[b.difficulty as keyof typeof difficultyOrder] || 0;
     }
 
     if(aValue < bValue) {
@@ -87,6 +89,18 @@ export default function ViewQuestionsPage() {
     setDifficultyFilter("all");
     setCurrentPage(1);
   }
+  const handleSavedChanges = (updatedData: QuestionPayload) => {
+    console.log("Saving changes:", updatedData);
+    //set up api point
+    setEditQuestionId(null);
+  }
+
+  const handleDeployment = (newQuestion: QuestionPayload) => {
+    console.log("Deploying New Question:", newQuestion);
+     // In the real application, you would append local array state changes here, 
+    // or trigger an automatic data mutation reload query to fetch your database records.
+    setIsCreateOpen(false);
+  }
 
   const totalNumberOfPages = Math.ceil(questionsFiltered.length / itemsPerPage)
   const sectionedQuestions = questionsFiltered.slice(
@@ -106,7 +120,7 @@ export default function ViewQuestionsPage() {
         <main className="flex-1 overflow-auto">
           <div className="p-4 sm:p-6 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
-              <button onClick={() => router.push("/question/create")} className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer">
+              <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer">
                 <Plus size={18} className="sm:w-5 sm:h-5"/>
                 <span className="hidden sm:inline">New Question</span>
                 <span className="sm:hidden">New</span>
@@ -132,7 +146,7 @@ export default function ViewQuestionsPage() {
               onSort={sortHandle}
               openMenuId={openMenuId}
               setOpenMenuId={setOpenMenuId}
-              onEdit={(id) => {router.push(`/question/edit/${id}`); setOpenMenuId(null);}}
+              onEdit={(id) => {setEditQuestionId(id); setOpenMenuId(null);}}
               onDelete={(id) => {console.log("Delete question ID:", id); setOpenMenuId(null);}}
 
             />
@@ -211,6 +225,25 @@ export default function ViewQuestionsPage() {
           </div>
         </main> 
       </div>
+
+      <QuestionModal
+        key={isCreateOpen ? "create" : (editQuestionId ?? "closed")}
+        isOpen={isCreateOpen || editQuestionId !== null}
+        mode={isCreateOpen ? "create" : "edit"}
+        question_id={editQuestionId}
+        onClose={() => {
+          setIsCreateOpen(false);
+          setEditQuestionId(null);
+        }}
+        onSubmit={(payload) => {
+          if(isCreateOpen) {
+            handleDeployment(payload);
+          }
+          else{
+            handleSavedChanges(payload);
+          }
+        }}
+      />
     </div>
   );
 }
