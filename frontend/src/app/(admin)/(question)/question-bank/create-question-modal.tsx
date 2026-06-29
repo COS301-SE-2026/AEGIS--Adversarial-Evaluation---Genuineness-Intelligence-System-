@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react";
-import { X, Rocket } from "lucide-react";
+import { X } from "lucide-react";
 import MetaDataForm from "@/components/admin/ui/input/metadata-form";
 import EditorPanel from "@/components/admin/ui/input/editor-panel";
 import { Question_Categories } from "../../types/questions";
@@ -58,11 +58,8 @@ export default function CreateQuestionModal({isOpen, onClose, onDeploy}: CreateQ
                 <div className="flex justify-between items-center px-6 py-4 border border-tertiary-surface bg-secondary-surface">
                     <div>
                         <h2 className="text-xl text-default-text tracking-wide">
-                            Initialize New Question
+                            Initialize A New Question
                         </h2>
-                        <p className="text-[9px] text-default-text uppercase tracking-widest mt-1">
-                            Data Insertion Protocol
-                        </p>
                     </div>
                     <button
                         type="button"
@@ -105,7 +102,6 @@ export default function CreateQuestionModal({isOpen, onClose, onDeploy}: CreateQ
                             type="submit"
                             className="flex items-center gap-2 bg-system-red text-default-text px-4 py-2 rounded font-staatliches text-sm tracking-widest uppercase transition-all duration-150 hover:shadow-glow-red hover:brightness-110 active:scale-95 cursor-pointer"
                         >
-                            <Rocket size={16} />
                             Deploy Question
                         </button>
                     </div>

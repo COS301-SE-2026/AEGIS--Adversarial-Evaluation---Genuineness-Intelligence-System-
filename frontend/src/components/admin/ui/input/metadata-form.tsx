@@ -37,7 +37,7 @@ export default function MetaDataForm({
                 <label className="block text-xs uppercase tracking-wider text-default-border">Question Title</label>
                 <input
                     type="text"
-                    value="title"
+                    value={title}
                     onChange={(event) => setTitle(event.target.value)}
                     placeholder="e.g ZigZag Conversion"
                     className="w-full px-4 py-2 bg-background border border-default-border rounded text-default-border text-sm focus:outline-none focus:border-system-red transition-colors"
@@ -49,7 +49,7 @@ export default function MetaDataForm({
                 <select
                     value={category_id}
                     onChange={(event) => setCategoryId(Number(event.target.value))}
-                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-xs focus:outline-none focus:border-system-red transition-colors cursor-pointer"
+                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors cursor-pointer"
                 >
                     <option>Select Category...</option>
                     {categories.map((category)=> (
@@ -91,7 +91,7 @@ export default function MetaDataForm({
                     value={maxScore || ""}
                     onChange={(event) => setMaxScore(Number(event.target.value))}
                     placeholder="e.g. 14"
-                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-xs focus:outline-none focus:border-system-red transition-colors"
+                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors"
                 />
             </div>
 
@@ -101,8 +101,8 @@ export default function MetaDataForm({
                     type="text"
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
-                    placeholder="e.g. 14"
-                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-xs focus:outline-none focus:border-system-red transition-colors"
+                    placeholder="e.g. Algorithm, Python"
+                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors"
                 />
             </div>
         </div>

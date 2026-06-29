@@ -75,7 +75,7 @@ export default function EditorPanel ({
                     </select>
                 </div>
 
-                <div className="w-full flex-1 min-h-60 rounded border border-default-border overflow-hidden bg-tertiary-surface">
+                <div className="w-full flex-1 min-h-60 rounded border border-default-border overflow-hidden bg-tertiary-surface mt-4">
                     <Editor
                         height="240px"
                         theme="vs-dark"
@@ -135,8 +135,11 @@ export default function EditorPanel ({
                             disabled={testStatus === "testing"}
                             className="bg-default-text text-background hover:bg-transparent border border-transparent rounded-xl hover:text-system-red hover:border-system-red  px-4 py-2 transition-colors duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            <Play size={11} fill="currentColor"/>
-                            Run Test
+                            <div className="flex flex-row gap-2 items-center">
+                                <Play size={12} fill="currentColor"/>
+                                Run Test
+                            </div>
+                           
                         </button>
                     </div>
 
