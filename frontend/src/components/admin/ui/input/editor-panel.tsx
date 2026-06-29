@@ -49,7 +49,7 @@ export default function EditorPanel ({
     return (
         <div className="space-y-6 h-full flex flex-col">
             <div className="flex-1 flex flex-col bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
-                <h2 className="text-xl text-default-text tracking-wider border border-tertiary-surface pb-2 mb-4">
+                <h2 className="text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2 mb-4">
                     Description
                 </h2>
                 <textarea
@@ -62,7 +62,7 @@ export default function EditorPanel ({
 
             <div className="flex-1 flex flex-col bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
                 <div className="flex justify-between items-center border-b border-tertiary-surface">
-                    <h2 className="text-xl text-default-text tracking-wider">
+                    <h2 className="text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2">
                         Solution Architecture
                     </h2>
 
@@ -133,7 +133,7 @@ export default function EditorPanel ({
                             type="button"
                             onClick={handleSandboxExecution}
                             disabled={testStatus === "testing"}
-                            className="bg-default-text text-background hover:bg-transparent hover:text-system-red hover:border-system-red  px-4 py-2 transition-colors duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="bg-default-text text-background hover:bg-transparent border border-transparent rounded-xl hover:text-system-red hover:border-system-red  px-4 py-2 transition-colors duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             <Play size={11} fill="currentColor"/>
                             Run Test

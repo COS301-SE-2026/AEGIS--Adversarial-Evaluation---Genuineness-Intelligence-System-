@@ -40,12 +40,12 @@ export default function MetaDataForm({
                     value="title"
                     onChange={(event) => setTitle(event.target.value)}
                     placeholder="e.g ZigZag Conversion"
-                    className="w-full px-4 py-2 bg-background border border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors"
+                    className="w-full px-4 py-2 bg-background border border-default-border rounded text-default-border text-sm focus:outline-none focus:border-system-red transition-colors"
                 />
             </div>
 
             <div className="space-y-2">
-                <label className="block text-xs uppercase tracking-wider">Category</label>
+                <label className="block text-xs text-default-border uppercase tracking-wider">Category</label>
                 <select
                     value={category_id}
                     onChange={(event) => setCategoryId(Number(event.target.value))}
