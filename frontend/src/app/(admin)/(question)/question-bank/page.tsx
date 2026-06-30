@@ -1,14 +1,16 @@
 "use client"
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import QuestionModal from "./question-modal";
 import { Plus } from "lucide-react";
-import { Mock_Questions, Question_Categories, QuestionPayload } from "../../types/questions";
+import { Mock_Questions, QuestionCategory, QuestionPayload } from "../../types/questions";
+import { apiGet } from "@/lib/apiClient";
 
 export default function ViewQuestionsPage() {
+  const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
@@ -21,12 +23,30 @@ export default function ViewQuestionsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadCategories = async () => {
+      try {
+        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/");
+        if (isMounted) {
+          setCategories(response);
+        }
+      } catch (error) {
+        console.error("Failed to load question categories:", error);
+      }
+    };
+    void loadCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const categoriesMap = useMemo( () => { //use memo caches the results for quicker sorting
-    return Question_Categories.reduce((accumulator, currentCategory) => {
+    return categories.reduce((accumulator, currentCategory) => {
       accumulator[currentCategory.category_id] = currentCategory.category_name;
       return accumulator;
     }, {} as Record<number, string>); // this tells the compiler that the empty starting object will map numeric IDs to string names. Objects keys must always be strings in Typescript
-  }, []);
+  }, [categories]);
 
   const questionsFiltered = Mock_Questions.filter((question) => {
     const matchTag = Array.isArray(question.tags) ?
@@ -132,7 +152,7 @@ export default function ViewQuestionsPage() {
               onSearchChange={(value) => {setSearchTerm(value); setCurrentPage(1);}}
               categoryFilter={categoryFilter}
               onChangeCategory={(value) => {setCategoryFilter(value); setCurrentPage(1);}}
-              categories={Question_Categories}
+              categories={categories}
               difficultyFilter={difficultyFilter}
               onDifficultyChange={(value) => {setDifficultyFilter(value); setCurrentPage(1);}}
               onClearFilters={clearFiltersHandle}
@@ -231,6 +251,7 @@ export default function ViewQuestionsPage() {
         isOpen={isCreateOpen || editQuestionId !== null}
         mode={isCreateOpen ? "create" : "edit"}
         question_id={editQuestionId}
+        categories={categories}
         onClose={() => {
           setIsCreateOpen(false);
           setEditQuestionId(null);
