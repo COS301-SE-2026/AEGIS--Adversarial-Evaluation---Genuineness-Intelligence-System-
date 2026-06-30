@@ -2,23 +2,22 @@
 
 import Link from "next/link";
 import { NAV_ITEMS } from "../../../app/(admin)/types/mock-data";
+import { usePathname } from "next/navigation";
 
 export default function AdminSidebar() {
+  const pathname = usePathname();
   return (
-    // secondary-surface (#121211) matches the topbar's elevated-black tone,
-    // sitting one step lighter than the main page bg (background: #0F0F0E)
-    <aside className="w-[220px] min-h-screen bg-secondary-surface border-r border-tertiary-surface flex flex-col flex-shrink-0">
-      {/* Logo */}
+    <aside className="w-55 min-h-screen bg-secondary-surface border-r border-tertiary-surface flex flex-col shrink-0">
       <div className="px-5 py-6 border-b border-tertiary-surface flex items-center gap-2.5">
         <div
-          className="w-7 h-7 bg-system-red flex-shrink-0"
+          className="w-7 h-7 bg-system-red shrink-0"
           style={{ clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }}
         />
         <div>
           <div className="font-staatliches text-2xl tracking-widest leading-none text-white-smoke">
             AEGIS
           </div>
-          <div className="font-jetbrains text-[8px] text-white-smoke/40 tracking-[0.05em] leading-none mt-0.5">
+          <div className="font-jetbrains text-[8px] text-white-smoke/40 tracking-wider leading-none mt-0.5">
             ADMIN COMMAND CENTRE
           </div>
         </div>
@@ -30,29 +29,34 @@ export default function AdminSidebar() {
           Operations
         </div>
 
-        {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.label}
-            href={item.href}
-            className={`
-              flex items-center gap-2.5 px-5 py-2.5
-              font-staatliches text-base tracking-[0.05em]
-              border-l-2 transition-all duration-150
-              ${
-                item.active
-                  ? "text-system-red border-system-red bg-system-red/10"
-                  : "text-white-smoke/40 border-transparent hover:text-white-smoke hover:bg-system-red/8"
-              }
-            `}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full opacity-60 flex-shrink-0 ${
-                item.active ? "bg-system-red" : "bg-current"
-              }`}
-            />
-            {item.label}
-          </Link>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const isActive = pathname === item.href || pathname?.startsWith(`${item.href}`);
+          
+          return(
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`
+                flex items-center gap-2.5 px-5 py-2.5
+                font-staatliches text-base tracking-wider
+                border-l-2 transition-all duration-150
+                ${
+                  isActive
+                    ? "text-system-red border-system-red bg-system-red/10"
+                    : "text-white-smoke/40 border-transparent hover:text-white-smoke hover:bg-system-red/8"
+                }
+              `}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full opacity-60 shrink-0 ${
+                  item.active ? "bg-system-red" : "bg-current"
+                }`}
+              />
+              {item.label}
+            </Link>
+          );
+        })}
+
 
         <div className="px-5 py-2 mt-4 font-jetbrains text-[9px] text-white-smoke/40 tracking-[0.15em] uppercase">
           System
