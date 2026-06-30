@@ -51,9 +51,9 @@ export default function MetaDataForm({
                     onChange={(event) => setCategoryId(Number(event.target.value))}
                     className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors cursor-pointer"
                 >
-                    <option>Select Category...</option>
+                    <option value={0} disabled>Select Category...</option>
                     {categories.map((category)=> (
-                        <option key={category.category_id} value={category.category_id}>{category.category_id}</option>
+                        <option key={category.category_id} value={category.category_id}>{category.category_name}</option>
                     ))}
                 </select>
             </div>
