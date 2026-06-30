@@ -52,15 +52,67 @@ function isBodyJson(body: unknown): boolean {
   if (body === null || body === undefined) {
     return false;
   }
-
-  return !(
-    body instanceof FormData ||
-    body instanceof URLSearchParams ||
-    body instanceof Blob ||
-    body instanceof ArrayBuffer
-  );
+  return !(body instanceof FormData || body instanceof URLSearchParams || body instanceof Blob ||body instanceof ArrayBuffer);
 }
 
+function buildRequestHeaders(
+  headers: HeadersInit | undefined,
+  authToken: string | undefined,
+  body: unknown
+): Headers {
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set("Accept", "application/json");
+ 
+  if (authToken) {
+    requestHeaders.set("Authorization", `Bearer ${authToken}`);
+  }
+ 
+  if (body !== undefined && isBodyJson(body)) {
+    requestHeaders.set("Content-Type", "application/json");
+  }
+ 
+  return requestHeaders;
+}
+
+function buildRequestBody(body: unknown): BodyInit | undefined {
+  if (body === undefined) {
+    return undefined;
+  }
+ 
+  if (isBodyJson(body)) {
+    return JSON.stringify(body);
+  }
+ 
+  return body as BodyInit;
+}
+
+function parseEmptyResponse<TResponse>(response: Response): TResponse {
+  if (!response.ok) {
+    throw new ApiError(`Request failed with status ${response.status}`, response.status, null);
+  }
+  return undefined as TResponse;
+}
+
+async function parseResponseData(response: Response): Promise<unknown> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const isJson = contentType.includes("application/json");
+ 
+  if (!isJson) {
+    return response.text();
+  }
+ 
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
+}
+
+function throwApiError(response: Response, data: unknown): never {
+  const message =
+    typeof data === "string" && data.trim()
+      ? data
+      : `Request failed with status ${response.status}`;
+  throw new ApiError(message, response.status, data);
+}
+ 
 export async function apiFetch<TResponse>(
   path: string,
   options: ApiRequestOptions = {}
@@ -74,24 +126,10 @@ export async function apiFetch<TResponse>(
     signal,
     authToken,
   } = options;
-
-  const requestHeaders = new Headers(headers);
-  requestHeaders.set("Accept", "application/json");
-
-  if (authToken) {
-    requestHeaders.set("Authorization", `Bearer ${authToken}`);
-  }
-
-  let requestBody: BodyInit | undefined;
-  if (body !== undefined) {
-    if (isBodyJson(body)) {
-      requestHeaders.set("Content-Type", "application/json");
-      requestBody = JSON.stringify(body);
-    } else {
-      requestBody = body as BodyInit;
-    }
-  }
-
+ 
+  const requestHeaders = buildRequestHeaders(headers, authToken, body);
+  const requestBody = buildRequestBody(body);
+ 
   const response = await fetch(buildUrl(path, query), {
     method,
     headers: requestHeaders,
@@ -99,33 +137,17 @@ export async function apiFetch<TResponse>(
     credentials,
     signal,
   });
-
+ 
   if (response.status === 204 || response.status === 205) {
-    if (!response.ok) {
-      throw new ApiError(`Request failed with status ${response.status}`, response.status, null);
-    }
-    return undefined as TResponse;
+    return parseEmptyResponse<TResponse>(response);
   }
-
-  const contentType = response.headers.get("content-type") ?? "";
-  const isJson = contentType.includes("application/json");
-
-  let data: unknown;
-  if (isJson) {
-    const text = await response.text();
-    data = text ? JSON.parse(text) : null;
-  } else {
-    data = await response.text();
-  }
-
+ 
+  const data = await parseResponseData(response);
+ 
   if (!response.ok) {
-    const message =
-      typeof data === "string" && data.trim()
-        ? data
-        : `Request failed with status ${response.status}`;
-    throw new ApiError(message, response.status, data);
+    throwApiError(response, data);
   }
-
+ 
   return data as TResponse;
 }
 
