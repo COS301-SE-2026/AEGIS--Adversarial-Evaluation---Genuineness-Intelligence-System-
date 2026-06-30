@@ -10,8 +10,12 @@ import QuestionModal from "./question-modal";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { Mock_Questions, Question_Categories, QuestionBank, QuestionPayload } from "../../types/questions";
+import { apiGet } from "@/lib/apiClient";
+import { getToken } from "@/lib/auth";
 
 export default function ViewQuestionsPage() {
+  const [questions, setQuestions] = useState<QuestionBank[]>([]);
+  const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
@@ -35,7 +39,7 @@ export default function ViewQuestionsPage() {
     }, {} as Record<number, string>); 
   }, []);
 
-  const questionsFiltered = Mock_Questions.filter((question) => {
+  const questionsFiltered = questions.filter((question) => {
     const matchTag = Array.isArray(question.tags) ?
     question.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) :
     typeof question.tags === "string" ?
@@ -170,7 +174,7 @@ export default function ViewQuestionsPage() {
               onSearchChange={(value) => {setSearchTerm(value); setCurrentPage(1);}}
               categoryFilter={categoryFilter}
               onChangeCategory={(value) => {setCategoryFilter(value); setCurrentPage(1);}}
-              categories={Question_Categories}
+              categories={categories}
               difficultyFilter={difficultyFilter}
               onDifficultyChange={(value) => {setDifficultyFilter(value); setCurrentPage(1);}}
               onClearFilters={clearFiltersHandle}
@@ -280,6 +284,8 @@ export default function ViewQuestionsPage() {
         isOpen={isCreateOpen || editQuestionId !== null}
         mode={isCreateOpen ? "create" : "edit"}
         question_id={editQuestionId}
+        questions={questions}
+        categories={categories}
         onClose={() => {
           setIsCreateOpen(false);
           setEditQuestionId(null);
