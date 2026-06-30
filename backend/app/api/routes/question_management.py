@@ -68,6 +68,8 @@ async def list_questions(
             "type": q.type.value,
             "maximum_score": q.maximum_score,
             "tags": q.tags or [],
+            "category_id": q.category_id,
+            "difficulty": q.difficulty,
         }
         for q in questions
     ]
@@ -113,6 +115,8 @@ async def filter_questions(
             "type": q.type.value,
             "maximum_score": q.maximum_score,
             "tags": q.tags or [],
+            "category_id": q.category_id,
+            "difficulty": q.difficulty,
         }
         for q in questions
     ]
