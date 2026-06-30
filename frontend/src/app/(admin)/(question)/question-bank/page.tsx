@@ -1,7 +1,7 @@
 "use client"
 import { useState, useMemo, useEffect } from "react";
 import { apiDelete } from "@/lib/apiClient";
-import { getAuthHeaders, getToken } from "@/lib/auth";
+import { getAuthHeaders } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
