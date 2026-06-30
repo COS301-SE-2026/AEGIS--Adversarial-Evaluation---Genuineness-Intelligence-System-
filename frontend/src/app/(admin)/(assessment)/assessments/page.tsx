@@ -92,7 +92,7 @@ export default function AssessmentsPage() {
       <AdminSidebar />
 
       <div className="flex flex-col flex-1 min-w-0">
-        <AdminTopbar onNewAssessment={() => setPanelOpen(true)} />
+        <AdminTopbar/>
 
         <main className="flex-1 overflow-y-auto px-7 py-6">
           <div className="flex items-start justify-between mb-5">
