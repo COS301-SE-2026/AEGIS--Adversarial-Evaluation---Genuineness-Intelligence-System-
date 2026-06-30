@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, AlertCircle, AlertTriangle } from 'lucide-react';
 
 interface ModalProps {
@@ -24,22 +24,43 @@ const ConfirmationModal = ({
   cancelText = "CANCEL",
   isDanger = false
 }: ModalProps) => {
+
+  function handleKeyDown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      onClose();
+    }
+  }
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans">
-      <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+      <button
+        type="button"
+        aria-label="Close modal"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm cursor-default"
         onClick={onClose}
       />
 
-      <div className="relative z-50 w-full max-w-md bg-secondary-surface border border-tertiary-surface rounded-lg shadow-2xl overflow-hidden flex flex-col">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirmation-modal-title"
+        className="relative z-50 w-full max-w-md bg-secondary-surface border border-tertiary-surface rounded-lg shadow-2xl overflow-hidden flex flex-col"
+      >
         
         <div className="flex items-center justify-between px-5 py-4 border-b border-tertiary-surface">
-          <h2 className="text-default-text text-sm font-bold tracking-widest uppercase">
+          <h2 id="confirmation-modal-title" className="text-default-text text-sm font-bold tracking-widest uppercase">
             {headerText}
           </h2>
           <button 
+            type="button"
             onClick={onClose}
             className="text-default-border hover:text-default-text transition-colors"
           >
@@ -65,6 +86,7 @@ const ConfirmationModal = ({
 
         <div className="px-5 py-4 border-t border-tertiary-surface flex items-center justify-end gap-3">
           <button 
+            type="button"
             onClick={onClose}
             className="py-2 px-4 text-center rounded font-staatliches text-sm tracking-wider border transition-all duration-150 border-default-border/45 text-default-border hover:text-default-text hover:border-default-border cursor-pointer"
           >
@@ -72,6 +94,7 @@ const ConfirmationModal = ({
           </button>
           
           <button 
+            type="button"
             onClick={() => {
               onConfirm();
               onClose();

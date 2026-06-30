@@ -9,11 +9,10 @@ import QuestionTable from "@/components/admin/ui/cards/question-table";
 import QuestionModal from "./question-modal";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
-import { Question_Categories, QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
+import { Mock_Questions, Question_Categories, QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 
 
 export default function ViewQuestionsPage() {
-  const [questions, setQuestions] = useState<QuestionBank[]>([]);
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -24,6 +23,7 @@ export default function ViewQuestionsPage() {
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
   const [deleteError, setDeleteError] = useState<string|null>(null);
+  const [questions, setQuestions] = useState<QuestionBank[]>(Mock_Questions); //review this later
   const [deleteSuccess, setDeleteSuccess] = useState<string|null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
