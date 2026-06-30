@@ -33,7 +33,7 @@ async def delete_question(
     current_user: dict = Depends(get_current_user)
 ):
     user_role = current_user.get("role")
-    if user_role != "recruiter":
+    if user_role.lower() != "recruiter":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters are allowed to delete questions"

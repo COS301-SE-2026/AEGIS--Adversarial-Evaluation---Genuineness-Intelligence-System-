@@ -100,9 +100,23 @@ export async function apiFetch<TResponse>(
     signal,
   });
 
+  if (response.status === 204 || response.status === 205) {
+    if (!response.ok) {
+      throw new ApiError(`Request failed with status ${response.status}`, response.status, null);
+    }
+    return undefined as TResponse;
+  }
+
   const contentType = response.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
-  const data = isJson ? await response.json() : await response.text();
+
+  let data: unknown;
+  if (isJson) {
+    const text = await response.text();
+    data = text ? JSON.parse(text) : null;
+  } else {
+    data = await response.text();
+  }
 
   if (!response.ok) {
     const message =
