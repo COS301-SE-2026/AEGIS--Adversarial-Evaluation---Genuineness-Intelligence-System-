@@ -18,7 +18,10 @@ const QUICK_QUESTIONS= [
   {id: 1, title:"Two Sum", content: "Find two numbers that add up to a target in an array", category: "Algorithms", difficulty: "Easy" as const}, 
   {id: 2, title:"Add Two Numbers", content: "Add two numbers represented as linked lists in reverse order", category: "Data Structures", difficulty: "Medium" as const},
   {id: 3, title: "Find Longest Substring", content: "Find the length of the longest substring without repeating characters", category: "Algorithms", difficulty: "Hard" as const },
+  {id: 4, title: "Valid Parentheses", content: "Determine if the input string continas valid parentheses", category: "Data Structures", difficulty: "Easy" as const},
 ];
+
+
 
 const DEFAULT_FORM: CreateAssessmentForm = {
   name: "",
@@ -56,6 +59,12 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
     );
   };
 
+  const createIt = () => {
+    console.log("creating assessment with:", {formData, selectedIds});
+    //to do: real API call will prolly go here
+    onClose();
+  }
+
   //will add the other sections later
   return(
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-end" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -71,15 +80,26 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
 
       {/* Stepper for the wizard */}
       <div className="flex px-7 py-4 border-b border-tertiary-surface gap-1">
-        {[0, 1].map((i) => (
+        {[
+          {label: "Basic", sub: "details"},
+          {label: "Questions", sub: "select"},
+          {label: "Confirm", sub: "final"}
+          ].map((s, i) => (
           <button
           key = {i}
-          onClick ={() => setStep(i)}
-          className={`flex-1 py-2 text-center rounded border ${step === i ? "border-system-red bg-system-red/10" : "border-default-border"}`}>
-            Step {i+1}
+          onClick ={() => i <= step && setStep(i)}
+          className={`flex-1 flex items-center gap-3 ${i > step ? "opacity-40" : ""}`}>
+            <div className = {`w-7 h-7 rounded flex items-center justify-center border ${i < step ? "bg-status-success-dim text-status-success" : i === step ? "bg-white text-black" : "border-default-border text-white-smoke/50"}`}>
+              {i < step ? "✓" : i+1}
+            </div>
+            <div>
+              <div className = {`font-staatliches text-sm ${i === step ? "" : "text-white-smoke/60"}`}>{s.label}</div>
+              <div className="text-[9px] text-white-smoke/30">{s.sub}</div>
+            </div>            
           </button>
         ))}
       </div>
+
 
       <div className="flex-1 overflow-y-auto px-7 py-6"> 
         {/*Section 1*/}
@@ -132,7 +152,7 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
             </div>
             </div>
             </div> )}
-
+                  {/* Section 2 */}
             {step === 1 && (
               <div className="mb-6">
                 <div className={sectionTitleCls}>Pick Questions</div>
@@ -156,12 +176,38 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                   </div>
                   </div>
             )}
+
+            {/* Section 3 */}
+            {step === 2 &&(
+              <div>
+                <div className="font-staatliches text-base tracking-[0.07em] mb-4 flex items-center gap-2">
+                  READY TO GO
+                  <div className="flex-1 h-px bg-default-border" />
+                  </div>
+                <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4 space-y-2 text-sm">
+                  <div><span className="text-white-smoke/60">Title:</span> {formData.name || "Unititled"}</div>
+                  <div><span className="text-white-smoke/60">Role:</span> {formData.role}</div>
+                  <div><span className="text-white-smoke/60">Time:</span> {formData.timeLimit} min</div>
+                  <div><span className="text-white-smoke/60">Questions:</span> {selectedIds.length} (target {formData.questionCount})</div>
+                  </div>
+                  </div>
+
+            )}
             </div>
 
             {/* Basic Footer in the meantime*/}
             <div className="px-7 py-4 border-t border-tertiary-surface flex justify-end bg-secondary-surface">
-              {step > 0 && <button onClick={() => setStep(s => s - 1)} className="px-5 py-2 border border-default-border hover:text-white-smoke rounded-[5px] font-staatliches text-sm">BACK</button>}
-              <button onClick={onClose} className="px-5 py-2 border border-default-border text-white-smoke/70 hover:text-white-smoke rounded-[5px] font-staatliches text-sm">CLOSE</button>
+              <div className="font-ibm-plex text-[12px] text-white-smoke/40 mr-auto"> Step {step+1}/3</div>
+              <div className="flex gap-3">
+                {step > 0 && <button onClick={() => setStep(s => s - 1)} className="px-5 py-2 border border-default-border hover:text-white-smoke rounded-[5px] font-staatliches text-sm">BACK</button>}
+                {step < 2 ? (
+                  <button onClick={() => setStep(s => s + 1)} className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white">CONTINUE</button>
+                ) : (
+                  <button onClick={createIt} className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white">CREATE ASSESSMENT</button>
+                )}
+              </div>
+              
+              
               </div>
               </div>
               </div>
