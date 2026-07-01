@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Save } from "lucide-react";
 import MetaDataForm from "@/components/admin/ui/input/metadata-form";
 import EditorPanel from "@/components/admin/ui/input/editor-panel";
@@ -31,6 +31,15 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
     const [maxScore, setMaxScore] = useState<number>(questionTargeted?.maximum_score || 10);
     const [content, setContent] = useState(questionTargeted?.content || "");
     const [correctAnswer, setCorrectAnswer] = useState(questionTargeted?.correct_answer || "");
+
+    useEffect(() => {
+        if (mode !== "create") {
+            return;
+        }
+        if (category_id === 0 && categories.length > 0) {
+            setCategoryId(categories[0].category_id);
+        }
+    }, [mode, category_id, categories]);
     
 
     if(!isOpen) return null;
