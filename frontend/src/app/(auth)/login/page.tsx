@@ -18,6 +18,7 @@ const Login = () => {
   const [touched, setTouched] = useState({ email: false, password: false });
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   function handleEmailChange(value: string) {
     setEmail(value);
@@ -42,6 +43,14 @@ const Login = () => {
     setTouched(prev => ({ ...prev, password: true }));
     setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }));
   }
+
+  function handleOnKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if(event.key === "Enter") {
+      event.preventDefault();
+      handleSubmit();
+    }
+  }
+
 
   const validate = (): boolean => {
     const emailError = validateEmail(email);
@@ -137,12 +146,33 @@ const Login = () => {
             />
             <Input
               label="Password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
               value={password}
               onChange={handlePasswordChange}
+              onKeyDown={handleOnKeyDown}
               error={errors.password}
               onBlur={handlePasswordBlur}
+              rightIcon={
+                <button
+                  type="button"
+                  className="text-default-text opacity-50 hover:opacity-100 transition-opacity"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide Password" : "Show Password"}
+                >
+                  {showPassword ? (
+                    //eye off icon
+                    <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9.88 9.88a3 3 0 1 0 4 4.24 4.24"/> <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/> <path d="M6.61 6.61A113.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/> <line x1="2" x2="22" y1="2" y2="22"/>
+                    </svg>
+                  ) : (
+                    //eye on icon
+                    <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/> <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  )}
+                </button>
+              }
             />
           </div>
           {serverError && (
@@ -165,5 +195,4 @@ const Login = () => {
     </main>
   )
 }
-
 export default Login
