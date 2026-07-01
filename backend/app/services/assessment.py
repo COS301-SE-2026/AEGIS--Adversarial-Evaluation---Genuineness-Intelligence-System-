@@ -364,6 +364,25 @@ def get_questions_for_candidate_assessment(
     return questions
 
 
+def create_assessment(
+    db: Session,
+    title: str,
+    description: str | None,
+    duration_mins: int,
+    creator_id: int,
+) -> Assessment:
+    assessment = Assessment(
+        title=title,
+        description=description,
+        duration_mins=duration_mins,
+        creator_id=creator_id,
+    )
+    db.add(assessment)
+    db.commit()
+    db.refresh(assessment)
+    return assessment
+
+
 def create_candidate_assessment(
     db: Session,
     assessment_id: int,
