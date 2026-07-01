@@ -11,6 +11,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key")
 from app.main import app
 from app.database.database import get_db
 from app.core.security import get_current_user
+from app.api.routes.question_management import build_question_response
 
 
 @pytest.fixture
@@ -147,3 +148,22 @@ def test_returns_400_when_no_filters(recruiter_client):
     response = recruiter_client.get("/api/v1/questions/filter")
     assert response.status_code == 400
     assert "At least one filter" in response.json()["detail"]
+
+
+def test_build_question_response_invalid_fields():
+    question = MagicMock()
+    question.question_bank_id = 99
+    question.title = "Test question mfana"
+    question.content = "Fallback content mxm"
+    question.type = MagicMock(value=123)
+    question.maximum_score = "letter lets see"
+    question.tags = "python"
+    question.category_id = 7
+    question.difficulty = "Hard"
+    response = build_question_response(question)
+    assert response["question_bank_id"] == 99
+    assert response["type"] == "TEXT"
+    assert response["maximum_score"] == 0
+    assert response["tags"] == []
+    assert response["category_id"] == 7
+    assert response["difficulty"] == "Hard"
