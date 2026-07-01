@@ -1,6 +1,6 @@
 "use client"
 import { useState, useMemo, useEffect } from "react";
-import { apiDelete, apiGet } from "@/lib/apiClient";
+import { apiDelete, apiGet, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
@@ -145,11 +145,44 @@ export default function ViewQuestionsPage() {
     setEditQuestionId(null);
   }
 
-  const handleDeployment = (newQuestion: QuestionPayload) => {
-    console.log("Deploying New Question:", newQuestion);
-     // In the real application, you would append local array state changes here, 
-    // or trigger an automatic data mutation reload query to fetch your database records.
-    setIsCreateOpen(false);
+  const handleDeployment = async (newQuestion: QuestionPayload) => {
+    setDeleteError(null);
+
+    try {
+      const createdQuestion = await apiPost<QuestionBank>(
+        "/api/v1/questions/source",
+        {
+          title: newQuestion.title,
+          content: newQuestion.content ?? "",
+          type: newQuestion.type ?? "TEXT",
+          maximum_score: newQuestion.maximum_score ?? 10,
+          correct_answer: newQuestion.correct_answer,
+          question_metadata: undefined,
+          tags: newQuestion.tags ?? [],
+          category_id: newQuestion.category_id,
+          difficulty: newQuestion.difficulty,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+
+      setQuestions((previousQuestions) => [
+        {
+          ...createdQuestion,
+          category_id: newQuestion.category_id,
+          difficulty: newQuestion.difficulty,
+          maximum_score: newQuestion.maximum_score,
+          tags: newQuestion.tags ?? [],
+          type: createdQuestion.type ?? newQuestion.type,
+        },
+        ...previousQuestions,
+      ]);
+      setIsCreateOpen(false);
+      setDeleteSuccess("Question created successfully.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Failed to create question.");
+    }
   }
 
   const totalNumberOfPages = Math.ceil(questionsFiltered.length / itemsPerPage)

@@ -41,6 +41,8 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
             title,
             category_id: category_id,
             difficulty,
+            maximum_score: maxScore,
+            type: "CODING",
             tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
             content,
             correct_answer: correctAnswer,

@@ -22,6 +22,8 @@ export interface QuestionPayload {
     title: string,
     category_id: number,
     difficulty: string,
+    maximum_score?: number,
+    type?: string,
     tags?: string[],
     content?: string,
     correct_answer?: string,
