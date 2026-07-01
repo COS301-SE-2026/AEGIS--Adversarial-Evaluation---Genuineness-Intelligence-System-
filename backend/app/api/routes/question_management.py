@@ -46,6 +46,8 @@ async def add_source_question(
         "type": question.type.value,
         "maximum_score": question.maximum_score,
         "tags": question.tags or [],
+        "category_id": question.category_id,
+        "difficulty": question.difficulty,
     }
 
 
@@ -147,4 +149,6 @@ async def edit_source_question(
         "type": question.type.value,
         "maximum_score": question.maximum_score,
         "tags": question.tags or [],
+        "category_id": question.category_id,
+        "difficulty": question.difficulty,
     }
