@@ -104,6 +104,12 @@ export default function AssessmentsPage() {
                 {"// manage, deploy, and monitor adversarial assessment sets"}
               </p>
             </div>
+            {/*Create Assessment button*/}
+            <button
+            onClick={() => setPanelOpen(true)}
+            className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-staatliches tracking-wider">
+              <span>+ New Assessment</span>
+            </button>
           </div>
 
           <AssessmentFilterBar
