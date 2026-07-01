@@ -11,7 +11,7 @@ const inputCls = "w-full bg-secondary-surface border border-default-border text-
 const sectionTitleCls = "font-staatliches text-base tracking-[0.07em] text-white-smoke mb-3.5 flex items-center gap-2 after:flex-1 after:h-px after:bg-default-border after:content-['']";
 
 interface Props { 
-  onClose: () => void;
+  readonly onClose: () => void;
 }
 //mock questions
 const QUICK_QUESTIONS= [
@@ -172,19 +172,34 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                     const selected = selectedIds.includes(q.id);
                     return(
 
-                      <div key={q.id} onClick={() => toggleQuestion(q.id)} role="button" tabIndex={0} onKeyDown={(e) => {              // ← Add this whole handler
-                                                              if (e.key === 'Enter' || e.key === ' ') {
-                                                                  e.preventDefault();
-                                                                  toggleQuestion(q.id);
-                                                                }
-                                                              }} className={`p-3.5 rounded-[5px] border cursor-pointer transition-all ${selected ? "border-system-red bg-system-red/5" : "border-default-border hover:border-white-smoke/30"}`}>
-
+                    <button
+                    type="button"
+                    key={q.id}
+                    onClick = {() => toggleQuestion(q.id)}
+                    onKeyDown = {(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleQuestion(q.id);
+                      }
+                    }}
+                className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${selected ? "border-system-red bg-system-red/5" : "border-default-border hover:border-white-smoke/30"}`}>
+                    <div className="flex justify-between">
+                      <div>
                         <div className="font-medium">{q.title}</div>
                         <div className="text-xs text-white-smoke/60 line-clamp-2">{q.content}</div>
+                        <div className="flex gap-2 mt-2">
+                          <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">{q.category}</span>
+                          <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">{q.difficulty}</span>
                         </div>
-                    );
-                  })}
-                  </div>
+                      </div>
+                      <div className={`w-5 h-5 rounded flex items-center justify-center border mt-1 ${selected ? "bg-system-red text-white" : "border-default-border"}`}>
+                        {selected && "✓"}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
                   </div>
             )}
 
