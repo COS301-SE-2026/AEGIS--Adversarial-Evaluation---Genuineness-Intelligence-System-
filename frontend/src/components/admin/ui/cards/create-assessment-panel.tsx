@@ -73,7 +73,7 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
     <div className="px-7 py-5 border-b border-tertiary-surface flex items-center justify-between">
       <div>
         <div className="font-staatliches text-[22px] tracking-[0.07em] text-white-smoke">CREATE ASSESSMENT</div>
-          <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-0.5">// starting with basics</div>
+          <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-0.5"> starting with the basics</div>
       </div>
       <button onClick={onClose} className="text-white-smoke/40 hover:text-system-red">✕</button>
       </div>
