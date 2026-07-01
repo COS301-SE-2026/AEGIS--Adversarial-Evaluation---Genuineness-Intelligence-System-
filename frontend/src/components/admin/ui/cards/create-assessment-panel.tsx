@@ -108,8 +108,9 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
           <div className={sectionTitleCls}>Assessment Identity</div>
 
           <div className="mb-3.5">
-            <label className={`${labelCls} block mb-1.5`}>Title *</label>
+            <label htmlFor="title" className={`${labelCls} block mb-1.5`}>Title *</label>
             <input
+              id = "title"
               className={inputCls}
               placeholder="Senior Backend Algorithm Sprint"
               value={formData.name}
@@ -118,8 +119,9 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
           </div>
 
           <div className="mb-3.5">
-            <label className={`${labelCls} block mb-1.5`}>Description</label>
+            <label htmlFor="description" className={`${labelCls} block mb-1.5`}>Description</label>
             <textarea
+            id="description"
             className= {`${inputCls} resize-y min-h-[80px] leading-relaxed`}
             placeholder="Briefly describe the purpose..."
             value={formData.description}
@@ -129,8 +131,9 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
 
           <div className="grid grid-cols-2 gap-3.5">
             <div> 
-              <label className={`${labelCls} block mb-1.5`}>Target Role</label>
+              <label htmlFor="role" className={`${labelCls} block mb-1.5`}>Target Role</label>
               <select
+                id="role"
                 className={`${inputCls} cursor-pointer appearance-none`}
                 value={formData.role}
                 onChange={(e) => updateForm("role", e.target.value)}>
@@ -140,8 +143,9 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
               </select>
             </div>
             <div>
-              <label className={`${labelCls} block mb-1.5`}>Time Limit (min)</label>
+              <label htmlFor="timeLimit"className={`${labelCls} block mb-1.5`}>Time Limit (min)</label>
               <input
+              id="timeLimit"
               type="number"
               min="15"
               max="180"
@@ -158,8 +162,8 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                 <div className={sectionTitleCls}>Pick Questions</div>
 
                 <div className="mb-4">
-                  <label className={`${labelCls} block mb-1.5`}>Target count</label>
-                  <input type="range" min="3" max="15" value={formData.questionCount} onChange={(e) => updateForm("questionCount", Number(e.target.value))} className="w-full accent-system-red"/>
+                  <label htmlFor="questionCount" className={`${labelCls} block mb-1.5`}>Target count</label>
+                  <input id="questionCount" type="range" min="3" max="15" value={formData.questionCount} onChange={(e) => updateForm("questionCount", Number(e.target.value))} className="w-full accent-system-red"/>
                   <div className="text-right font-staatliches text-system-red text-sm mt-1">{formData.questionCount} target</div>
                   </div>
 
@@ -167,7 +171,14 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                   {QUICK_QUESTIONS.map(q => {
                     const selected = selectedIds.includes(q.id);
                     return(
-                      <div key={q.id} onClick={() => toggleQuestion(q.id)} className={`p-3.5 rounded-[5px] border cursor-pointer transition-all ${selected ? "border-system-red bg-system-red/5" : "border-default-border hover:border-white-smoke/30"}`}>
+
+                      <div key={q.id} onClick={() => toggleQuestion(q.id)} role="button" tabIndex={0} onKeyDown={(e) => {              // ← Add this whole handler
+                                                              if (e.key === 'Enter' || e.key === ' ') {
+                                                                  e.preventDefault();
+                                                                  toggleQuestion(q.id);
+                                                                }
+                                                              }} className={`p-3.5 rounded-[5px] border cursor-pointer transition-all ${selected ? "border-system-red bg-system-red/5" : "border-default-border hover:border-white-smoke/30"}`}>
+
                         <div className="font-medium">{q.title}</div>
                         <div className="text-xs text-white-smoke/60 line-clamp-2">{q.content}</div>
                         </div>
