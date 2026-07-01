@@ -51,6 +51,7 @@ export default function QuestionModal({isOpen, mode, question_id, onClose, onSub
         onSubmit(payload);
     };
 
+    
     return (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-6 overflow-hidden">
             <form
