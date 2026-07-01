@@ -81,19 +81,19 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
       {/* Stepper for the wizard */}
       <div className="flex px-7 py-4 border-b border-tertiary-surface gap-1">
         {[
-          {label: "Basic", sub: "details"},
-          {label: "Questions", sub: "select"},
-          {label: "Confirm", sub: "final"}
-          ].map((s, i) => (
+          {id: 0, label: "Basic", sub: "details"},
+          {id: 1, label: "Questions", sub: "select"},
+          {id: 2, label: "Confirm", sub: "final"}
+          ].map((s) => (
           <button
-          key = {i}
-          onClick ={() => i <= step && setStep(i)}
-          className={`flex-1 flex items-center gap-3 ${i > step ? "opacity-40" : ""}`}>
-            <div className = {`w-7 h-7 rounded flex items-center justify-center border ${i < step ? "bg-status-success-dim text-status-success" : i === step ? "bg-white text-black" : "border-default-border text-white-smoke/50"}`}>
-              {i < step ? "✓" : i+1}
+          key = {s.id}
+          onClick ={() => s.id <= step && setStep(s.id)}
+          className={`flex-1 flex items-center gap-3 ${s.id > step ? "opacity-40" : ""}`}>
+            <div className = {`w-7 h-7 rounded flex items-center justify-center border ${s.id < step ? "bg-status-success-dim text-status-success" : s.id === step ? "bg-white text-black" : "border-default-border text-white-smoke/50"}`}>
+              {s.id < step ? "✓" : s.id+1}
             </div>
             <div>
-              <div className = {`font-staatliches text-sm ${i === step ? "" : "text-white-smoke/60"}`}>{s.label}</div>
+              <div className = {`font-staatliches text-sm ${s.id === step ? "" : "text-white-smoke/60"}`}>{s.label}</div>
               <div className="text-[9px] text-white-smoke/30">{s.sub}</div>
             </div>            
           </button>
@@ -183,6 +183,7 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                       }
                     }}
                 className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${selected ? "border-system-red bg-system-red/5" : "border-default-border hover:border-white-smoke/30"}`}>
+
                     <div className="flex justify-between">
                       <div>
                         <div className="font-medium">{q.title}</div>
