@@ -8,6 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.schema.candidate_assessment import InviteCreate
+from app.schema.assessment import (
+    AssessmentCreate,
+    AssessmentCreatedResponse,
+)
 from app.services.assessment import (
     get_all_assessments,
     get_candidate_responses,
@@ -18,6 +22,7 @@ from app.services.assessment import (
     submit_candidate_assessment,
     create_candidate_assessment,
     start_candidate_assessment,
+    create_assessment,
 )
 from app.schema.candidate_response import (
     CandidateResponseResponse,
@@ -44,13 +49,10 @@ class AssessmentListItem(BaseModel):
 
 
 class AssessmentQuestionItem(BaseModel):
-    # Join-table fields
     assessment_q_id: int
     display_order: Optional[int] = None
     marks: Optional[float] = None
-    # Flattened question_bank fields  (Optional because questions_id)
-    # FK is nullable ,a row can exist without a linked question.
-    question_bank_id: Optional[int] = None
+    adv_question_id: Optional[int] = None
     title: Optional[str] = None
     content: Optional[str] = None
     type: Optional[str] = None
@@ -69,8 +71,32 @@ class AssessmentDetailResponse(BaseModel):
 
 @router.get("/", response_model=List[AssessmentListItem])
 async def list_assessments(db: Session = Depends(get_db)):
-    # Returns all assessments. Returns an empty list if none exist.
     return get_all_assessments(db)
+
+
+@router.post(
+    "/",
+    response_model=AssessmentCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_new_assessment(
+    payload: AssessmentCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can create assessments.",
+        )
+    creator_id = int(current_user["user_id"])
+    return create_assessment(
+        db,
+        payload.title,
+        payload.description,
+        payload.duration_mins,
+        creator_id,
+    )
 
 
 @router.get(
@@ -112,6 +138,7 @@ async def list_my_assessments(
 async def get_assessment(
     assessment_id: int,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     assessment = get_assessment_by_id(db, assessment_id)
     if assessment is None:
@@ -130,10 +157,7 @@ async def get_assessment(
                 "assessment_q_id": aq.assessment_q_id,
                 "display_order": aq.display_order,
                 "marks": aq.marks,
-                "question_bank_id": (
-                    aq.question_bank.question_bank_id
-                    if aq.question_bank else None
-                ),
+                "adv_question_id": aq.adv_question_id,
                 "title": (
                     aq.question_bank.title
                     if aq.question_bank else None

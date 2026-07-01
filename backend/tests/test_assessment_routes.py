@@ -42,6 +42,16 @@ def auth_client(mock_db):
     app.dependency_overrides.clear()
 
 
+@pytest.fixture
+def recruiter_client(mock_db):
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_current_user] = lambda: {
+        "user_id": "5",
+        "role": "RECRUITER",
+    }
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
 def _setup_list(mock_db, assessments):
     mock_db.query.return_value.all.return_value = assessments
 
@@ -82,7 +92,9 @@ def test_list_assessments_returns_empty_list(client, mock_db):
     assert response.json() == []
 
 
-def test_get_assessment_returns_200_with_correct_data(client, mock_db):
+def test_get_assessment_returns_200_with_correct_data(
+    auth_client, mock_db
+):
     mock_a = MagicMock()
     mock_a.assessment_id = 42
     mock_a.title = "Python Basics"
@@ -92,7 +104,7 @@ def test_get_assessment_returns_200_with_correct_data(client, mock_db):
     mock_a.assessment_questions = []
 
     _setup_by_id(mock_db, mock_a)
-    response = client.get("/api/v1/assessments/42")
+    response = auth_client.get("/api/v1/assessments/42")
 
     assert response.status_code == 200
     body = response.json()
@@ -100,15 +112,20 @@ def test_get_assessment_returns_200_with_correct_data(client, mock_db):
     assert body["title"] == "Python Basics"
 
 
-def test_get_assessment_returns_404_when_not_found(client, mock_db):
+def test_get_assessment_returns_404_when_not_found(auth_client, mock_db):
     _setup_by_id(mock_db, None)
-    response = client.get("/api/v1/assessments/999")
+    response = auth_client.get("/api/v1/assessments/999")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Assessment not found"
 
 
-def test_get_assessment_includes_questions_list(client, mock_db):
+def test_get_assessment_returns_401_without_jwt(client, mock_db):
+    _setup_by_id(mock_db, MagicMock())
+    response = client.get("/api/v1/assessments/42")
+    assert response.status_code == 401
+
+def test_get_assessment_includes_questions_list(auth_client, mock_db):
     mock_qb = MagicMock()
     mock_qb.question_bank_id = 10
     mock_qb.title = "What is X?"
@@ -121,6 +138,7 @@ def test_get_assessment_includes_questions_list(client, mock_db):
     mock_aq.assessment_q_id = 7
     mock_aq.display_order = 1
     mock_aq.marks = 5.0
+    mock_aq.adv_question_id = 99
     mock_aq.question_bank = mock_qb
 
     mock_a = MagicMock()
@@ -132,7 +150,7 @@ def test_get_assessment_includes_questions_list(client, mock_db):
     mock_a.assessment_questions = [mock_aq]
 
     _setup_by_id(mock_db, mock_a)
-    response = client.get("/api/v1/assessments/1")
+    response = auth_client.get("/api/v1/assessments/1")
 
     assert response.status_code == 200
     body = response.json()
@@ -141,6 +159,8 @@ def test_get_assessment_includes_questions_list(client, mock_db):
     assert len(body["questions"]) == 1
     q = body["questions"][0]
     assert q["assessment_q_id"] == 7
+    assert q["adv_question_id"] == 99
+    assert "question_bank_id" not in q
     assert q["title"] == "What is X?"
     assert q["type"] == "TEXT"
 
@@ -636,3 +656,98 @@ def test_get_candidate_questions_includes_question_metadata(auth_client, mock_db
     assert "question" in body[0]
     assert "question_metadata" in body[0]["question"]
     assert body[0]["question"]["question_metadata"] == {"difficulty": "easy"}
+
+_CREATE_PATCH = "app.api.routes.assessment.create_assessment"
+
+def _make_mock_created_assessment():
+    mock_a = MagicMock()
+    mock_a.assessment_id = 10
+    mock_a.title = "New Assessment"
+    mock_a.description = "A description"
+    mock_a.duration_mins = 60
+    mock_a.creator_id = 5
+    mock_a.status = "Draft"
+    mock_a.created_at = datetime(2025, 1, 1)
+    return mock_a
+
+
+def test_create_assessment_returns_201(recruiter_client, mock_db):
+    mock_a = _make_mock_created_assessment()
+    with patch(_CREATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/",
+            json={"title": "New Assessment", "duration_mins": 60},
+        )
+    assert response.status_code == 201
+
+
+def test_create_assessment_response_has_correct_fields(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_created_assessment()
+    with patch(_CREATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/",
+            json={"title": "New Assessment", "duration_mins": 60},
+        )
+    body = response.json()
+    assert body["assessment_id"] == 10
+    assert body["title"] == "New Assessment"
+    assert body["duration_mins"] == 60
+    assert body["creator_id"] == 5
+    assert body["status"] == "Draft"
+
+
+def test_create_assessment_response_includes_optional_description(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_created_assessment()
+    with patch(_CREATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/",
+            json={
+                "title": "New Assessment",
+                "description": "A description",
+                "duration_mins": 60,
+            },
+        )
+    assert response.json()["description"] == "A description"
+
+
+def test_create_assessment_returns_401_without_jwt(client, mock_db):
+    response = client.post(
+        "/api/v1/assessments/",
+        json={"title": "New Assessment", "duration_mins": 60},
+    )
+    assert response.status_code == 401
+
+
+def test_create_assessment_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.post(
+        "/api/v1/assessments/",
+        json={"title": "New Assessment", "duration_mins": 60},
+    )
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_create_assessment_returns_422_when_title_missing(
+    recruiter_client, mock_db
+):
+    response = recruiter_client.post(
+        "/api/v1/assessments/",
+        json={"duration_mins": 60},
+    )
+    assert response.status_code == 422
+
+
+def test_create_assessment_returns_422_when_duration_missing(
+    recruiter_client, mock_db
+):
+    response = recruiter_client.post(
+        "/api/v1/assessments/",
+        json={"title": "New Assessment"},
+    )
+    assert response.status_code == 422

@@ -363,6 +363,7 @@ def get_questions_for_candidate_assessment(
     )
     return questions
 
+
 def create_assessment(
     db: Session,
     title: str,
@@ -380,6 +381,7 @@ def create_assessment(
     db.commit()
     db.refresh(assessment)
     return assessment
+
 
 def create_candidate_assessment(
     db: Session,

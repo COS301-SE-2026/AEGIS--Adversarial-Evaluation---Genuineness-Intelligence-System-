@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 
 from .question import QuestionResponse
 
+
 class AssessmentCreate(BaseModel):
     title: str = Field(
         ..., min_length=1, description="Assessment title",
@@ -14,6 +15,7 @@ class AssessmentCreate(BaseModel):
     duration_mins: int = Field(
         ..., gt=0, description="Duration in minutes",
     )
+
 
 class AssessmentCreatedResponse(BaseModel):
     assessment_id: int
@@ -26,6 +28,7 @@ class AssessmentCreatedResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class AssessmentResponse(BaseModel):
     assessment_id: int = Field(
