@@ -25,6 +25,12 @@ class QuestionResponse(BaseModel):
         default_factory=list,
         description="Optional list of tags/categories",
     )
+    category_id: int = Field(
+        ..., description="Category associated with the question",
+    )
+    difficulty: str = Field(
+        ..., description="Difficulty level for the question",
+    )
 
 
 class QuestionCreation(BaseModel):

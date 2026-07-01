@@ -1,25 +1,27 @@
 "use client"
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, Save } from "lucide-react";
 import MetaDataForm from "@/components/admin/ui/input/metadata-form";
 import EditorPanel from "@/components/admin/ui/input/editor-panel";
-import { Mock_Questions, Question_Categories, QuestionPayload } from "../../types/questions";
+import { QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
 
 
 interface QuestionModalProps {
     isOpen: boolean;
     mode: "create" | "edit"
     question_id?: number | null;
+    questions: QuestionBank[];
+    categories: QuestionCategory[];
     onClose: () => void;
     onSubmit: (payload: QuestionPayload) => void;
 }
 
-export default function QuestionModal({isOpen, mode, question_id, onClose, onSubmit}: QuestionModalProps) {
+export default function QuestionModal({isOpen, mode, question_id, questions, categories, onClose, onSubmit}: QuestionModalProps) {
     
     const questionTargeted = 
     mode === "edit" && question_id !== null ?  
-    Mock_Questions.find((question) => question.question_bank_id === question_id):
+    questions.find((question) => question.question_bank_id === question_id):
     null;
         
     const [title, setTitle] = useState(questionTargeted?.title || "");
@@ -29,6 +31,15 @@ export default function QuestionModal({isOpen, mode, question_id, onClose, onSub
     const [maxScore, setMaxScore] = useState<number>(questionTargeted?.maximum_score || 10);
     const [content, setContent] = useState(questionTargeted?.content || "");
     const [correctAnswer, setCorrectAnswer] = useState(questionTargeted?.correct_answer || "");
+
+    useEffect(() => {
+        if (mode !== "create") {
+            return;
+        }
+        if (category_id === 0 && categories.length > 0) {
+            setCategoryId(categories[0].category_id);
+        }
+    }, [mode, category_id, categories]);
     
 
     if(!isOpen) return null;
@@ -39,6 +50,8 @@ export default function QuestionModal({isOpen, mode, question_id, onClose, onSub
             title,
             category_id: category_id,
             difficulty,
+            maximum_score: maxScore,
+            type: "CODING",
             tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
             content,
             correct_answer: correctAnswer,
@@ -84,7 +97,7 @@ export default function QuestionModal({isOpen, mode, question_id, onClose, onSub
                             <MetaDataForm
                                 title={title} setTitle={setTitle}
                                 category_id={category_id} setCategoryId={setCategoryId}
-                                categories={Question_Categories}
+                                categories={categories}
                                 difficulty={difficulty} setDifficulty={setDifficulty}
                                 tags={tags} setTags={setTags}
                                 maxScore={maxScore} setMaxScore={setMaxScore}
