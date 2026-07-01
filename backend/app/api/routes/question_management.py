@@ -18,6 +18,37 @@ from app.services.question_management import (
 router = APIRouter(prefix="/questions", tags=["questions"])
 
 
+def build_question_response(question):
+    question_type = getattr(question, "type", None)
+    question_type_value = getattr(question_type, "value", question_type)
+    if not isinstance(question_type_value, str):
+        question_type_value = "TEXT"
+    category_id = getattr(question, "category_id", 1)
+    if not isinstance(category_id, int):
+        category_id = 1
+    difficulty = getattr(question, "difficulty", "Easy")
+    if not isinstance(difficulty, str):
+        difficulty = "Easy"
+    maximum_score = getattr(question, "maximum_score", 0)
+    try:
+        maximum_score = float(maximum_score)
+    except (TypeError, ValueError):
+        maximum_score = 0
+    tags = getattr(question, "tags", []) or []
+    if not isinstance(tags, list):
+        tags = []
+    return {
+        "question_bank_id": getattr(question, "question_bank_id", 0),
+        "title": getattr(question, "title", ""),
+        "content": getattr(question, "content", ""),
+        "type": question_type_value,
+        "maximum_score": maximum_score,
+        "tags": tags,
+        "category_id": category_id,
+        "difficulty": difficulty,
+    }
+
+
 @router.post(
     "/source",
     response_model=QuestionResponse,
@@ -39,16 +70,7 @@ async def add_source_question(
 
     question = create_source_question(db, payload)
 
-    return {
-        "question_bank_id": question.question_bank_id,
-        "title": question.title,
-        "content": question.content,
-        "type": question.type.value,
-        "maximum_score": question.maximum_score,
-        "tags": question.tags or [],
-        "category_id": question.category_id,
-        "difficulty": question.difficulty,
-    }
+    return build_question_response(question)
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
@@ -62,19 +84,7 @@ async def list_questions(
             detail="Only recruiters can get all source questions."
         )
     questions = get_all_questions(db)
-    return [
-        {
-            "question_bank_id": q.question_bank_id,
-            "title": q.title,
-            "content": q.content,
-            "type": q.type.value,
-            "maximum_score": q.maximum_score,
-            "tags": q.tags or [],
-            "category_id": q.category_id,
-            "difficulty": q.difficulty,
-        }
-        for q in questions
-    ]
+    return [build_question_response(q) for q in questions]
 
 
 @router.get("/filter", status_code=status.HTTP_200_OK)
@@ -109,19 +119,7 @@ async def filter_questions(
         category_id=category_id,
     )
 
-    return [
-        {
-            "question_bank_id": q.question_bank_id,
-            "title": q.title,
-            "content": q.content,
-            "type": q.type.value,
-            "maximum_score": q.maximum_score,
-            "tags": q.tags or [],
-            "category_id": q.category_id,
-            "difficulty": q.difficulty,
-        }
-        for q in questions
-    ]
+    return [build_question_response(q) for q in questions]
 
 
 @router.patch(
@@ -142,13 +140,4 @@ async def edit_source_question(
             detail="Only recruiters can edit source questions."
         )
     question = update_question(db, question_bank_id, payload)
-    return {
-        "question_bank_id": question.question_bank_id,
-        "title": question.title,
-        "content": question.content,
-        "type": question.type.value,
-        "maximum_score": question.maximum_score,
-        "tags": question.tags or [],
-        "category_id": question.category_id,
-        "difficulty": question.difficulty,
-    }
+    return build_question_response(question)
