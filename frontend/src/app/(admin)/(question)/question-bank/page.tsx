@@ -1,14 +1,19 @@
 "use client"
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { apiDelete, apiGet, apiPost } from "@/lib/apiClient";
+import { getAuthHeaders } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import QuestionModal from "./question-modal";
+import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
-import { Mock_Questions, Question_Categories, QuestionPayload } from "../../types/questions";
+import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
+
 
 export default function ViewQuestionsPage() {
+  const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
@@ -17,18 +22,63 @@ export default function ViewQuestionsPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
-  
+  const [deleteError, setDeleteError] = useState<string|null>(null);
+  const [questions, setQuestions] = useState<QuestionBank[]>([]);
+  const [deleteSuccess, setDeleteSuccess] = useState<string|null>(null);
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
-  const categoriesMap = useMemo( () => { //use memo caches the results for quicker sorting
-    return Question_Categories.reduce((accumulator, currentCategory) => {
-      accumulator[currentCategory.category_id] = currentCategory.category_name;
-      return accumulator;
-    }, {} as Record<number, string>); // this tells the compiler that the empty starting object will map numeric IDs to string names. Objects keys must always be strings in Typescript
+  useEffect(() => {
+    let isMounted = true;
+    const loadCategories = async () => {
+      try {
+        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/");
+        if (isMounted) {
+          setCategories(response);
+        }
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      }
+    };
+
+    const loadQuestions = async () => {
+      try {
+        const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
+          headers: getAuthHeaders(),
+        });
+
+        if (isMounted) {
+          setQuestions(
+            response.map((question) => ({
+              ...question,
+              category_id: question.category_id ?? 0,
+              difficulty: question.difficulty ?? "Easy",
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load questions:", error);
+      }
+    };
+
+    void loadCategories();
+    void loadQuestions();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const questionsFiltered = Mock_Questions.filter((question) => {
+  const categoriesMap = useMemo( () => {
+    return categories.reduce((accumulator, currentCategory) => {
+      accumulator[currentCategory.category_id] = currentCategory.category_name;
+      return accumulator;
+    }, {} as Record<number, string>); 
+  }, [categories]);
+
+  const questionsFiltered = questions.filter((question) => {
     const matchTag = Array.isArray(question.tags) ?
     question.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) :
     typeof question.tags === "string" ?
@@ -95,11 +145,44 @@ export default function ViewQuestionsPage() {
     setEditQuestionId(null);
   }
 
-  const handleDeployment = (newQuestion: QuestionPayload) => {
-    console.log("Deploying New Question:", newQuestion);
-     // In the real application, you would append local array state changes here, 
-    // or trigger an automatic data mutation reload query to fetch your database records.
-    setIsCreateOpen(false);
+  const handleDeployment = async (newQuestion: QuestionPayload) => {
+    setDeleteError(null);
+
+    try {
+      const createdQuestion = await apiPost<QuestionBank>(
+        "/api/v1/questions/source",
+        {
+          title: newQuestion.title,
+          content: newQuestion.content ?? "",
+          type: newQuestion.type ?? "TEXT",
+          maximum_score: newQuestion.maximum_score ?? 10,
+          correct_answer: newQuestion.correct_answer,
+          question_metadata: undefined,
+          tags: newQuestion.tags ?? [],
+          category_id: newQuestion.category_id,
+          difficulty: newQuestion.difficulty,
+        },
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+
+      setQuestions((previousQuestions) => [
+        {
+          ...createdQuestion,
+          category_id: newQuestion.category_id,
+          difficulty: newQuestion.difficulty,
+          maximum_score: newQuestion.maximum_score,
+          tags: newQuestion.tags ?? [],
+          type: createdQuestion.type ?? newQuestion.type,
+        },
+        ...previousQuestions,
+      ]);
+      setIsCreateOpen(false);
+      setDeleteSuccess("Question created successfully.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Failed to create question.");
+    }
   }
 
   const totalNumberOfPages = Math.ceil(questionsFiltered.length / itemsPerPage)
@@ -108,6 +191,37 @@ export default function ViewQuestionsPage() {
     currentPage * itemsPerPage
   );
   
+  const handleDelete = async (quesetionId: number) => {
+    setDeleteTargetId(quesetionId);
+  }
+
+  const confirmDelete = async() => {
+    if (deleteTargetId === null) return;
+    setDeleteError(null);
+    try{
+      await apiDelete(`/api/v1/questions/${deleteTargetId}`, {
+        headers: getAuthHeaders()
+      });
+      const remainingQuestions = questions.filter((question) =>  question.question_bank_id !== deleteTargetId);
+      const nextTotalPages = Math.max(1, Math.ceil(remainingQuestions.length / itemsPerPage));
+
+      setQuestions(remainingQuestions);
+      setCurrentPage((previousPage) => Math.min(previousPage, nextTotalPages));
+      setOpenMenuId(null);
+      setDeleteSuccess("Question deleted successfully.");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Failed to delete question.")
+    } finally {
+      setDeleteTargetId(null);
+    }
+  };
+
+  useEffect(()=>{
+    if (!deleteSuccess) return;
+    const timeout = setTimeout(()=> setDeleteSuccess(null), 3000);
+    return ()=> clearTimeout(timeout);
+  }, [deleteSuccess]);
+
   return (
     <div className="flex min-h-screen bg-background">
       <div className="fixed md:static top-0 left-0 w-55 h-screen md:min-h-screen z-50 transform transition-transform md:transform-none">
@@ -132,11 +246,23 @@ export default function ViewQuestionsPage() {
               onSearchChange={(value) => {setSearchTerm(value); setCurrentPage(1);}}
               categoryFilter={categoryFilter}
               onChangeCategory={(value) => {setCategoryFilter(value); setCurrentPage(1);}}
-              categories={Question_Categories}
+              categories={categories}
               difficultyFilter={difficultyFilter}
               onDifficultyChange={(value) => {setDifficultyFilter(value); setCurrentPage(1);}}
               onClearFilters={clearFiltersHandle}
             />
+
+            {deleteSuccess && (
+              <div className="mb-4 rounded border border-status-success/30 bg-status-success/10 px-4 py-3 text-sm text-status-success">
+                {deleteSuccess}
+              </div>
+            )}            
+
+            {deleteError && (
+              <div className="mb-4 rounded border border-system-red/30 bg-system-red/10 px-4 py-3 text-sm text-system-red">
+                {deleteError}
+              </div>
+            )}
 
             <QuestionTable
               questions={sectionedQuestions}
@@ -147,8 +273,7 @@ export default function ViewQuestionsPage() {
               openMenuId={openMenuId}
               setOpenMenuId={setOpenMenuId}
               onEdit={(id) => {setEditQuestionId(id); setOpenMenuId(null);}}
-              onDelete={(id) => {console.log("Delete question ID:", id); setOpenMenuId(null);}}
-
+              onDelete={handleDelete}
             />
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-2 mt-10 border border-t border-default-border rounded-b-lg text-sm text-default-text">
@@ -231,6 +356,8 @@ export default function ViewQuestionsPage() {
         isOpen={isCreateOpen || editQuestionId !== null}
         mode={isCreateOpen ? "create" : "edit"}
         question_id={editQuestionId}
+        questions={questions}
+        categories={categories}
         onClose={() => {
           setIsCreateOpen(false);
           setEditQuestionId(null);
@@ -243,6 +370,18 @@ export default function ViewQuestionsPage() {
             handleSavedChanges(payload);
           }
         }}
+      />
+
+      <ConfirmationModal
+        isOpen={deleteTargetId !== null}
+        onClose={() => setDeleteTargetId(null)}
+        onConfirm={confirmDelete}
+        headerText="Delete Question"
+        title="Are you sure you want to delete this question?"
+        description="This action cannot be undone. The question will be permanently removed from the question bank."
+        confirmText="DELETE"
+        cancelText="CANCEL"
+        isDanger
       />
     </div>
   );
