@@ -1,6 +1,6 @@
 "use client"
 import { useState, useMemo, useEffect } from "react";
-import { apiDelete } from "@/lib/apiClient";
+import { apiDelete, apiGet } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
@@ -9,7 +9,7 @@ import QuestionTable from "@/components/admin/ui/cards/question-table";
 import QuestionModal from "./question-modal";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
-import { Mock_Questions, Question_Categories, QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
+import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 
 
 export default function ViewQuestionsPage() {
@@ -23,19 +23,60 @@ export default function ViewQuestionsPage() {
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
   const [deleteError, setDeleteError] = useState<string|null>(null);
-  const [questions, setQuestions] = useState<QuestionBank[]>(Mock_Questions); //review this later
+  const [questions, setQuestions] = useState<QuestionBank[]>([]);
   const [deleteSuccess, setDeleteSuccess] = useState<string|null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    const loadCategories = async () => {
+      try {
+        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/");
+        if (isMounted) {
+          setCategories(response);
+        }
+      } catch (error) {
+        console.error("Failed to load categories:", error);
+      }
+    };
+
+    const loadQuestions = async () => {
+      try {
+        const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
+          headers: getAuthHeaders(),
+        });
+
+        if (isMounted) {
+          setQuestions(
+            response.map((question) => ({
+              ...question,
+              category_id: question.category_id ?? 0,
+              difficulty: question.difficulty ?? "Easy",
+            }))
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load questions:", error);
+      }
+    };
+
+    void loadCategories();
+    void loadQuestions();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const categoriesMap = useMemo( () => {
-    return Question_Categories.reduce((accumulator, currentCategory) => {
+    return categories.reduce((accumulator, currentCategory) => {
       accumulator[currentCategory.category_id] = currentCategory.category_name;
       return accumulator;
     }, {} as Record<number, string>); 
-  }, []);
+  }, [categories]);
 
   const questionsFiltered = questions.filter((question) => {
     const matchTag = Array.isArray(question.tags) ?
