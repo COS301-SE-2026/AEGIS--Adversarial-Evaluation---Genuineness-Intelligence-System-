@@ -9,6 +9,7 @@ from app.models.assessment import Assessment
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.user import User
 from app.services.assessment import (
+    create_assessment,
     create_candidate_assessment,
     get_all_assessments,
     get_assessment_by_id,
@@ -531,3 +532,44 @@ def test_get_questions_ordered_by_display_order():
 
     orders = [aq.display_order for aq in result]
     assert orders == [1, 2, 3]
+
+def test_create_assessment_returns_object_with_correct_fields():
+    mock_db = MagicMock()
+    result = create_assessment(
+        mock_db,
+        title="New Assessment",
+        description="A description",
+        duration_mins=60,
+        creator_id=5,
+    )
+    assert result.title == "New Assessment"
+    assert result.description == "A description"
+    assert result.duration_mins == 60
+    assert result.creator_id == 5
+
+
+def test_create_assessment_commits_and_refreshes():
+    mock_db = MagicMock()
+    create_assessment(
+        mock_db,
+        title="Test",
+        description=None,
+        duration_mins=30,
+        creator_id=1,
+    )
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
+
+
+def test_create_assessment_accepts_none_description():
+    mock_db = MagicMock()
+    result = create_assessment(
+        mock_db,
+        title="No Desc",
+        description=None,
+        duration_mins=15,
+        creator_id=2,
+    )
+    assert result.description is None
+    assert result.title == "No Desc"
