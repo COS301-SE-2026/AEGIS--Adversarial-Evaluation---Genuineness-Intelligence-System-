@@ -170,6 +170,10 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                 <div className="max-h-[340px] overflow-y-auto pr-2 space-y-2">
                   {QUICK_QUESTIONS.map(q => {
                     const selected = selectedIds.includes(q.id);
+                    const cardClass = selected
+                     ? "border-system-red bg-system-red/5"
+                     : "border-default-border hover:border-white-smoke/30";
+
                     return(
 
                     <button
@@ -182,7 +186,7 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                         toggleQuestion(q.id);
                       }
                     }}
-                className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${selected ? "border-system-red bg-system-red/5" : "border-default-border hover:border-white-smoke/30"}`}>
+                className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${cardClass}`}>
 
                     <div className="flex justify-between">
                       <div>
