@@ -1,23 +1,23 @@
 "use client";
+import { NAV_ITEMS } from "../../../app/(admin)/types/mock-data";
+import { usePathname } from "next/navigation";
 
-interface TopbarProps {
-  onNewAssessment: () => void;
-}
+export default function AdminTopbar() {
+  const pathname = usePathname();
+  const activePage = NAV_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}`));
+  const title = activePage ? activePage.label : ""
 
-export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
   return (
-    <div className="h-[60px] bg-secondary-surface border-b border-tertiary-surface flex items-center justify-between px-7 flex-shrink-0">
-      {/* Breadcrumb */}
-      <div className="font-jetbrains text-[11px] text-white-smoke/40">
-        ADMIN / <span className="text-system-red">ASSESSMENTS</span>
-      </div>
+    <div className="bg-secondary-surface border-b border-tertiary-surface flex items-center justify-between px-6 py-6 shrink-0">
+      <h1 className=" text-xl text-default-text">
+        ADMIN / <span className="text-system-red">{title}</span>
+      </h1>
 
-      {/* Right side */}
       <div className="flex items-center gap-5">
         {/* Bell icon */}
         <button
           aria-label="Notifications"
-          className="text-white-smoke/40 hover:text-white-smoke transition-colors"
+          className="text-default-text hover:text-white-smoke transition-colors"
         >
           <svg
             width="18"
@@ -31,32 +31,6 @@ export default function AdminTopbar({ onNewAssessment }: TopbarProps) {
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
         </button>
-
-        {/* New Assessment button — kept as latest solid variant matching home */}
-        <button
-          onClick={onNewAssessment}
-          className="flex items-center gap-2 bg-default-text text-background border border-default-text px-[18px] py-[9px] font-staatliches text-[15px] tracking-[0.05em] rounded-[5px] transition-colors duration-200 whitespace-nowrap hover:bg-transparent hover:border-system-red hover:text-system-red"
-        >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          NEW ASSESSMENT
-        </button>
-
-        {/* Avatar — updated to transparent bg + white text + default border (as requested) */}
-        <div 
-          className="w-[34px] h-[34px] bg-transparent border border-default-border rounded-[5px] flex items-center justify-center font-staatliches text-base cursor-pointer select-none text-white-smoke"
-        >
-          AD
-        </div>
       </div>
     </div>
   );

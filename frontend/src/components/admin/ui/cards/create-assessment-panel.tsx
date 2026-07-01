@@ -167,7 +167,7 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
                 <div className={sectionTitleCls}>Pick Questions</div>
 
                 <div className="mb-4">
-                  <label htmlFor="questionCount" className={`${labelCls} block mb-1.5`}>Target count</label>
+                  <label htmlFor="questionCount" className={`${labelCls} block mb-1.5`}>Question count</label>
                   <input id="questionCount" type="range" min="3" max="15" value={formData.questionCount} onChange={(e) => updateForm("questionCount", Number(e.target.value))} className="w-full accent-system-red"/>
                   <div className="text-right font-staatliches text-system-red text-sm mt-1">{formData.questionCount} target</div>
                   </div>
