@@ -232,6 +232,7 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
                         toggleQuestion(q.id);
                       }
                     }}
+                    aria-pressed = {selected}
                 className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${cardClassName}`}>
 
                     <div className="flex justify-between">
