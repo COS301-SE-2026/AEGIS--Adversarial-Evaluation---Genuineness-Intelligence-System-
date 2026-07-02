@@ -25,7 +25,8 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
     null;
         
     const [title, setTitle] = useState(questionTargeted?.title || "");
-    const [category_id, setCategoryId] = useState<number>(questionTargeted?.category_id || 0);
+    const [category_id, setCategoryId] = useState<number>(
+        questionTargeted?.category_id || categories?.[0]?.category_id || 0);
     const [difficulty, setDifficulty] = useState(questionTargeted?.difficulty || "Easy");
     const [tags, setTags] = useState(Array.isArray(questionTargeted?.tags) ? questionTargeted.tags.join(", ") : "");
     const [maxScore, setMaxScore] = useState<number>(questionTargeted?.maximum_score || 10);
@@ -59,6 +60,7 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
         onSubmit(payload);
     };
 
+    
     return (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-6 overflow-hidden">
             <form

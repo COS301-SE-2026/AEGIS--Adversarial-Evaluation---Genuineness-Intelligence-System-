@@ -13,6 +13,8 @@ from app.models.adversarial_question import AdversarialQuestion
 from app.models.user import User
 from app.schema.candidate_response import ResponseCreate
 
+ASSESSMENT_NOT_FOUND = "Assessment not found"
+
 
 def _norm(v):
     return str(v).strip().lower()
@@ -94,9 +96,23 @@ def _grade_candidate(qb, correct_answer, candidate_parsed):
         return None, None
 
 
-def get_all_assessments(db: Session) -> list[Assessment]:
-    # Returns every assessment row without loading question details.
-    return db.query(Assessment).all()
+def get_all_assessments(
+    db: Session,
+    search: str | None = None,
+    status: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Assessment]:
+    query = db.query(Assessment)
+    if search is not None:
+        query = query.filter(Assessment.title.ilike(f"%{search}%"))
+    if status is not None:
+        query = query.filter(Assessment.status == status)
+    if offset is not None:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 
 def get_assessment_by_id(
@@ -364,6 +380,118 @@ def get_questions_for_candidate_assessment(
     return questions
 
 
+def create_assessment(
+    db: Session,
+    title: str,
+    description: str | None,
+    duration_mins: int,
+    creator_id: int,
+) -> Assessment:
+    assessment = Assessment(
+        title=title,
+        description=description,
+        duration_mins=duration_mins,
+        creator_id=creator_id,
+    )
+    db.add(assessment)
+    db.commit()
+    db.refresh(assessment)
+    return assessment
+
+
+def add_question_to_assessment(
+    db: Session,
+    assessment_id: int,
+    adv_question_id: int,
+    display_order: int | None = None,
+    marks: float | None = None,
+) -> AssessmentQuestion:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ASSESSMENT_NOT_FOUND,
+        )
+
+    adversarial_question = (
+        db.query(AdversarialQuestion)
+        .filter(
+            AdversarialQuestion.adv_question_id == adv_question_id
+        )
+        .first()
+    )
+    if adversarial_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Adversarial question not found",
+        )
+
+    existing = (
+        db.query(AssessmentQuestion)
+        .filter(
+            AssessmentQuestion.assessments_id == assessment_id,
+            AssessmentQuestion.adv_question_id == adv_question_id,
+        )
+        .first()
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This question is already linked to this assessment"
+            ),
+        )
+
+    assessment_question = AssessmentQuestion(
+        assessments_id=assessment_id,
+        adv_question_id=adv_question_id,
+        display_order=display_order,
+        marks=marks,
+    )
+    db.add(assessment_question)
+    db.commit()
+    db.refresh(assessment_question)
+    return assessment_question
+
+
+def remove_question_from_assessment(
+    db: Session,
+    assessment_id: int,
+    adv_question_id: int,
+) -> None:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ASSESSMENT_NOT_FOUND,
+        )
+
+    assessment_question = (
+        db.query(AssessmentQuestion)
+        .filter(
+            AssessmentQuestion.assessments_id == assessment_id,
+            AssessmentQuestion.adv_question_id == adv_question_id,
+        )
+        .first()
+    )
+    if assessment_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question is not linked to this assessment",
+        )
+
+    db.delete(assessment_question)
+    db.commit()
+
+
 def create_candidate_assessment(
     db: Session,
     assessment_id: int,
@@ -377,7 +505,7 @@ def create_candidate_assessment(
     if assessment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found",
+            detail=ASSESSMENT_NOT_FOUND,
         )
 
     candidate = (
@@ -420,3 +548,57 @@ def create_candidate_assessment(
     db.commit()
     db.refresh(new_session)
     return new_session
+
+
+def update_assessment(
+    db: Session,
+    assessment_id: int,
+    title: str | None = None,
+    description: str | None = None,
+    duration_mins: int | None = None,
+) -> Assessment:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ASSESSMENT_NOT_FOUND,
+        )
+
+    if title is not None:
+        assessment.title = title
+    if description is not None:
+        assessment.description = description
+    if duration_mins is not None:
+        assessment.duration_mins = duration_mins
+
+    db.commit()
+    db.refresh(assessment)
+    return assessment
+
+
+def activate_assessment(db: Session, assessment_id: int) -> Assessment:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ASSESSMENT_NOT_FOUND,
+        )
+
+    if assessment.status != "Draft":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft assessments can be activated",
+        )
+
+    assessment.status = "Active"
+    db.commit()
+    db.refresh(assessment)
+    return assessment

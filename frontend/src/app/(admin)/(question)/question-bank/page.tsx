@@ -1,6 +1,6 @@
 "use client"
 import { useState, useMemo, useEffect } from "react";
-import { apiDelete, apiGet, apiPost } from "@/lib/apiClient";
+import { apiDelete, apiGet, apiPost, apiPatch } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
@@ -22,13 +22,18 @@ export default function ViewQuestionsPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
+  
   const [deleteError, setDeleteError] = useState<string|null>(null);
+  const [updateError, setUpdateError] = useState<string|null>(null);
   const [questions, setQuestions] = useState<QuestionBank[]>([]);
   const [deleteSuccess, setDeleteSuccess] = useState<string|null>(null);
+  const [updateSuccess, setUpdateSuccess] = useState<string|null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
 
   useEffect(() => {
     let isMounted = true;
@@ -139,10 +144,30 @@ export default function ViewQuestionsPage() {
     setDifficultyFilter("all");
     setCurrentPage(1);
   }
-  const handleSavedChanges = (updatedData: QuestionPayload) => {
-    console.log("Saving changes:", updatedData);
-    //set up api point
-    setEditQuestionId(null);
+  const handleSavedChanges = async (updatedData: QuestionPayload) => {
+    if (editQuestionId === null) return;
+    setUpdateError(null);
+    setIsSaving(true);
+    try{
+      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, updatedData, {
+        headers: getAuthHeaders()
+      });
+      setQuestions((previousQuestions) =>
+        previousQuestions.map((question) =>
+          question.question_bank_id === editQuestionId
+            ? { ...question, ...updatedData }
+            : question
+        )
+      );
+
+      setUpdateSuccess("Question updated successfully.");
+      setEditQuestionId(null);
+    } catch (error) {
+      setUpdateError(error instanceof Error ? error.message : "Failed to save changes.")
+    } finally {
+      setIsSaving(false);
+    }
+    
   }
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
@@ -256,8 +281,20 @@ export default function ViewQuestionsPage() {
               <div className="mb-4 rounded border border-status-success/30 bg-status-success/10 px-4 py-3 text-sm text-status-success">
                 {deleteSuccess}
               </div>
-            )}            
+            )}      
+            
+            {updateSuccess && (
+              <div className="mb-4 rounded border border-status-success/30 bg-status-success/10 px-4 py-3 text-sm text-status-success">
+                {updateSuccess}
+              </div>
+            )}
 
+            {updateError && (
+              <div className="mb-4 rounded border border-system-red/30 bg-system-red/10 px-4 py-3 text-sm text-system-red">
+                {updateError}
+              </div>
+            )}
+            
             {deleteError && (
               <div className="mb-4 rounded border border-system-red/30 bg-system-red/10 px-4 py-3 text-sm text-system-red">
                 {deleteError}

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user
@@ -8,6 +8,13 @@ from sqlalchemy.orm import Session
 
 from app.database.database import get_db
 from app.schema.candidate_assessment import InviteCreate
+from app.schema.assessment import (
+    AssessmentCreate,
+    AssessmentCreatedResponse,
+    AssessmentQuestionCreate,
+    AssessmentQuestionCreatedResponse,
+    AssessmentUpdate,
+)
 from app.services.assessment import (
     get_all_assessments,
     get_candidate_responses,
@@ -18,6 +25,11 @@ from app.services.assessment import (
     submit_candidate_assessment,
     create_candidate_assessment,
     start_candidate_assessment,
+    create_assessment,
+    update_assessment,
+    activate_assessment,
+    add_question_to_assessment,
+    remove_question_from_assessment,
 )
 from app.schema.candidate_response import (
     CandidateResponseResponse,
@@ -37,6 +49,7 @@ class AssessmentListItem(BaseModel):
     title: str
     description: Optional[str] = None
     duration_mins: int
+    status: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -44,13 +57,10 @@ class AssessmentListItem(BaseModel):
 
 
 class AssessmentQuestionItem(BaseModel):
-    # Join-table fields
     assessment_q_id: int
     display_order: Optional[int] = None
     marks: Optional[float] = None
-    # Flattened question_bank fields  (Optional because questions_id)
-    # FK is nullable ,a row can exist without a linked question.
-    question_bank_id: Optional[int] = None
+    adv_question_id: Optional[int] = None
     title: Optional[str] = None
     content: Optional[str] = None
     type: Optional[str] = None
@@ -68,9 +78,39 @@ class AssessmentDetailResponse(BaseModel):
 
 
 @router.get("/", response_model=List[AssessmentListItem])
-async def list_assessments(db: Session = Depends(get_db)):
-    # Returns all assessments. Returns an empty list if none exist.
-    return get_all_assessments(db)
+async def list_assessments(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    return get_all_assessments(db, search, status, limit, offset)
+
+
+@router.post(
+    "/",
+    response_model=AssessmentCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_new_assessment(
+    payload: AssessmentCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can create assessments.",
+        )
+    creator_id = int(current_user["user_id"])
+    return create_assessment(
+        db,
+        payload.title,
+        payload.description,
+        payload.duration_mins,
+        creator_id,
+    )
 
 
 @router.get(
@@ -112,6 +152,7 @@ async def list_my_assessments(
 async def get_assessment(
     assessment_id: int,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     assessment = get_assessment_by_id(db, assessment_id)
     if assessment is None:
@@ -130,10 +171,7 @@ async def get_assessment(
                 "assessment_q_id": aq.assessment_q_id,
                 "display_order": aq.display_order,
                 "marks": aq.marks,
-                "question_bank_id": (
-                    aq.question_bank.question_bank_id
-                    if aq.question_bank else None
-                ),
+                "adv_question_id": aq.adv_question_id,
                 "title": (
                     aq.question_bank.title
                     if aq.question_bank else None
@@ -158,6 +196,90 @@ async def get_assessment(
             for aq in assessment.assessment_questions
         ],
     }
+
+
+@router.patch(
+    "/{assessment_id}",
+    response_model=AssessmentCreatedResponse,
+)
+async def update_assessment_route(
+    assessment_id: int,
+    payload: AssessmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can update assessments.",
+        )
+    return update_assessment(
+        db,
+        assessment_id,
+        payload.title,
+        payload.description,
+        payload.duration_mins,
+    )
+
+
+@router.post(
+    "/{assessment_id}/activate",
+    response_model=AssessmentCreatedResponse,
+)
+async def activate_assessment_route(
+    assessment_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can activate assessments.",
+        )
+    return activate_assessment(db, assessment_id)
+
+
+@router.post(
+    "/{assessment_id}/questions",
+    response_model=AssessmentQuestionCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_question_to_assessment_route(
+    assessment_id: int,
+    payload: AssessmentQuestionCreate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can modify assessment questions.",
+        )
+    return add_question_to_assessment(
+        db,
+        assessment_id,
+        payload.adv_question_id,
+        payload.display_order,
+        payload.marks,
+    )
+
+
+@router.delete(
+    "/{assessment_id}/questions/{adv_question_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_question_from_assessment_route(
+    assessment_id: int,
+    adv_question_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can modify assessment questions.",
+        )
+    remove_question_from_assessment(db, assessment_id, adv_question_id)
 
 
 @candidate_response_router.post(

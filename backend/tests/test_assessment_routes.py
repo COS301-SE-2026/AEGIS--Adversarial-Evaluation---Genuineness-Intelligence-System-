@@ -42,6 +42,16 @@ def auth_client(mock_db):
     app.dependency_overrides.clear()
 
 
+@pytest.fixture
+def recruiter_client(mock_db):
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_current_user] = lambda: {
+        "user_id": "5",
+        "role": "RECRUITER",
+    }
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
 def _setup_list(mock_db, assessments):
     mock_db.query.return_value.all.return_value = assessments
 
@@ -61,6 +71,7 @@ def test_list_assessments_returns_200_with_list(client, mock_db):
     mock_a.title = "Test Assessment"
     mock_a.description = "A description"
     mock_a.duration_mins = 60
+    mock_a.status = "Draft"
     mock_a.created_at = datetime(2025, 1, 1)
 
     _setup_list(mock_db, [mock_a])
@@ -82,7 +93,50 @@ def test_list_assessments_returns_empty_list(client, mock_db):
     assert response.json() == []
 
 
-def test_get_assessment_returns_200_with_correct_data(client, mock_db):
+def test_list_assessments_response_includes_status(client, mock_db):
+    mock_a = MagicMock()
+    mock_a.assessment_id = 1
+    mock_a.title = "Test Assessment"
+    mock_a.description = "A description"
+    mock_a.duration_mins = 60
+    mock_a.status = "Active"
+    mock_a.created_at = datetime(2025, 1, 1)
+
+    _setup_list(mock_db, [mock_a])
+    response = client.get("/api/v1/assessments/")
+
+    assert response.status_code == 200
+    assert response.json()[0]["status"] == "Active"
+
+
+_LIST_PATCH = "app.api.routes.assessment.get_all_assessments"
+
+
+def test_list_assessments_passes_query_params_to_service(client, mock_db):
+    with patch(_LIST_PATCH, return_value=[]) as mock_get_all:
+        response = client.get(
+            "/api/v1/assessments/",
+            params={
+                "search": "python",
+                "status": "Draft",
+                "limit": 10,
+                "offset": 5,
+            },
+        )
+    assert response.status_code == 200
+    mock_get_all.assert_called_once_with(mock_db, "python", "Draft", 10, 5)
+
+
+def test_list_assessments_defaults_filters_to_none(client, mock_db):
+    with patch(_LIST_PATCH, return_value=[]) as mock_get_all:
+        response = client.get("/api/v1/assessments/")
+    assert response.status_code == 200
+    mock_get_all.assert_called_once_with(mock_db, None, None, None, None)
+
+
+def test_get_assessment_returns_200_with_correct_data(
+    auth_client, mock_db
+):
     mock_a = MagicMock()
     mock_a.assessment_id = 42
     mock_a.title = "Python Basics"
@@ -92,7 +146,7 @@ def test_get_assessment_returns_200_with_correct_data(client, mock_db):
     mock_a.assessment_questions = []
 
     _setup_by_id(mock_db, mock_a)
-    response = client.get("/api/v1/assessments/42")
+    response = auth_client.get("/api/v1/assessments/42")
 
     assert response.status_code == 200
     body = response.json()
@@ -100,15 +154,20 @@ def test_get_assessment_returns_200_with_correct_data(client, mock_db):
     assert body["title"] == "Python Basics"
 
 
-def test_get_assessment_returns_404_when_not_found(client, mock_db):
+def test_get_assessment_returns_404_when_not_found(auth_client, mock_db):
     _setup_by_id(mock_db, None)
-    response = client.get("/api/v1/assessments/999")
+    response = auth_client.get("/api/v1/assessments/999")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Assessment not found"
 
 
-def test_get_assessment_includes_questions_list(client, mock_db):
+def test_get_assessment_returns_401_without_jwt(client, mock_db):
+    _setup_by_id(mock_db, MagicMock())
+    response = client.get("/api/v1/assessments/42")
+    assert response.status_code == 401
+
+def test_get_assessment_includes_questions_list(auth_client, mock_db):
     mock_qb = MagicMock()
     mock_qb.question_bank_id = 10
     mock_qb.title = "What is X?"
@@ -121,6 +180,7 @@ def test_get_assessment_includes_questions_list(client, mock_db):
     mock_aq.assessment_q_id = 7
     mock_aq.display_order = 1
     mock_aq.marks = 5.0
+    mock_aq.adv_question_id = 99
     mock_aq.question_bank = mock_qb
 
     mock_a = MagicMock()
@@ -132,7 +192,7 @@ def test_get_assessment_includes_questions_list(client, mock_db):
     mock_a.assessment_questions = [mock_aq]
 
     _setup_by_id(mock_db, mock_a)
-    response = client.get("/api/v1/assessments/1")
+    response = auth_client.get("/api/v1/assessments/1")
 
     assert response.status_code == 200
     body = response.json()
@@ -141,6 +201,8 @@ def test_get_assessment_includes_questions_list(client, mock_db):
     assert len(body["questions"]) == 1
     q = body["questions"][0]
     assert q["assessment_q_id"] == 7
+    assert q["adv_question_id"] == 99
+    assert "question_bank_id" not in q
     assert q["title"] == "What is X?"
     assert q["type"] == "TEXT"
 
@@ -636,3 +698,411 @@ def test_get_candidate_questions_includes_question_metadata(auth_client, mock_db
     assert "question" in body[0]
     assert "question_metadata" in body[0]["question"]
     assert body[0]["question"]["question_metadata"] == {"difficulty": "easy"}
+
+_CREATE_PATCH = "app.api.routes.assessment.create_assessment"
+
+def _make_mock_created_assessment():
+    mock_a = MagicMock()
+    mock_a.assessment_id = 10
+    mock_a.title = "New Assessment"
+    mock_a.description = "A description"
+    mock_a.duration_mins = 60
+    mock_a.creator_id = 5
+    mock_a.status = "Draft"
+    mock_a.created_at = datetime(2025, 1, 1)
+    return mock_a
+
+
+def test_create_assessment_returns_201(recruiter_client, mock_db):
+    mock_a = _make_mock_created_assessment()
+    with patch(_CREATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/",
+            json={"title": "New Assessment", "duration_mins": 60},
+        )
+    assert response.status_code == 201
+
+
+def test_create_assessment_response_has_correct_fields(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_created_assessment()
+    with patch(_CREATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/",
+            json={"title": "New Assessment", "duration_mins": 60},
+        )
+    body = response.json()
+    assert body["assessment_id"] == 10
+    assert body["title"] == "New Assessment"
+    assert body["duration_mins"] == 60
+    assert body["creator_id"] == 5
+    assert body["status"] == "Draft"
+
+
+def test_create_assessment_response_includes_optional_description(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_created_assessment()
+    with patch(_CREATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/",
+            json={
+                "title": "New Assessment",
+                "description": "A description",
+                "duration_mins": 60,
+            },
+        )
+    assert response.json()["description"] == "A description"
+
+
+def test_create_assessment_returns_401_without_jwt(client, mock_db):
+    response = client.post(
+        "/api/v1/assessments/",
+        json={"title": "New Assessment", "duration_mins": 60},
+    )
+    assert response.status_code == 401
+
+
+def test_create_assessment_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.post(
+        "/api/v1/assessments/",
+        json={"title": "New Assessment", "duration_mins": 60},
+    )
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_create_assessment_returns_422_when_title_missing(
+    recruiter_client, mock_db
+):
+    response = recruiter_client.post(
+        "/api/v1/assessments/",
+        json={"duration_mins": 60},
+    )
+    assert response.status_code == 422
+
+
+def test_create_assessment_returns_422_when_duration_missing(
+    recruiter_client, mock_db
+):
+    response = recruiter_client.post(
+        "/api/v1/assessments/",
+        json={"title": "New Assessment"},
+    )
+    assert response.status_code == 422
+
+
+_ADD_QUESTION_PATCH = (
+    "app.api.routes.assessment.add_question_to_assessment"
+)
+_REMOVE_QUESTION_PATCH = (
+    "app.api.routes.assessment.remove_question_from_assessment"
+)
+
+
+def _make_mock_assessment_question(
+    assessment_q_id=1,
+    assessments_id=2,
+    adv_question_id=3,
+    display_order=1,
+    marks=5.0,
+):
+    mock_aq = MagicMock()
+    mock_aq.assessment_q_id = assessment_q_id
+    mock_aq.assessments_id = assessments_id
+    mock_aq.adv_question_id = adv_question_id
+    mock_aq.display_order = display_order
+    mock_aq.marks = marks
+    return mock_aq
+
+
+def test_add_question_returns_401_without_jwt(client, mock_db):
+    response = client.post(
+        "/api/v1/assessments/2/questions",
+        json={"adv_question_id": 3},
+    )
+    assert response.status_code == 401
+
+
+def test_add_question_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.post(
+        "/api/v1/assessments/2/questions",
+        json={"adv_question_id": 3},
+    )
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_add_question_returns_404_when_assessment_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_ADD_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={"adv_question_id": 3},
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_add_question_returns_404_when_adv_question_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=404, detail="Adversarial question not found"
+    )
+    with patch(_ADD_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={"adv_question_id": 3},
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        "Adversarial question not found"
+    )
+
+
+def test_add_question_returns_409_when_already_linked(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=409,
+        detail="This question is already linked to this assessment",
+    )
+    with patch(_ADD_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={"adv_question_id": 3},
+        )
+    assert response.status_code == 409
+    assert "already linked" in response.json()["detail"]
+
+
+def test_add_question_returns_201_with_correct_body(
+    recruiter_client, mock_db
+):
+    mock_aq = _make_mock_assessment_question()
+    with patch(_ADD_QUESTION_PATCH, return_value=mock_aq):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={
+                "adv_question_id": 3,
+                "display_order": 1,
+                "marks": 5.0,
+            },
+        )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["assessment_q_id"] == 1
+    assert body["assessments_id"] == 2
+    assert body["adv_question_id"] == 3
+    assert body["display_order"] == 1
+    assert body["marks"] == pytest.approx(5.0)
+
+
+def test_remove_question_returns_401_without_jwt(client, mock_db):
+    response = client.delete("/api/v1/assessments/2/questions/3")
+    assert response.status_code == 401
+
+
+def test_remove_question_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.delete("/api/v1/assessments/2/questions/3")
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_remove_question_returns_404_when_assessment_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_REMOVE_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.delete(
+            "/api/v1/assessments/2/questions/3"
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_remove_question_returns_404_when_link_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=404,
+        detail="Question is not linked to this assessment",
+    )
+    with patch(_REMOVE_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.delete(
+            "/api/v1/assessments/2/questions/3"
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        "Question is not linked to this assessment"
+    )
+
+
+def test_remove_question_returns_204_with_no_body(
+    recruiter_client, mock_db
+):
+    with patch(_REMOVE_QUESTION_PATCH, return_value=None):
+        response = recruiter_client.delete(
+            "/api/v1/assessments/2/questions/3"
+        )
+    assert response.status_code == 204
+    assert response.content == b""
+
+
+_UPDATE_PATCH = "app.api.routes.assessment.update_assessment"
+_ACTIVATE_PATCH = "app.api.routes.assessment.activate_assessment"
+
+
+def _make_mock_updated_assessment():
+    mock_a = MagicMock()
+    mock_a.assessment_id = 10
+    mock_a.title = "Updated Title"
+    mock_a.description = "Updated description"
+    mock_a.duration_mins = 90
+    mock_a.creator_id = 5
+    mock_a.status = "Draft"
+    mock_a.created_at = datetime(2025, 1, 1)
+    return mock_a
+
+
+def test_update_assessment_returns_200(recruiter_client, mock_db):
+    mock_a = _make_mock_updated_assessment()
+    with patch(_UPDATE_PATCH, return_value=mock_a):
+        response = recruiter_client.patch(
+            "/api/v1/assessments/10",
+            json={"title": "Updated Title"},
+        )
+    assert response.status_code == 200
+
+
+def test_update_assessment_response_has_correct_fields(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_updated_assessment()
+    with patch(_UPDATE_PATCH, return_value=mock_a):
+        response = recruiter_client.patch(
+            "/api/v1/assessments/10",
+            json={"title": "Updated Title"},
+        )
+    body = response.json()
+    assert body["assessment_id"] == 10
+    assert body["title"] == "Updated Title"
+    assert body["duration_mins"] == 90
+    assert body["creator_id"] == 5
+    assert body["status"] == "Draft"
+
+
+def test_update_assessment_returns_401_without_jwt(client, mock_db):
+    response = client.patch(
+        "/api/v1/assessments/10",
+        json={"title": "Updated Title"},
+    )
+    assert response.status_code == 401
+
+
+def test_update_assessment_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.patch(
+        "/api/v1/assessments/10",
+        json={"title": "Updated Title"},
+    )
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_update_assessment_returns_404_when_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_UPDATE_PATCH, side_effect=exc):
+        response = recruiter_client.patch(
+            "/api/v1/assessments/999",
+            json={"title": "Updated Title"},
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_update_assessment_returns_422_for_invalid_duration(
+    recruiter_client, mock_db
+):
+    response = recruiter_client.patch(
+        "/api/v1/assessments/10",
+        json={"duration_mins": 0},
+    )
+    assert response.status_code == 422
+
+
+def test_update_assessment_passes_only_provided_fields(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_updated_assessment()
+    with patch(_UPDATE_PATCH, return_value=mock_a) as mock_update:
+        recruiter_client.patch(
+            "/api/v1/assessments/10",
+            json={"title": "Updated Title"},
+        )
+    mock_update.assert_called_once_with(
+        mock_db, 10, "Updated Title", None, None
+    )
+
+
+def test_activate_assessment_returns_200(recruiter_client, mock_db):
+    mock_a = _make_mock_updated_assessment()
+    mock_a.status = "Active"
+    with patch(_ACTIVATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/10/activate"
+        )
+    assert response.status_code == 200
+    assert response.json()["status"] == "Active"
+
+
+def test_activate_assessment_returns_401_without_jwt(client, mock_db):
+    response = client.post("/api/v1/assessments/10/activate")
+    assert response.status_code == 401
+
+
+def test_activate_assessment_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.post("/api/v1/assessments/10/activate")
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_activate_assessment_returns_404_when_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_ACTIVATE_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/999/activate"
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_activate_assessment_returns_400_when_not_draft(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=400,
+        detail="Only draft assessments can be activated",
+    )
+    with patch(_ACTIVATE_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/10/activate"
+        )
+    assert response.status_code == 400
