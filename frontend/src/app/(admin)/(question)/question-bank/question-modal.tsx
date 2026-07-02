@@ -89,9 +89,10 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                        <div className="lg:col-span-5">
+                        <div className="lg:col-span-12">
                             <MetaDataForm
                                 title={title} setTitle={setTitle}
+                                content={content} setContent={setContent}
                                 category_id={category_id} setCategoryId={setCategoryId}
                                 categories={categories}
                                 difficulty={difficulty} setDifficulty={setDifficulty}
@@ -99,12 +100,7 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
                                 maxScore={maxScore} setMaxScore={setMaxScore}
                             />
                         </div>
-                        <div className="lg:col-span-7">
-                            <EditorPanel
-                                content={content} setContent={setContent}
-                                correctAnswer={correctAnswer} setCorrectAnswer={setCorrectAnswer}
-                            />
-                        </div>
+                        
                     </div>
 
                     <div className="flex justify-end items-center gap-3 px-6 py-4 border-t border-tertiary-surface bg-secondary-surface">
