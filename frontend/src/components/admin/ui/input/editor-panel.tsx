@@ -6,18 +6,14 @@ import Editor from "@monaco-editor/react"
 
 
 interface EditorPanelProps {
-    content: string,
-    setContent: (value: string) => void,
     correctAnswer: string,
     setCorrectAnswer: (value: string) => void
 }
 
 type ValidationStatus = "idle" | "testing" | "passed" | "failed"
 
-export default function EditorPanel ({
-    content, setContent,
-    correctAnswer, setCorrectAnswer
-}: EditorPanelProps) {
+export default function EditorPanel ({correctAnswer, setCorrectAnswer}: EditorPanelProps) {
+    
     const [testStatus, setTestStatus] = useState<ValidationStatus>("idle");
     const [consoleOutput, setConsoleOutput] = useState<string>("");
     const [language, setLanguage] = useState<string>("python");
@@ -48,17 +44,6 @@ export default function EditorPanel ({
 
     return (
         <div className="space-y-6 h-full flex flex-col">
-            <div className="flex-1 flex flex-col bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
-                <h2 className="text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2 mb-4">
-                    Description
-                </h2>
-                <textarea
-                    value={content}
-                    onChange={(event) => setContent(event.target.value)}
-                    placeholder="Describe the constraints, requirements and edge cases here..."
-                    className="w-full flex-1 min-h-30 p-4 bg-background border border-default-border rounded text-default-text text:sm focus:outline-none focus:border-system-red transition-colors resize-y"
-                />
-            </div>
 
             <div className="flex-1 flex flex-col bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
                 <div className="flex justify-between items-center border-b border-tertiary-surface">

@@ -6,6 +6,8 @@ import { QuestionCategory } from "@/app/(admin)/types/questions"
 interface MetadataFormProps {
     title: string,
     setTitle: (value: string) => void,
+    content: string,
+    setContent: (value: string) => void,
     category_id: number,
     setCategoryId: (id: number) => void,
     categories: QuestionCategory[],
@@ -19,6 +21,7 @@ interface MetadataFormProps {
 
 export default function MetaDataForm({
     title, setTitle,
+    content, setContent,
     category_id, setCategoryId, categories,
     difficulty, setDifficulty,
     tags, setTags,
@@ -40,7 +43,19 @@ export default function MetaDataForm({
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
                     placeholder="e.g ZigZag Conversion"
-                    className="w-full px-4 py-2 bg-background border border-default-border rounded text-default-border text-sm focus:outline-none focus:border-system-red transition-colors"
+                    className="w-full px-4 py-2 bg-background border border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors"
+                />
+            </div>
+
+            <div className="flex-1 flex flex-col bg-secondary-surface rounded-lg ">
+                <h2 className="text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2 mb-4">
+                    Description
+                </h2>
+                <textarea
+                    value={content}
+                    onChange={(event) => setContent(event.target.value)}
+                    placeholder="Describe the constraints, requirements and edge cases here..."
+                    className="w-full flex-1 min-h-30 p-4 bg-background border border-default-border rounded text-default-text text:sm focus:outline-none focus:border-system-red transition-colors resize-y"
                 />
             </div>
 
