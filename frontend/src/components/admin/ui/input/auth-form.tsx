@@ -19,10 +19,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">(startMode);
   
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
- 
+  const [formData, setFormData] = useState({email: "", password: "", confirmPassword: ""});
   const [errors, setErrors] = useState({email: "", password: "", confirmPassword: ""});
   const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
 
@@ -30,53 +27,23 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  function handleEmailChange(value: string) {
-    setEmail(value);
-    if (touched.email) {
-      setErrors(prev => ({ ...prev, email: validateEmail(value) || ""}));
-    }
+  const handleInputBlur = (field: keyof typeof formData) => {
+    setTouched(prev => ({...prev, [field]: true}))
+    setErrors(prev => ({...prev, [field]: validateField(field, formData)}));
   }
 
-  function handlePasswordChange(value: string) {
-    setPassword(value);
-    if (touched.password) {
-      setErrors(prev => ({ ...prev, password: validatePassword(value) || ""}));
-    }
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+      const updatedForm = {...formData, [field]: value};
+      setFormData(updatedForm);
+      if(touched[field]) {
+        setErrors(prev => ({...prev, [field]: validateField(field, updatedForm)}));
+      }
   }
-
-  function handleConfirmPasswordChange(value: string) {
-    setConfirmPassword(value);
-    if (touched.confirmPassword) {
-      setErrors(prev => ({ 
-        ...prev, 
-        confirmPassword: validatePasswordMatch(password, value) || "" 
-      }));
-    }
-  }
-
-  function handleEmailBlur() {
-    setTouched(prev => ({ ...prev, email: true }));
-    setErrors(prev => ({ ...prev, email: validateEmail(email) || "" }));
-  }
-
-  function handlePasswordBlur() {
-    setTouched(prev => ({ ...prev, password: true }));
-    setErrors(prev => ({ ...prev, password: validatePassword(password) || "" }));
-  }
-
-
-  function handleConfirmPasswordBlur() {
-    setTouched(prev => ({ ...prev, confirmPassword: true }));
-    setErrors(prev => ({ 
-      ...prev, 
-      confirmPassword: validatePasswordMatch(password, confirmPassword) || "" 
-    }));
-  }  
 
   const validate = (): boolean => {
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
-    const confirmError = validatePasswordMatch(password, confirmPassword);
+    const emailError = validateEmail(formData.email);
+    const passwordError = validatePassword(formData.password);
+    const confirmError = validatePasswordMatch(formData.password, formData.confirmPassword);
     setErrors({
       email: emailError || "",
       password: passwordError || "",
@@ -91,6 +58,14 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
     return !emailError && !passwordError && !confirmError;
   }
 
+  const validateField = (field: keyof typeof formData, currentForm: typeof formData) => {
+    switch(field) {
+      case "email": return validateEmail(currentForm.email) || "";
+      case "password": return validatePassword(currentForm.password) || "";
+      case "confirmPassword": return validatePasswordMatch(currentForm.password, currentForm.confirmPassword) || "";
+    }
+  }
+
   function handleOnKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if(event.key === "Enter") {
       event.preventDefault();
@@ -98,19 +73,18 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
     }
   }
 
-
   async function handleSubmit() {
     setServerError("");
     if (!validate()) return;
     setLoading(true);
 
-    const targetEndpoint = mode === "login" ? "auth/login" : "/auth/register";
+    const targetEndpoint = mode === "login" ? "/auth/login" : "/auth/register";
 
     try{
       const response = await fetch(`${API_BASE}${targetEndpoint}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({email, password}),
+        body: JSON.stringify({email: formData.email, password: formData.password}),
       });
 
       const data = await response.json();
@@ -139,10 +113,26 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
     window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
   }
 
-  // function handleGithub() {
-  //   //TODO: wire up github
-  //   router.push("/assessment");
-  // }
+  const togglePasswordIcon = (
+    <button
+      type="button"
+      className="text-default-text opacity-50 hover:opacity-100 transition-opacity"
+      onClick={() => setShowPassword(!showPassword)}
+      aria-label={showPassword ? "Hide Password" : "Show Password"}
+    >
+      {showPassword ? (
+        //eye off icon
+        <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9.88 9.88a3 3 0 1 0 4 4.24 4.24"/> <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/> <path d="M6.61 6.61A113.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/> <line x1="2" x2="22" y1="2" y2="22"/>
+        </svg>
+      ) : (
+        //eye on icon
+        <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/> <circle cx="12" cy="12" r="3"/>
+        </svg>
+      )}
+    </button>
+  )
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
@@ -175,70 +165,32 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
               label="Email"
               type="email"
               placeholder="Enter your email"
-              value={email}
-              onChange={handleEmailChange}
+              value={formData.email}
+              onChange={(value) => handleInputChange("email", value)}
               error={errors.email}
-              onBlur={handleEmailBlur}
+              onBlur={() => handleInputBlur("email")}
             />
             <Input
               label="Password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
-              value={password}
-              onChange={handlePasswordChange}
+              value={formData.password}
+              onChange={(value) => handleInputChange("password", value)}
               error={errors.password}
-              onBlur={handlePasswordBlur}
-              rightIcon={
-                <button
-                  type="button"
-                  className="text-default-text opacity-50 hover:opacity-100 transition-opacity"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Hide Password" : "Show Password"}
-                >
-                  {showPassword ? (
-                    //eye off icon
-                    <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9.88 9.88a3 3 0 1 0 4 4.24 4.24"/> <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/> <path d="M6.61 6.61A113.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/> <line x1="2" x2="22" y1="2" y2="22"/>
-                    </svg>
-                  ) : (
-                    //eye on icon
-                    <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/> <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
-                </button>
-                }
+              onBlur={() => handleInputBlur("password")}
+              rightIcon={togglePasswordIcon}
               />
               {mode === "register" && (
                 <Input
                   label="Confirm Password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Re enter your password"
-                  value={confirmPassword}
-                  onChange={handleConfirmPasswordChange}
+                  placeholder="Re-enter your password"
+                  value={formData.confirmPassword}
+                  onChange={(value) => handleInputChange("confirmPassword", value)}
                   error={errors.confirmPassword}
-                  onBlur={handleConfirmPasswordBlur}
+                  onBlur={() => handleInputBlur("confirmPassword")}
                   onKeyDown={handleOnKeyDown}
-                  rightIcon={
-                    <button
-                      type="button"
-                      className="text-default-text opacity-50 hover:opacity-100 transition-opacity"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? "Hide Password" : "Show Password"}
-                    >
-                      {showPassword ? (
-                        //eye off icon
-                        <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9.88 9.88a3 3 0 1 0 4 4.24 4.24"/> <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/> <path d="M6.61 6.61A113.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/> <line x1="2" x2="22" y1="2" y2="22"/>
-                        </svg>
-                      ) : (
-                        //eye on icon
-                        <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/> <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                      )}
-                    </button>
-                  }
+                  rightIcon={togglePasswordIcon}
                 />
               )}
           </div>  
