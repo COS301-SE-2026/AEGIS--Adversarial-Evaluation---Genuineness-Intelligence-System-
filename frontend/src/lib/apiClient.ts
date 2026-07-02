@@ -106,9 +106,12 @@ async function parseResponseData(response: Response): Promise<unknown> {
 }
 
 function throwApiError(response: Response, data: unknown): never {
+  const detail = (data as { detail?: unknown } | null)?.detail;
   const message =
-    typeof data === "string" && data.trim()
-      ? data
+    detail && typeof detail === "string"
+      ? detail
+      : Array.isArray(detail)
+      ? "Validation error — check your input"
       : `Request failed with status ${response.status}`;
   throw new ApiError(message, response.status, data);
 }
