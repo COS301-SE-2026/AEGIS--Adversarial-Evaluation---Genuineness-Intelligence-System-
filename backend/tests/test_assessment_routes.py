@@ -861,7 +861,7 @@ def test_add_question_returns_201_with_correct_body(
     assert body["assessments_id"] == 2
     assert body["adv_question_id"] == 3
     assert body["display_order"] == 1
-    assert body["marks"] == 5.0
+    assert body["marks"] == pytest.approx(5.0)
 
 
 def test_remove_question_returns_401_without_jwt(client, mock_db):
