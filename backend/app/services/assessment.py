@@ -96,9 +96,23 @@ def _grade_candidate(qb, correct_answer, candidate_parsed):
         return None, None
 
 
-def get_all_assessments(db: Session) -> list[Assessment]:
-    # Returns every assessment row without loading question details.
-    return db.query(Assessment).all()
+def get_all_assessments(
+    db: Session,
+    search: str | None = None,
+    status: str | None = None,
+    limit: int | None = None,
+    offset: int | None = None,
+) -> list[Assessment]:
+    query = db.query(Assessment)
+    if search is not None:
+        query = query.filter(Assessment.title.ilike(f"%{search}%"))
+    if status is not None:
+        query = query.filter(Assessment.status == status)
+    if offset is not None:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+    return query.all()
 
 
 def get_assessment_by_id(
@@ -534,3 +548,57 @@ def create_candidate_assessment(
     db.commit()
     db.refresh(new_session)
     return new_session
+
+
+def update_assessment(
+    db: Session,
+    assessment_id: int,
+    title: str | None = None,
+    description: str | None = None,
+    duration_mins: int | None = None,
+) -> Assessment:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ASSESSMENT_NOT_FOUND,
+        )
+
+    if title is not None:
+        assessment.title = title
+    if description is not None:
+        assessment.description = description
+    if duration_mins is not None:
+        assessment.duration_mins = duration_mins
+
+    db.commit()
+    db.refresh(assessment)
+    return assessment
+
+
+def activate_assessment(db: Session, assessment_id: int) -> Assessment:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ASSESSMENT_NOT_FOUND,
+        )
+
+    if assessment.status != "Draft":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft assessments can be activated",
+        )
+
+    assessment.status = "Active"
+    db.commit()
+    db.refresh(assessment)
+    return assessment
