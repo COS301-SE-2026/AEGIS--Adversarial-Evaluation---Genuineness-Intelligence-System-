@@ -15,9 +15,10 @@ interface QuestionModalProps {
     categories: QuestionCategory[];
     onClose: () => void;
     onSubmit: (payload: QuestionPayload) => void;
+    isSaving?: boolean;
 }
 
-export default function QuestionModal({isOpen, mode, question_id, questions, categories, onClose, onSubmit}: QuestionModalProps) {
+export default function QuestionModal({isOpen, mode, question_id, questions, categories, onClose, onSubmit, isSaving = false}: QuestionModalProps) {
     
     const questionTargeted = 
     mode === "edit" && question_id !== null ?  
@@ -25,8 +26,7 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
     null;
         
     const [title, setTitle] = useState(questionTargeted?.title || "");
-    const [category_id, setCategoryId] = useState<number>(
-        questionTargeted?.category_id || categories?.[0]?.category_id || 0);
+    const [category_id, setCategoryId] = useState<number>(questionTargeted?.category_id || categories?.[0]?.category_id || 0);
     const [difficulty, setDifficulty] = useState(questionTargeted?.difficulty || "Easy");
     const [tags, setTags] = useState(Array.isArray(questionTargeted?.tags) ? questionTargeted.tags.join(", ") : "");
     const [maxScore, setMaxScore] = useState<number>(questionTargeted?.maximum_score || 10);
@@ -111,12 +111,14 @@ export default function QuestionModal({isOpen, mode, question_id, questions, cat
                         <button
                             type="button"
                             onClick={onClose}
+                            disabled={isSaving}
                             className="px-4 py-2 border border-default-border text-default-text rounded hover:bg-tertiary-surface transition-colors font-staatliches text-sm tracking-wider uppercase cursor-pointer"
                         >
                             {mode === "create" ? "Abort" : "Abort Changes"}
                         </button>
                         <button
                             type="submit"
+                            disabled={isSaving}
                             className="flex items-center gap-2 bg-system-red text-default-text px-4 py-2 rounded font-staatliches text-sm tracking-widest uppercase transition-all duration-150 hover:shadow-glow-red hover:brightness-110 active:scale-95 cursor-pointer"
                         >
                             {mode === "edit" && <Save size={16}/>}
