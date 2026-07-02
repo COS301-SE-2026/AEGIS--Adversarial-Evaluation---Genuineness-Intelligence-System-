@@ -2,16 +2,29 @@
 
 import { useState, useCallback } from "react";
 import type {CreateAssessmentForm, Difficulty} from "../../../../app/(admin)/types/assessment";
-import { 
+import {
   TARGET_ROLES,
 } from "../../../../app/(admin)/types/mock-data";
+import { apiPost } from "@/lib/apiClient";
+import { getAuthHeaders } from "@/lib/auth";
 
 const labelCls = "font-ibm-plex text-[10px] tracking-[0.1em] text-white-smoke/40 uppercase font-medium";
 const inputCls = "w-full bg-secondary-surface border border-default-border text-white-smoke px-3.5 py-2.5 font-ibm text-[13px] rounded-[5px] outline-none transition-colors duration-150 placeholder:text-white-smoke/40 focus:border-system-red";
 const sectionTitleCls = "font-staatliches text-base tracking-[0.07em] text-white-smoke mb-3.5 flex items-center gap-2 after:flex-1 after:h-px after:bg-default-border after:content-['']";
 
-interface Props { 
+interface Props {
   readonly onClose: () => void;
+  readonly onCreated?: () => void | Promise<void>;
+}
+
+interface CreatedAssessment {
+  assessment_id: number;
+  title: string;
+  description: string | null;
+  duration_mins: number;
+  creator_id: number;
+  status: string;
+  created_at: string;
 }
 //mock questions
 const QUICK_QUESTIONS= [
@@ -44,10 +57,12 @@ const DEFAULT_FORM: CreateAssessmentForm = {
   techniques: [],
 };
 
-export default function CreateAssessmentPanel({ onClose }: Props) {
+export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [step, setStep] = useState(0); //more steps coming later, only 1 for now
   const[formData, setFormData] = useState<CreateAssessmentForm>(DEFAULT_FORM);
   const [selectedIds, setSelectedIds] = useState<number[]>([]); //this tracks the selected question
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const updateForm = useCallback(<K extends keyof CreateAssessmentForm>(key: K, value: CreateAssessmentForm[K]) => {
     setFormData(prev => ({...prev, [key]: value}));
@@ -59,9 +74,40 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
     );
   };
 
-  const createIt = () => {
-    console.log("creating assessment with:", {formData, selectedIds});
-    //to do: real API call will prolly go here
+  const createIt = async () => {
+    setCreateError(null);
+    setIsCreating(true);
+
+    let createdAssessmentId: number;
+    try {
+      const created = await apiPost<CreatedAssessment>(
+        "/api/v1/assessments",
+        {
+          title: formData.name,
+          description: formData.description,
+          duration_mins: formData.timeLimit,
+        },
+        { headers: getAuthHeaders() }
+      );
+      createdAssessmentId = created.assessment_id;
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create assessment.");
+      setIsCreating(false);
+      return;
+    }
+
+    for (const candidateId of formData.assignedCandidates) {
+      try {
+        await apiPost(
+          `/api/v1/assessments/${createdAssessmentId}/invite`,
+          { candidate_id: Number(candidateId) },
+          { headers: getAuthHeaders() }
+        );
+      } catch {}
+    }
+
+    setIsCreating(false);
+    await onCreated?.();
     onClose();
   }
 
@@ -232,15 +278,20 @@ export default function CreateAssessmentPanel({ onClose }: Props) {
             </div>
 
             {/* Basic Footer in the meantime*/}
-            <div className="px-7 py-4 border-t border-tertiary-surface flex justify-end bg-secondary-surface">
+            <div className="px-7 py-4 border-t border-tertiary-surface flex flex-col gap-3 bg-secondary-surface">
+              {createError && (
+                <div className="font-ibm-plex text-[12px] text-system-red">{createError}</div>
+              )}
+              <div className="flex justify-end">
               <div className="font-ibm-plex text-[12px] text-white-smoke/40 mr-auto"> Step {step+1}/3</div>
               <div className="flex gap-3">
                 {step > 0 && <button onClick={() => setStep(s => s - 1)} className="px-5 py-2 border border-default-border hover:text-white-smoke rounded-[5px] font-staatliches text-sm">BACK</button>}
                 {step < 2 ? (
                   <button onClick={() => setStep(s => s + 1)} className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white">CONTINUE</button>
                 ) : (
-                  <button onClick={createIt} className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white">CREATE ASSESSMENT</button>
+                  <button onClick={createIt} disabled={isCreating} className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white disabled:opacity-50">{isCreating ? "CREATING..." : "CREATE ASSESSMENT"}</button>
                 )}
+              </div>
               </div>
               
               

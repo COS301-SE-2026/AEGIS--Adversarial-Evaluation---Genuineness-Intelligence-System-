@@ -39,7 +39,9 @@ export default function ViewQuestionsPage() {
     let isMounted = true;
     const loadCategories = async () => {
       try {
-        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/");
+        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/", {
+          headers: getAuthHeaders(),
+        });
         if (isMounted) {
           setCategories(response);
         }
