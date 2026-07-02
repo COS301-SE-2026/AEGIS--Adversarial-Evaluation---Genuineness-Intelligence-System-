@@ -751,3 +751,167 @@ def test_create_assessment_returns_422_when_duration_missing(
         json={"title": "New Assessment"},
     )
     assert response.status_code == 422
+
+
+_ADD_QUESTION_PATCH = (
+    "app.api.routes.assessment.add_question_to_assessment"
+)
+_REMOVE_QUESTION_PATCH = (
+    "app.api.routes.assessment.remove_question_from_assessment"
+)
+
+
+def _make_mock_assessment_question(
+    assessment_q_id=1,
+    assessments_id=2,
+    adv_question_id=3,
+    display_order=1,
+    marks=5.0,
+):
+    mock_aq = MagicMock()
+    mock_aq.assessment_q_id = assessment_q_id
+    mock_aq.assessments_id = assessments_id
+    mock_aq.adv_question_id = adv_question_id
+    mock_aq.display_order = display_order
+    mock_aq.marks = marks
+    return mock_aq
+
+
+def test_add_question_returns_401_without_jwt(client, mock_db):
+    response = client.post(
+        "/api/v1/assessments/2/questions",
+        json={"adv_question_id": 3},
+    )
+    assert response.status_code == 401
+
+
+def test_add_question_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.post(
+        "/api/v1/assessments/2/questions",
+        json={"adv_question_id": 3},
+    )
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_add_question_returns_404_when_assessment_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_ADD_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={"adv_question_id": 3},
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_add_question_returns_404_when_adv_question_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=404, detail="Adversarial question not found"
+    )
+    with patch(_ADD_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={"adv_question_id": 3},
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        "Adversarial question not found"
+    )
+
+
+def test_add_question_returns_409_when_already_linked(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=409,
+        detail="This question is already linked to this assessment",
+    )
+    with patch(_ADD_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={"adv_question_id": 3},
+        )
+    assert response.status_code == 409
+    assert "already linked" in response.json()["detail"]
+
+
+def test_add_question_returns_201_with_correct_body(
+    recruiter_client, mock_db
+):
+    mock_aq = _make_mock_assessment_question()
+    with patch(_ADD_QUESTION_PATCH, return_value=mock_aq):
+        response = recruiter_client.post(
+            "/api/v1/assessments/2/questions",
+            json={
+                "adv_question_id": 3,
+                "display_order": 1,
+                "marks": 5.0,
+            },
+        )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["assessment_q_id"] == 1
+    assert body["assessments_id"] == 2
+    assert body["adv_question_id"] == 3
+    assert body["display_order"] == 1
+    assert body["marks"] == pytest.approx(5.0)
+
+
+def test_remove_question_returns_401_without_jwt(client, mock_db):
+    response = client.delete("/api/v1/assessments/2/questions/3")
+    assert response.status_code == 401
+
+
+def test_remove_question_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.delete("/api/v1/assessments/2/questions/3")
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_remove_question_returns_404_when_assessment_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_REMOVE_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.delete(
+            "/api/v1/assessments/2/questions/3"
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_remove_question_returns_404_when_link_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=404,
+        detail="Question is not linked to this assessment",
+    )
+    with patch(_REMOVE_QUESTION_PATCH, side_effect=exc):
+        response = recruiter_client.delete(
+            "/api/v1/assessments/2/questions/3"
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        "Question is not linked to this assessment"
+    )
+
+
+def test_remove_question_returns_204_with_no_body(
+    recruiter_client, mock_db
+):
+    with patch(_REMOVE_QUESTION_PATCH, return_value=None):
+        response = recruiter_client.delete(
+            "/api/v1/assessments/2/questions/3"
+        )
+    assert response.status_code == 204
+    assert response.content == b""

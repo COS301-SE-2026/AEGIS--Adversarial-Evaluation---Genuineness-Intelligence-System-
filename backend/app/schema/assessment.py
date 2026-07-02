@@ -30,6 +30,29 @@ class AssessmentCreatedResponse(BaseModel):
         from_attributes = True
 
 
+class AssessmentQuestionCreate(BaseModel):
+    adv_question_id: int = Field(
+        ..., description="ID of the adversarial question to add",
+    )
+    display_order: Optional[int] = Field(
+        None, description="Display order of the question",
+    )
+    marks: Optional[float] = Field(
+        None, description="Marks override for this question",
+    )
+
+
+class AssessmentQuestionCreatedResponse(BaseModel):
+    assessment_q_id: int
+    assessments_id: int
+    adv_question_id: int
+    display_order: Optional[int] = None
+    marks: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+
 class AssessmentResponse(BaseModel):
     assessment_id: int = Field(
         ...,

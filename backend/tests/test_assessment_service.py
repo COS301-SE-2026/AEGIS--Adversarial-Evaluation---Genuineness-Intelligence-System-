@@ -5,16 +5,20 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 
+from app.models.adversarial_question import AdversarialQuestion
 from app.models.assessment import Assessment
+from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.user import User
 from app.services.assessment import (
+    add_question_to_assessment,
     create_assessment,
     create_candidate_assessment,
     get_all_assessments,
     get_assessment_by_id,
     get_candidate_assessments,
     get_questions_for_candidate_assessment,
+    remove_question_from_assessment,
     save_candidate_response,
     start_candidate_assessment,
 )
@@ -573,3 +577,123 @@ def test_create_assessment_accepts_none_description():
     )
     assert result.description is None
     assert result.title == "No Desc"
+
+
+def _make_mock_db_for_add_question(
+    assessment_result, adv_question_result, existing_result
+):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_q = MagicMock()
+        if model is Assessment:
+            mock_q.filter.return_value.first.return_value = (
+                assessment_result
+            )
+        elif model is AdversarialQuestion:
+            mock_q.filter.return_value.first.return_value = (
+                adv_question_result
+            )
+        elif model is AssessmentQuestion:
+            mock_q.filter.return_value.first.return_value = (
+                existing_result
+            )
+        return mock_q
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_add_question_to_assessment_raises_404_when_assessment_missing():
+    mock_db = _make_mock_db_for_add_question(None, MagicMock(), None)
+    with pytest.raises(HTTPException) as exc_info:
+        add_question_to_assessment(mock_db, 1, 2)
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"
+
+
+def test_add_question_to_assessment_raises_404_when_adv_missing():
+    mock_db = _make_mock_db_for_add_question(MagicMock(), None, None)
+    with pytest.raises(HTTPException) as exc_info:
+        add_question_to_assessment(mock_db, 1, 2)
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Adversarial question not found"
+
+
+def test_add_question_to_assessment_raises_409_when_already_linked():
+    mock_db = _make_mock_db_for_add_question(
+        MagicMock(), MagicMock(), MagicMock()
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        add_question_to_assessment(mock_db, 1, 2)
+    assert exc_info.value.status_code == 409
+
+
+def test_add_question_to_assessment_creates_row_with_fields():
+    mock_db = _make_mock_db_for_add_question(
+        MagicMock(), MagicMock(), None
+    )
+
+    def refresh_side_effect(obj):
+        obj.assessment_q_id = 7
+
+    mock_db.refresh.side_effect = refresh_side_effect
+
+    result = add_question_to_assessment(
+        mock_db, 1, 2, display_order=3, marks=5.0
+    )
+
+    assert result.assessment_q_id == 7
+    assert result.assessments_id == 1
+    assert result.adv_question_id == 2
+    assert result.display_order == 3
+    assert result.marks == pytest.approx(5.0)
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
+
+
+def _make_mock_db_for_remove_question(
+    assessment_result, assessment_question_result
+):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_q = MagicMock()
+        if model is Assessment:
+            mock_q.filter.return_value.first.return_value = (
+                assessment_result
+            )
+        elif model is AssessmentQuestion:
+            mock_q.filter.return_value.first.return_value = (
+                assessment_question_result
+            )
+        return mock_q
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_remove_question_from_assessment_raises_404_no_assessment():
+    mock_db = _make_mock_db_for_remove_question(None, MagicMock())
+    with pytest.raises(HTTPException) as exc_info:
+        remove_question_from_assessment(mock_db, 1, 2)
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"
+
+
+def test_remove_question_from_assessment_raises_404_no_row():
+    mock_db = _make_mock_db_for_remove_question(MagicMock(), None)
+    with pytest.raises(HTTPException) as exc_info:
+        remove_question_from_assessment(mock_db, 1, 2)
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == (
+        "Question is not linked to this assessment"
+    )
+
+
+def test_remove_question_from_assessment_deletes_row():
+    mock_aq = MagicMock()
+    mock_db = _make_mock_db_for_remove_question(MagicMock(), mock_aq)
+    remove_question_from_assessment(mock_db, 1, 2)
+    mock_db.delete.assert_called_once_with(mock_aq)
+    mock_db.commit.assert_called_once()
