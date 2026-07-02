@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user
@@ -196,8 +196,8 @@ async def get_assessment(
 async def add_question_to_assessment_route(
     assessment_id: int,
     payload: AssessmentQuestionCreate,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
 ):
     if current_user.get("role") != "RECRUITER":
         raise HTTPException(
@@ -220,8 +220,8 @@ async def add_question_to_assessment_route(
 async def remove_question_from_assessment_route(
     assessment_id: int,
     adv_question_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
 ):
     if current_user.get("role") != "RECRUITER":
         raise HTTPException(

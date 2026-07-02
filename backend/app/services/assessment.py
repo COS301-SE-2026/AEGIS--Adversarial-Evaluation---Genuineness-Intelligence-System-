@@ -13,6 +13,8 @@ from app.models.adversarial_question import AdversarialQuestion
 from app.models.user import User
 from app.schema.candidate_response import ResponseCreate
 
+ASSESSMENT_NOT_FOUND = "Assessment not found"
+
 
 def _norm(v):
     return str(v).strip().lower()
@@ -398,7 +400,7 @@ def add_question_to_assessment(
     if assessment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found",
+            detail=ASSESSMENT_NOT_FOUND,
         )
 
     adversarial_question = (
@@ -455,7 +457,7 @@ def remove_question_from_assessment(
     if assessment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found",
+            detail=ASSESSMENT_NOT_FOUND,
         )
 
     assessment_question = (
@@ -489,7 +491,7 @@ def create_candidate_assessment(
     if assessment is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found",
+            detail=ASSESSMENT_NOT_FOUND,
         )
 
     candidate = (

@@ -647,7 +647,7 @@ def test_add_question_to_assessment_creates_row_with_fields():
     assert result.assessments_id == 1
     assert result.adv_question_id == 2
     assert result.display_order == 3
-    assert result.marks == 5.0
+    assert result.marks == pytest.approx(5.0)
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
 
