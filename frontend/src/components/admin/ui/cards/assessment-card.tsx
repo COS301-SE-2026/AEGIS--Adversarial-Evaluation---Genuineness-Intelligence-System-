@@ -31,15 +31,18 @@ interface InviteResponse {
   access_link: string;
 }
 
-function StatusBadge({ status = "pending" }: { status?: AdminCardAssessment["status"] }) {
-  const config = {
+function StatusBadge({ status = "pending" }: { status?: string }) {
+  const config: Record<string, { cls: string; text: string }> = {
     active:  { cls: "bg-[rgba(56,142,60,0.18)] text-[#66BB6A] border border-[rgba(56,142,60,0.3)]",  text: "ACTIVE"  },
     closed:  { cls: "bg-[rgba(51,51,49,0.6)] text-[rgba(245,245,245,0.42)] border border-[#333331]", text: "CLOSED"  },
     pending: { cls: "bg-[rgba(249,168,37,0.15)] text-[#FFCA28] border border-[rgba(249,168,37,0.3)]",text: "PENDING" },
     draft:   { cls: "bg-[rgba(21,101,192,0.15)] text-[#64B5F6] border border-[rgba(21,101,192,0.3)]",text: "DRAFT"   },
-  } as const;
+  };
 
-  const { cls, text } = config[status ?? "pending"];
+  const { cls, text } = config[status] ?? {
+    cls: "bg-[rgba(153,153,153,0.15)] text-[rgba(245,245,245,0.6)] border border-[rgba(153,153,153,0.3)]",
+    text: status,
+  };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-[5px] font-jetbrains text-[9px] tracking-[0.04em] whitespace-nowrap ${cls}`}>
       {text}
@@ -243,7 +246,7 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
         <div className="font-staatliches text-lg tracking-[0.04em] leading-[1.1] text-white-smoke flex-1 pr-2.5">
           {a.title}
         </div>
-        <StatusBadge status={a.status} />
+        <StatusBadge status={a.status?.toLowerCase()} />
       </div>
 
       <div className="flex flex-wrap gap-2.5 mb-3 font-jetbrains text-[10px] text-white-smoke/40">
