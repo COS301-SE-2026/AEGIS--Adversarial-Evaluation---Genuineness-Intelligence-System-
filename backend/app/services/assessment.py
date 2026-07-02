@@ -383,6 +383,99 @@ def create_assessment(
     return assessment
 
 
+def add_question_to_assessment(
+    db: Session,
+    assessment_id: int,
+    adv_question_id: int,
+    display_order: int | None = None,
+    marks: float | None = None,
+) -> AssessmentQuestion:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+
+    adversarial_question = (
+        db.query(AdversarialQuestion)
+        .filter(
+            AdversarialQuestion.adv_question_id == adv_question_id
+        )
+        .first()
+    )
+    if adversarial_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Adversarial question not found",
+        )
+
+    existing = (
+        db.query(AssessmentQuestion)
+        .filter(
+            AssessmentQuestion.assessments_id == assessment_id,
+            AssessmentQuestion.adv_question_id == adv_question_id,
+        )
+        .first()
+    )
+    if existing is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "This question is already linked to this assessment"
+            ),
+        )
+
+    assessment_question = AssessmentQuestion(
+        assessments_id=assessment_id,
+        adv_question_id=adv_question_id,
+        display_order=display_order,
+        marks=marks,
+    )
+    db.add(assessment_question)
+    db.commit()
+    db.refresh(assessment_question)
+    return assessment_question
+
+
+def remove_question_from_assessment(
+    db: Session,
+    assessment_id: int,
+    adv_question_id: int,
+) -> None:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+
+    assessment_question = (
+        db.query(AssessmentQuestion)
+        .filter(
+            AssessmentQuestion.assessments_id == assessment_id,
+            AssessmentQuestion.adv_question_id == adv_question_id,
+        )
+        .first()
+    )
+    if assessment_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Question is not linked to this assessment",
+        )
+
+    db.delete(assessment_question)
+    db.commit()
+
+
 def create_candidate_assessment(
     db: Session,
     assessment_id: int,
