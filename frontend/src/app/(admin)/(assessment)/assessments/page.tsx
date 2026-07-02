@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "../../../../components/admin/layouts/sidebar";
 import AdminTopbar from "../../../../components/admin/layouts/topbar";
@@ -42,34 +42,30 @@ export default function AssessmentsPage() {
     checkAuth();
   }, [router]);
 
+  const loadAssessments = useCallback(async () => {
+    try {
+      setLoadingData(true);
+      setDataError(null);
+      const data = await apiGet<ApiAssessment[]>("/api/v1/assessments", {
+        headers: getAuthHeaders(),
+      });
+      setAssessments(data);
+    } catch (err) {
+      setDataError(
+        err instanceof Error ? err.message : "Failed to load assessments."
+      );
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!authChecked) return;
-
-    let isMounted = true;
-    const loadAssessments = async () => {
-      try {
-        setLoadingData(true);
-        setDataError(null);
-        const data = await apiGet<ApiAssessment[]>("/api/v1/assessments", {
-          headers: getAuthHeaders(),
-        });
-        if (isMounted) setAssessments(data);
-      } catch (err) {
-        if (isMounted) {
-          setDataError(
-            err instanceof Error ? err.message : "Failed to load assessments."
-          );
-        }
-      } finally {
-        if (isMounted) setLoadingData(false);
-      }
+    const load = async () => {
+      await loadAssessments();
     };
-
-    loadAssessments();
-    return () => {
-      isMounted = false;
-    };
-  }, [authChecked]);
+    load();
+  }, [authChecked, loadAssessments]);
 
   if (!authChecked) {
     return (
@@ -151,7 +147,10 @@ export default function AssessmentsPage() {
       </div>
 
       {panelOpen && (
-        <CreateAssessmentPanel onClose={() => setPanelOpen(false)} />
+        <CreateAssessmentPanel
+          onClose={() => setPanelOpen(false)}
+          onCreated={loadAssessments}
+        />
       )}
     </div>
   );
