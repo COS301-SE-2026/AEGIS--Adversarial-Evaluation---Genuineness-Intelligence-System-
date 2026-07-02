@@ -25,17 +25,19 @@ const ConfirmationModal = ({
   isDanger = false
 }: ModalProps) => {
 
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.key === "Escape") {
-      onClose();
-    }
-  }
+
 
   useEffect(() => {
     if (!isOpen) return;
+
+      function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+  }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

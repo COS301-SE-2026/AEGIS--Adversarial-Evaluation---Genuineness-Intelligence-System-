@@ -394,6 +394,7 @@ export default function ViewQuestionsPage() {
         key={isCreateOpen ? "create" : (editQuestionId ?? "closed")}
         isOpen={isCreateOpen || editQuestionId !== null}
         mode={isCreateOpen ? "create" : "edit"}
+        isSaving={isSaving}
         question_id={editQuestionId}
         questions={questions}
         categories={categories}

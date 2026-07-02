@@ -8,6 +8,7 @@ export default function Home() {
           src="/illustrations/hero-background.jpg"
           alt="Background"
           fill
+          sizes="100vw"
           className="absolute inset-0 object-cover brightness-14 -z-10 "
           priority
         />

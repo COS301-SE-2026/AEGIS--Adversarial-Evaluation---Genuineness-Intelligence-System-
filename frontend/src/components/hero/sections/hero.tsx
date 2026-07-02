@@ -24,7 +24,7 @@ const Hero = () => {
                     </span>
                 </h2>
                 <div className="flex items-center gap-4 lg:gap-5 xl:gap-6 2xl:gap-7 3xl:gap-8 pt-4 lg:pt-6 xl:pt-8 2xl:pt-10 3xl:pt-12">
-                    <Link href="/login">
+                    <Link href="/auth?mode=login">
                         <Button variant="solid">Get Started</Button>                
                     </Link>
                     <Link href="/resources/guides">
@@ -38,6 +38,7 @@ const Hero = () => {
             <Image
                 src="/illustrations/hero-image.jpg"
                 alt="Welder in protective mask"
+                sizes="100vw"
                 fill
                 className="object-cover grayscale"
                 priority
