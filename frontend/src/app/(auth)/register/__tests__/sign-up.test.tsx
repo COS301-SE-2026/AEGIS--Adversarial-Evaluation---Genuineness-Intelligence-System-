@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Register from '../page';
+import Register from '../../../../components/admin/ui/input/auth-form';
 
 // integration test for Resgister Component.
 
