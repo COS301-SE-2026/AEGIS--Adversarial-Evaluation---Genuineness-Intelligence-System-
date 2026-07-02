@@ -71,6 +71,7 @@ def test_list_assessments_returns_200_with_list(client, mock_db):
     mock_a.title = "Test Assessment"
     mock_a.description = "A description"
     mock_a.duration_mins = 60
+    mock_a.status = "Draft"
     mock_a.created_at = datetime(2025, 1, 1)
 
     _setup_list(mock_db, [mock_a])
@@ -90,6 +91,47 @@ def test_list_assessments_returns_empty_list(client, mock_db):
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_list_assessments_response_includes_status(client, mock_db):
+    mock_a = MagicMock()
+    mock_a.assessment_id = 1
+    mock_a.title = "Test Assessment"
+    mock_a.description = "A description"
+    mock_a.duration_mins = 60
+    mock_a.status = "Active"
+    mock_a.created_at = datetime(2025, 1, 1)
+
+    _setup_list(mock_db, [mock_a])
+    response = client.get("/api/v1/assessments/")
+
+    assert response.status_code == 200
+    assert response.json()[0]["status"] == "Active"
+
+
+_LIST_PATCH = "app.api.routes.assessment.get_all_assessments"
+
+
+def test_list_assessments_passes_query_params_to_service(client, mock_db):
+    with patch(_LIST_PATCH, return_value=[]) as mock_get_all:
+        response = client.get(
+            "/api/v1/assessments/",
+            params={
+                "search": "python",
+                "status": "Draft",
+                "limit": 10,
+                "offset": 5,
+            },
+        )
+    assert response.status_code == 200
+    mock_get_all.assert_called_once_with(mock_db, "python", "Draft", 10, 5)
+
+
+def test_list_assessments_defaults_filters_to_none(client, mock_db):
+    with patch(_LIST_PATCH, return_value=[]) as mock_get_all:
+        response = client.get("/api/v1/assessments/")
+    assert response.status_code == 200
+    mock_get_all.assert_called_once_with(mock_db, None, None, None, None)
 
 
 def test_get_assessment_returns_200_with_correct_data(
@@ -915,3 +957,152 @@ def test_remove_question_returns_204_with_no_body(
         )
     assert response.status_code == 204
     assert response.content == b""
+
+
+_UPDATE_PATCH = "app.api.routes.assessment.update_assessment"
+_ACTIVATE_PATCH = "app.api.routes.assessment.activate_assessment"
+
+
+def _make_mock_updated_assessment():
+    mock_a = MagicMock()
+    mock_a.assessment_id = 10
+    mock_a.title = "Updated Title"
+    mock_a.description = "Updated description"
+    mock_a.duration_mins = 90
+    mock_a.creator_id = 5
+    mock_a.status = "Draft"
+    mock_a.created_at = datetime(2025, 1, 1)
+    return mock_a
+
+
+def test_update_assessment_returns_200(recruiter_client, mock_db):
+    mock_a = _make_mock_updated_assessment()
+    with patch(_UPDATE_PATCH, return_value=mock_a):
+        response = recruiter_client.patch(
+            "/api/v1/assessments/10",
+            json={"title": "Updated Title"},
+        )
+    assert response.status_code == 200
+
+
+def test_update_assessment_response_has_correct_fields(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_updated_assessment()
+    with patch(_UPDATE_PATCH, return_value=mock_a):
+        response = recruiter_client.patch(
+            "/api/v1/assessments/10",
+            json={"title": "Updated Title"},
+        )
+    body = response.json()
+    assert body["assessment_id"] == 10
+    assert body["title"] == "Updated Title"
+    assert body["duration_mins"] == 90
+    assert body["creator_id"] == 5
+    assert body["status"] == "Draft"
+
+
+def test_update_assessment_returns_401_without_jwt(client, mock_db):
+    response = client.patch(
+        "/api/v1/assessments/10",
+        json={"title": "Updated Title"},
+    )
+    assert response.status_code == 401
+
+
+def test_update_assessment_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.patch(
+        "/api/v1/assessments/10",
+        json={"title": "Updated Title"},
+    )
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_update_assessment_returns_404_when_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_UPDATE_PATCH, side_effect=exc):
+        response = recruiter_client.patch(
+            "/api/v1/assessments/999",
+            json={"title": "Updated Title"},
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_update_assessment_returns_422_for_invalid_duration(
+    recruiter_client, mock_db
+):
+    response = recruiter_client.patch(
+        "/api/v1/assessments/10",
+        json={"duration_mins": 0},
+    )
+    assert response.status_code == 422
+
+
+def test_update_assessment_passes_only_provided_fields(
+    recruiter_client, mock_db
+):
+    mock_a = _make_mock_updated_assessment()
+    with patch(_UPDATE_PATCH, return_value=mock_a) as mock_update:
+        recruiter_client.patch(
+            "/api/v1/assessments/10",
+            json={"title": "Updated Title"},
+        )
+    mock_update.assert_called_once_with(
+        mock_db, 10, "Updated Title", None, None
+    )
+
+
+def test_activate_assessment_returns_200(recruiter_client, mock_db):
+    mock_a = _make_mock_updated_assessment()
+    mock_a.status = "Active"
+    with patch(_ACTIVATE_PATCH, return_value=mock_a):
+        response = recruiter_client.post(
+            "/api/v1/assessments/10/activate"
+        )
+    assert response.status_code == 200
+    assert response.json()["status"] == "Active"
+
+
+def test_activate_assessment_returns_401_without_jwt(client, mock_db):
+    response = client.post("/api/v1/assessments/10/activate")
+    assert response.status_code == 401
+
+
+def test_activate_assessment_returns_403_for_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.post("/api/v1/assessments/10/activate")
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+def test_activate_assessment_returns_404_when_not_found(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(status_code=404, detail="Assessment not found")
+    with patch(_ACTIVATE_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/999/activate"
+        )
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment not found"
+
+
+def test_activate_assessment_returns_400_when_not_draft(
+    recruiter_client, mock_db
+):
+    exc = HTTPException(
+        status_code=400,
+        detail="Only draft assessments can be activated",
+    )
+    with patch(_ACTIVATE_PATCH, side_effect=exc):
+        response = recruiter_client.post(
+            "/api/v1/assessments/10/activate"
+        )
+    assert response.status_code == 400

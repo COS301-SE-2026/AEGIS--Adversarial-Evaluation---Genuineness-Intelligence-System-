@@ -13,6 +13,7 @@ from app.schema.assessment import (
     AssessmentCreatedResponse,
     AssessmentQuestionCreate,
     AssessmentQuestionCreatedResponse,
+    AssessmentUpdate,
 )
 from app.services.assessment import (
     get_all_assessments,
@@ -25,6 +26,8 @@ from app.services.assessment import (
     create_candidate_assessment,
     start_candidate_assessment,
     create_assessment,
+    update_assessment,
+    activate_assessment,
     add_question_to_assessment,
     remove_question_from_assessment,
 )
@@ -46,6 +49,7 @@ class AssessmentListItem(BaseModel):
     title: str
     description: Optional[str] = None
     duration_mins: int
+    status: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -74,8 +78,14 @@ class AssessmentDetailResponse(BaseModel):
 
 
 @router.get("/", response_model=List[AssessmentListItem])
-async def list_assessments(db: Session = Depends(get_db)):
-    return get_all_assessments(db)
+async def list_assessments(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    db: Session = Depends(get_db),
+):
+    return get_all_assessments(db, search, status, limit, offset)
 
 
 @router.post(
@@ -186,6 +196,47 @@ async def get_assessment(
             for aq in assessment.assessment_questions
         ],
     }
+
+
+@router.patch(
+    "/{assessment_id}",
+    response_model=AssessmentCreatedResponse,
+)
+async def update_assessment_route(
+    assessment_id: int,
+    payload: AssessmentUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can update assessments.",
+        )
+    return update_assessment(
+        db,
+        assessment_id,
+        payload.title,
+        payload.description,
+        payload.duration_mins,
+    )
+
+
+@router.post(
+    "/{assessment_id}/activate",
+    response_model=AssessmentCreatedResponse,
+)
+async def activate_assessment_route(
+    assessment_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can activate assessments.",
+        )
+    return activate_assessment(db, assessment_id)
 
 
 @router.post(

@@ -11,6 +11,7 @@ from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.user import User
 from app.services.assessment import (
+    activate_assessment,
     add_question_to_assessment,
     create_assessment,
     create_candidate_assessment,
@@ -21,6 +22,7 @@ from app.services.assessment import (
     remove_question_from_assessment,
     save_candidate_response,
     start_candidate_assessment,
+    update_assessment,
 )
 from app.schema.candidate_response import ResponseCreate
 
@@ -79,6 +81,50 @@ def test_get_all_assessments_items_have_required_fields():
     assert item.description == "A description"
     assert item.duration_mins == 60
     assert item.created_at == datetime(2025, 1, 1)
+
+
+def _make_mock_db_chain(final_result):
+    mock_db = MagicMock()
+    chain = mock_db.query.return_value
+    chain.filter.return_value = chain
+    chain.offset.return_value = chain
+    chain.limit.return_value = chain
+    chain.all.return_value = final_result
+    return mock_db, chain
+
+
+def test_get_all_assessments_no_filters_applies_none():
+    mock_db, chain = _make_mock_db_chain([MagicMock()])
+    result = get_all_assessments(mock_db)
+    chain.filter.assert_not_called()
+    chain.offset.assert_not_called()
+    chain.limit.assert_not_called()
+    assert len(result) == 1
+
+
+def test_get_all_assessments_applies_search_filter():
+    mock_db, chain = _make_mock_db_chain([])
+    get_all_assessments(mock_db, search="python")
+    chain.filter.assert_called_once()
+
+
+def test_get_all_assessments_applies_status_filter():
+    mock_db, chain = _make_mock_db_chain([])
+    get_all_assessments(mock_db, status="Draft")
+    chain.filter.assert_called_once()
+
+
+def test_get_all_assessments_applies_search_and_status_filters():
+    mock_db, chain = _make_mock_db_chain([])
+    get_all_assessments(mock_db, search="python", status="Draft")
+    assert chain.filter.call_count == 2
+
+
+def test_get_all_assessments_applies_limit_and_offset():
+    mock_db, chain = _make_mock_db_chain([])
+    get_all_assessments(mock_db, limit=10, offset=5)
+    chain.offset.assert_called_once_with(5)
+    chain.limit.assert_called_once_with(10)
 
 
 def test_get_assessment_by_id_returns_none_when_not_found():
@@ -697,3 +743,98 @@ def test_remove_question_from_assessment_deletes_row():
     remove_question_from_assessment(mock_db, 1, 2)
     mock_db.delete.assert_called_once_with(mock_aq)
     mock_db.commit.assert_called_once()
+
+
+def _make_mock_db_for_assessment(assessment_result):
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = (
+        assessment_result
+    )
+    return mock_db
+
+
+def test_update_assessment_raises_404_when_not_found():
+    mock_db = _make_mock_db_for_assessment(None)
+    with pytest.raises(HTTPException) as exc_info:
+        update_assessment(mock_db, 1, title="New title")
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"
+
+
+def test_update_assessment_updates_only_provided_fields():
+    mock_a = MagicMock()
+    mock_a.title = "Old title"
+    mock_a.description = "Old description"
+    mock_a.duration_mins = 30
+    mock_db = _make_mock_db_for_assessment(mock_a)
+
+    result = update_assessment(mock_db, 1, title="New title")
+
+    assert result.title == "New title"
+    assert result.description == "Old description"
+    assert result.duration_mins == 30
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
+
+
+def test_update_assessment_updates_all_provided_fields():
+    mock_a = MagicMock()
+    mock_db = _make_mock_db_for_assessment(mock_a)
+
+    result = update_assessment(
+        mock_db,
+        1,
+        title="New title",
+        description="New description",
+        duration_mins=45,
+    )
+
+    assert result.title == "New title"
+    assert result.description == "New description"
+    assert result.duration_mins == 45
+
+
+def test_update_assessment_no_fields_leaves_values_unchanged():
+    mock_a = MagicMock()
+    mock_a.title = "Old title"
+    mock_a.description = "Old description"
+    mock_a.duration_mins = 30
+    mock_db = _make_mock_db_for_assessment(mock_a)
+
+    result = update_assessment(mock_db, 1)
+
+    assert result.title == "Old title"
+    assert result.description == "Old description"
+    assert result.duration_mins == 30
+
+
+def test_activate_assessment_raises_404_when_not_found():
+    mock_db = _make_mock_db_for_assessment(None)
+    with pytest.raises(HTTPException) as exc_info:
+        activate_assessment(mock_db, 1)
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"
+
+
+def test_activate_assessment_raises_400_when_not_draft():
+    mock_a = MagicMock()
+    mock_a.status = "Active"
+    mock_db = _make_mock_db_for_assessment(mock_a)
+    with pytest.raises(HTTPException) as exc_info:
+        activate_assessment(mock_db, 1)
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == (
+        "Only draft assessments can be activated"
+    )
+
+
+def test_activate_assessment_sets_status_to_active():
+    mock_a = MagicMock()
+    mock_a.status = "Draft"
+    mock_db = _make_mock_db_for_assessment(mock_a)
+
+    result = activate_assessment(mock_db, 1)
+
+    assert result.status == "Active"
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()

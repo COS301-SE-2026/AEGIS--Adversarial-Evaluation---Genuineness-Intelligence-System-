@@ -30,6 +30,12 @@ class AssessmentCreatedResponse(BaseModel):
         from_attributes = True
 
 
+class AssessmentUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1)
+    description: Optional[str] = None
+    duration_mins: Optional[int] = Field(None, gt=0)
+
+
 class AssessmentQuestionCreate(BaseModel):
     adv_question_id: int = Field(
         ..., description="ID of the adversarial question to add",
