@@ -113,12 +113,7 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
 
   //will add the other sections later
   return(
-    <div className="fixed inset-0 bg-black/60 z-50 flex justify-end" onClick={(e) => e.target === e.currentTarget && onClose()} onKeyDown={(e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      
-    }
-  }}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-end" onClick={(e) => e.target === e.currentTarget && onClose()}>
     <div className="w-[720px] max-w-[95vw] bg-secondary-surface border-l border-tertiary-surface flex flex-col h-full overflow-hidden">
       {/* Header */}
     <div className="px-7 py-5 border-b border-tertiary-surface flex items-center justify-between">
