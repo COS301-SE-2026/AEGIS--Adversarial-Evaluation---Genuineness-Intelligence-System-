@@ -11,6 +11,8 @@ from app.schema.candidate_assessment import InviteCreate
 from app.schema.assessment import (
     AssessmentCreate,
     AssessmentCreatedResponse,
+    AssessmentQuestionCreate,
+    AssessmentQuestionCreatedResponse,
 )
 from app.services.assessment import (
     get_all_assessments,
@@ -23,6 +25,8 @@ from app.services.assessment import (
     create_candidate_assessment,
     start_candidate_assessment,
     create_assessment,
+    add_question_to_assessment,
+    remove_question_from_assessment,
 )
 from app.schema.candidate_response import (
     CandidateResponseResponse,
@@ -182,6 +186,49 @@ async def get_assessment(
             for aq in assessment.assessment_questions
         ],
     }
+
+
+@router.post(
+    "/{assessment_id}/questions",
+    response_model=AssessmentQuestionCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_question_to_assessment_route(
+    assessment_id: int,
+    payload: AssessmentQuestionCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can modify assessment questions.",
+        )
+    return add_question_to_assessment(
+        db,
+        assessment_id,
+        payload.adv_question_id,
+        payload.display_order,
+        payload.marks,
+    )
+
+
+@router.delete(
+    "/{assessment_id}/questions/{adv_question_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def remove_question_from_assessment_route(
+    assessment_id: int,
+    adv_question_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can modify assessment questions.",
+        )
+    remove_question_from_assessment(db, assessment_id, adv_question_id)
 
 
 @candidate_response_router.post(
