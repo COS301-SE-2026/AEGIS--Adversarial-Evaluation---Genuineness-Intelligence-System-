@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import ARRAY
 
 class QuestionType(enum.Enum):
     MULTIPLE_CHOICE = "MULTIPLE_CHOICE"
-    TEXT = "TEXT"
+    FILL_IN_THE_BLANK = "FILL_IN_THE_BLANK"
     CODING = "CODING"
 
 
