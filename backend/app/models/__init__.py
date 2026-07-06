@@ -11,6 +11,7 @@ from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
 from app.models.adversarial_question import AdversarialQuestion
+from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.ai_analysis import AIAnalysis
 from app.models.coding_test_cases import CodingTestCase
 from app.models.candidate_test_results import CandidateTestResult
@@ -30,6 +31,7 @@ __all__ = [
     "CandidateResponse",
     "CorrectnessStatus",
     "AdversarialQuestion",
+    "AdversarialStrategy",
     "AIAnalysis",
     "CodingTestCase",
     "CandidateTestResult"

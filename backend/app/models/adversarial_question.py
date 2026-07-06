@@ -11,11 +11,15 @@ class AdversarialQuestion(Base):
                                 ForeignKey("question_bank.question_bank_id"),
                                 nullable=False)
     content = Column(Text, nullable=False, default="")
-    strategy_used = Column(Text, nullable=False)
+    strategy_id = Column(Integer,
+                         ForeignKey("adversarial_strategies.strategy_id"),
+                         nullable=False)
     llm = Column(String, nullable=True)
     generated_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
 
     source_question = relationship("QuestionBank",
                                    back_populates="adversarial_questions")
+    strategy = relationship("AdversarialStrategy",
+                            back_populates="adversarial_questions")
     assessment_questions = relationship("AssessmentQuestion",
                                         back_populates="adversarial_question")

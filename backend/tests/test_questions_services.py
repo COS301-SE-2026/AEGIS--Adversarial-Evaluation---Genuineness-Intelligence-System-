@@ -24,7 +24,7 @@ def test_create_source_question_success():
     question = create_source_question(mock_db, payload)
     assert question.title == "Python Basics"
     assert question.content == "What is Python?"
-    assert question.type.value == "TEXT"
+    assert question.type.value == "FILL_IN_THE_BLANK"
     assert question.maximum_score == 10
     assert question.tags == ["python"]
     mock_db.add.assert_called_once()
