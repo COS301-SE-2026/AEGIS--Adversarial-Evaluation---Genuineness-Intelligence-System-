@@ -13,17 +13,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # this is added so codecov can correctly trace commit history
 
       - name: Install pnpm
-        uses: pnpm/action-setup@4
+        uses: pnpm/action-setup@v4
         with:
           version: 9
 
       - name: Set up Node.js
-        uses: actions/setup-node@4
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
@@ -32,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore Next.js Cache
-        uses: actions/cache@4
+        uses: actions/cache@v4
         with:
           path: frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
