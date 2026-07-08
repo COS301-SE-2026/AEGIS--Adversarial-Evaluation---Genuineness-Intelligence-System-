@@ -43,18 +43,16 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
   const validate = (): boolean => {
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
-    const confirmError = validatePasswordMatch(formData.password, formData.confirmPassword);
-    setErrors({
-      email: emailError || "",
-      password: passwordError || "",
-      confirmPassword: confirmError || ""
-    });
-    setTouched({ email: true, password: true, confirmPassword: true });
-
+    
     if(mode === "login") {
+      setErrors(prev => ({...prev, email: emailError || "", password: passwordError || ""}));
+      setTouched(prev => ({...prev, email: true, password: true}));
       return !emailError && !passwordError;
     }
-
+    
+    const confirmError = validatePasswordMatch(formData.password, formData.confirmPassword);
+    setErrors({email: emailError || "", password: passwordError || "", confirmPassword: confirmError || ""});
+    setTouched({ email: true, password: true, confirmPassword: true });
     return !emailError && !passwordError && !confirmError;
   }
 
@@ -100,7 +98,16 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
 
       localStorage.setItem("aegis_token", data.access_token);
       localStorage.setItem("aegis_role", data.role);
-      router.push("/assessment");
+      
+      if(data.role === "RECRUITER") {
+        router.push("/assessments");
+      }
+      else if(data.role === "CANDIDATE") {
+        router.push("/assessment");
+      }
+      else {
+        router.push("/auth/login");
+      }
     } catch {
       setServerError("Server unreachable.");
     } finally {
