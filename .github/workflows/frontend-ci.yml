@@ -4,21 +4,24 @@ on:
   pull_request:
     branches: [main, master, dev]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout<PINNED_SHA>
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup<PINNED_SHA>
         with:
           version: 10
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node<PINNED_SHA>
         with:
           node-version: 20
           cache: 'pnpm'
@@ -27,7 +30,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore Next.js Cache
-        uses: actions/cache@v4
+        uses: actions/cache<PINNED_SHA>
         with:
           path: frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
@@ -45,6 +48,6 @@ jobs:
         run: pnpm --dir frontend test --coverage --coverageReporters=lcov --passWithNoTests
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v5<40-character-commit-sha>
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
