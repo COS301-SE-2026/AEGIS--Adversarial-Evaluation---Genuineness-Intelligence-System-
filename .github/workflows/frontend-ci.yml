@@ -7,45 +7,42 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
-
-      - name: Next.js Cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-${{ hashFiles('**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('**/pnpm-lock.yaml') }}-
-
+          
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Restore Next.js Cache
+        uses: actions/cache@v4
+        with:
+          path: frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
+
+
       - name: Run Linter
-        run: pnpm lint
+        run: pnpm --dir frontend lint
 
       - name: Build Application
-        run: pnpm build
+        run: pnpm --dir frontend build
 
       - name: Run tests with coverage
-        run: pnpm jest --coverage --coverageReporters=lcov --passWithNoTests
+        run: pnpm --dir frontend test --coverage --coverageReporters=lcov --passWithNoTests
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
