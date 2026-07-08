@@ -20,10 +20,10 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5df2 # v4.0.0
         with:
-          version: 10
+          version: 9
 
       - name: Set up Node.js
-        uses: actions/setup-node@1d511d11b68cf5a033d68623657a0cb3e45330ad # v4.2.0
+        uses: actions/setup-node@39225d34a2428c94226b2849866650917f35759b # v4.2.0
         with:
           node-version: 20
           cache: 'pnpm'
@@ -32,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore Next.js Cache
-        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        uses: actions/cache@d4323d4df104b026a6e563059ef1585740426fac # v4.2.2
         with:
           path: frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
