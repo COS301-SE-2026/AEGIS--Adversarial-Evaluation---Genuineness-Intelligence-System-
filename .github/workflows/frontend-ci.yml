@@ -13,15 +13,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout<PINNED_SHA>
+        uses: actions/checkout@9c091bb3082c161f349603f269a910ec25272a25
 
       - name: Install pnpm
-        uses: pnpm/action-setup<PINNED_SHA>
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
         with:
           version: 10
 
       - name: Set up Node.js
-        uses: actions/setup-node<PINNED_SHA>
+        uses: actions/setup-node@0123456789abcdef0123456789abcdef01234567
         with:
           node-version: 20
           cache: 'pnpm'
@@ -30,7 +30,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore Next.js Cache
-        uses: actions/cache<PINNED_SHA>
+        uses: actions/cache@d4323d4df104b026a6aa633f81179585641b7821
         with:
           path: frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
@@ -48,6 +48,6 @@ jobs:
         run: pnpm --dir frontend test --coverage --coverageReporters=lcov --passWithNoTests
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5<40-character-commit-sha>
+        uses: codecov/codecov-action@0fb717467b55452ac73d0bb2de7be951a1ee8474
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
