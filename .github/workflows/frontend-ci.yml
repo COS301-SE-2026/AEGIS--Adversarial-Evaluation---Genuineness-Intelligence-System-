@@ -13,15 +13,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb3082c161f349603f269a910ec25272a25
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0 # this is added so codecov can correctly trace commit history
 
       - name: Install pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271
+        uses: pnpm/action-setup@fe02b34f77f8bc703788d5817da081398fad5df2 # v4.0.0
         with:
           version: 10
 
       - name: Set up Node.js
-        uses: actions/setup-node@0123456789abcdef0123456789abcdef01234567
+        uses: actions/setup-node@1d511d11b68cf5a033d68623657a0cb3e45330ad # v4.2.0
         with:
           node-version: 20
           cache: 'pnpm'
@@ -30,7 +32,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Restore Next.js Cache
-        uses: actions/cache@d4323d4df104b026a6aa633f81179585641b7821
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
@@ -48,6 +50,6 @@ jobs:
         run: pnpm --dir frontend test --coverage --coverageReporters=lcov --passWithNoTests
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@0fb717467b55452ac73d0bb2de7be951a1ee8474
+        uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
