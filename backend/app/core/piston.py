@@ -60,3 +60,28 @@ class PistonClient:
             runtimes = self._request("GET", "/runtimes")
             self.runtime_cache = runtimes if isinstance(runtimes, list) else []
         return self.runtime_cache
+
+    def resolve_runtime(
+        self,
+        language: str,
+        version: str | None = None,
+    ) -> tuple[str, str, str]:
+        normalized = language.strip().lower()
+
+        for runtime in self.list_runtimes():
+            language_name = str(runtime.get("language", "")).lower()
+            aliases = {
+                str(a).lower()
+                for a in runtime.get("aliases", []) or []}
+
+            if normalized in {language_name, *aliases}:
+                target_version = version or runtime.get("version")
+                if target_version:
+                    ext = normalized if len(normalized) <= 3 else language_name[:3]
+                    file_name = f"main.{ ext }"
+                    return language_name, file_name, str(target_version)
+
+        raise PistonError(
+            f"No Piston runtime found for language '{normalized}'."
+            )
+
