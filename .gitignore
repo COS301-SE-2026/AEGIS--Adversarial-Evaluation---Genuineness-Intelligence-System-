@@ -39,3 +39,6 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+
+# Piston Sandbox Binaries
+sandbox/piston_packages/

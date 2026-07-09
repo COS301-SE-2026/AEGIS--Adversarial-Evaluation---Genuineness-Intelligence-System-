@@ -79,6 +79,66 @@ The script will ask for the database URL — get it from a teammate.
 Server will be available at: `http://localhost:8000`
 API documentation: `http://localhost:8000/docs`
 
+## Local Development Sandbox Setup
+
+We use **Piston** to securely execute untrusted Python code in an isolated Docker container.
+
+### Prerequisites
+
+- Docker Desktop or Docker Engine
+- Docker Compose
+- A running Docker daemon
+
+### 1. Start the Piston sandbox
+
+From the repository root, start the sandbox container:
+
+```bash
+cd sandbox
+docker compose up -d
+```
+
+The compose file defaults to `linux/amd64` for broad compatibility. If a machine needs a different platform, set `PISTON_PLATFORM` before starting the container.
+
+### 2. Verify the sandbox API
+
+Check that the Piston API is online:
+
+```bash
+curl http://localhost:2000/api/v2/runtimes
+```
+
+If Python has not been installed yet, the runtime list will be empty. Install the Python runtime using the Piston CLI:
+
+```bash
+git clone https://github.com/engineer-man/piston /tmp/piston
+cd /tmp/piston/cli
+npm install
+node index.js -u http://localhost:2000 ppman install python
+```
+
+After installation, `curl http://localhost:2000/api/v2/runtimes` should list a Python runtime such as `3.12.0`.
+
+### 3. Code execution test
+Run a simple Python program through the sandbox:
+
+```bash
+curl -X POST http://localhost:2000/api/v2/execute \
+   -H "Content-Type: application/json" \
+   -d '{
+      "language": "python",
+      "version": "3.12.0",
+      "files": [
+         {
+            "name": "main.py",
+            "content": "print(input())"
+         }
+      ],
+      "stdin": "hello"
+   }'
+```
+If the sandbox is configured correctly, the response will return `hello` in the `run.stdout` field.
+
 ## Database
 
 - PostgreSQL 15
