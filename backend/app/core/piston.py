@@ -67,21 +67,36 @@ class PistonClient:
         version: str | None = None,
     ) -> tuple[str, str, str]:
         normalized = language.strip().lower()
-
         for runtime in self.list_runtimes():
-            language_name = str(runtime.get("language", "")).lower()
+            lang = str(runtime.get("language", "")).lower()
             aliases = {
                 str(a).lower()
                 for a in runtime.get("aliases", []) or []}
-
-            if normalized in {language_name, *aliases}:
+            if normalized in {lang, *aliases}:
                 target_version = version or runtime.get("version")
                 if target_version:
-                    ext = normalized if len(normalized) <= 3 else language_name[:3]
+                    ext = normalized if len(normalized) <= 3 else lang[:3]
                     file_name = f"main.{ ext }"
-                    return language_name, file_name, str(target_version)
+                    return lang, file_name, str(target_version)
 
         raise PistonError(
             f"No Piston runtime found for language '{normalized}'."
             )
 
+    def execute(
+        self,
+        language: str,
+        source_code: str,
+        stdin: str = "",
+        version: str | None = None
+    ) -> dict[str, Any]:
+        runtime_language, file_name, runtime_version = self.resolve_runtime(
+            language,
+            version)
+        payload = {
+            "language": runtime_language,
+            "version": runtime_version,
+            "files": [{"name": file_name, "content": source_code}],
+            "stdin": stdin,
+        }
+        return self._request("POST", "/execute", json=payload)
