@@ -17,7 +17,7 @@ class PistonClient:
         self.base_url = (base_url or settings.piston_base_url).rstrip("/")
         self.timeout_seconds = (
             timeout_seconds or settings.piston_request_timeout_seconds)
-        self._runtimes_cache: list[dict[str, Any]] | None = None
+        self.runtime_cache: list[dict[str, Any]] | None = None
 
     def request(
             self,
@@ -40,3 +40,23 @@ class PistonClient:
                 ) from exc
         except httpx.RequestError as exc:
             raise PistonError("Unable to reach the Piston sandbox.") from exc
+
+    @staticmethod
+    def extract_detailed_message(response: httpx.Response) -> str:
+        try:
+            payload = response.json()
+        except ValueError:
+            payload = None
+        if isinstance(payload, dict):
+            return str(
+                payload.get("message") or payload.get("error")
+                or payload.get("detail")
+                or response.text
+            )
+        return response.text or "Piston request failed."
+
+    def list_runtimes(self) -> list[dict[str, Any]]:
+        if self.runtime_cache is None:
+            runtimes = self._request("GET", "/runtimes")
+            self.runtime_cache = runtimes if isinstance(runtimes, list) else []
+        return self.runtime_cache
