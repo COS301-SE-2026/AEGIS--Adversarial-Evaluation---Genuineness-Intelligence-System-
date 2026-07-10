@@ -36,13 +36,13 @@ class PistonClient:
                 return response.json()
         except httpx.HTTPStatusError as exc:
             raise PistonError(
-                self._extract_error_message(exc.response)
+                self.extract_error_message(exc.response)
                 ) from exc
         except httpx.RequestError as exc:
             raise PistonError("Unable to reach the Piston sandbox.") from exc
 
     @staticmethod
-    def extract_detailed_message(response: httpx.Response) -> str:
+    def extract_error_message(response: httpx.Response) -> str:
         try:
             payload = response.json()
         except ValueError:
@@ -57,7 +57,7 @@ class PistonClient:
 
     def list_runtimes(self) -> list[dict[str, Any]]:
         if self.runtime_cache is None:
-            runtimes = self._request("GET", "/runtimes")
+            runtimes = self.request("GET", "/runtimes")
             self.runtime_cache = runtimes if isinstance(runtimes, list) else []
         return self.runtime_cache
 
@@ -99,4 +99,4 @@ class PistonClient:
             "files": [{"name": file_name, "content": source_code}],
             "stdin": stdin,
         }
-        return self._request("POST", "/execute", json=payload)
+        return self.request("POST", "/execute", json=payload)
