@@ -35,3 +35,29 @@ def test_list_runtimes_caches_response():
     assert first == [{"language": "python"}]
     assert second == [{"language": "python"}]
     assert mock_request.call_count == 1
+
+def test_piston_http_status_error():
+    client = PistonClient(base_url="http://piston.test", timeout_seconds=5)
+    request = httpx.Request("GET", "http://piston.test/runtimes")
+    response = httpx.Response(
+        400,
+        request=request,
+        content=b'{"detail":"boom"}',
+    )
+    with patch("app.core.piston.httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.request.return_value = response
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        with pytest.raises(PistonError) as exc_info:
+            client.request("GET", "/runtimes")
+    assert str(exc_info.value) == "boom"
+
+def test_extract_error_message_uses_json_message():
+    request = httpx.Request("GET", "http://piston.test/runtimes")
+    response = httpx.Response(
+        400,
+        request=request,
+        content=b'{"message":"bad request"}',
+    )
+    assert PistonClient.extract_error_message(response) == "bad request"
+
