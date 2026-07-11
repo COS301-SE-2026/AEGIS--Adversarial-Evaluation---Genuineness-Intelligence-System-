@@ -115,3 +115,15 @@ def test_execute_uses_resolved_runtime_and_posts_payload():
             "stdin": "input",
         },
     )
+
+def test_extract_error_for_json_parsing_fail():
+    response = MagicMock()
+    response.json.side_effect = ValueError()
+    response.text = "detailed error"
+    assert PistonClient.extract_error_message(response) == "detailed error"
+
+def test_extract_error_message_for_empty_text():
+    response = MagicMock()
+    response.json.side_effect = ValueError()
+    response.text = ""
+    assert PistonClient.extract_error_message(response) == "Piston request failed."
