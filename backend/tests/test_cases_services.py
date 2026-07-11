@@ -35,3 +35,9 @@ def test_get_test_cases_by_question_id_returns_list():
     assert len(result) == 1
     assert result[0].test_case_id == 10
     assert result[0].question_id == 1
+
+def test_cases_raises_404():
+    mock_db = make_mock_db(None, [])
+    with pytest.raises(HTTPException) as exc_info:
+        get_test_cases_by_question_id(mock_db, question_id=999)
+    assert exc_info.value.status_code == 404
