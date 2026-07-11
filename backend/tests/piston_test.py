@@ -86,3 +86,32 @@ def test_resolve_runtime_raises_when_missing():
             client.resolve_runtime("rust")
     
     assert "No Piston runtime found" in str(exc_info.value)
+
+def test_execute_uses_resolved_runtime_and_posts_payload():
+    client = PistonClient(base_url="http://piston.test", timeout_seconds=5)
+    with patch.object(
+        client,
+        "resolve_runtime",
+        return_value=("python", "main.py", "3.12.0"),
+    ) as mock_resolve_runtime, patch.object(
+        client,
+        "request",
+        return_value={"run": {"stdout": "hello"}},
+    ) as mock_request:
+        result = client.execute(
+            language="Python",
+            source_code="print('hello')",
+            stdin="input",
+        )
+    assert result == {"run": {"stdout": "hello"}}
+    mock_resolve_runtime.assert_called_once_with("Python", None)
+    mock_request.assert_called_once_with(
+        "POST",
+        "/execute",
+        json={
+            "language": "python",
+            "version": "3.12.0",
+            "files": [{"name": "main.py", "content": "print('hello')"}],
+            "stdin": "input",
+        },
+    )
