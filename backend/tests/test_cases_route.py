@@ -29,3 +29,26 @@ def test_get_test_cases_forbidden_for_candidate(mock_get_test_cases):
     app.dependency_overrides.clear()
     assert response.status_code == 403
     mock_get_test_cases.assert_not_called()
+
+@patch("app.api.routes.test_cases.get_test_cases_by_question_id")
+def test_get_test_cases_for_recruiter(mock_get_test_cases):
+    mock_case = MagicMock(
+        test_case_id=10,
+        description="simple case",
+        question_id=1,
+        input_data="1",
+        expected_output="1",
+        is_hidden=True,
+    )
+    mock_get_test_cases.return_value = [mock_case]
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override("RECRUITER")
+    response = client.get("/api/v1/questions/source/1/test-cases")
+    app.dependency_overrides.clear()
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    assert len(body) == 1
+    assert body[0]["test_case_id"] == 10
+    assert body[0]["question_id"] == 1
+    mock_get_test_cases.assert_called_once()
