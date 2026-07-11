@@ -56,7 +56,7 @@ def test_get_cand_ass_returns_sess(candidate_client, mock_db):
     assert body["candidate_assess_id"] == 42
     assert body["status"] == "STARTED"
     assert body["access_token"] == "access-token"
-    assert body["total_score"] == 10.5
+    assert body["total_score"] == pytest.approx(10.5)
 
 def test_ass_returns_404_for_missin_sess(candidate_client, mock_db):
     mock_db.query.return_value.filter.return_value.first.return_value = None
