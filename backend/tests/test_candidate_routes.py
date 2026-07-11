@@ -14,7 +14,7 @@ def mock_db():
     return MagicMock()
 
 @pytest.fixture
-def candidate_client(mock_db):
+def client(mock_db):
     def override_get_db():
         return mock_db
     
@@ -36,16 +36,17 @@ def auth_client(mock_db):
     yield TestClient(app)
     app.dependency_overrides.clear()
 
-_GET_SESSION_PATCH = "app.api.routes.candidate.get_candidate_assessment_session"
-_UPDATE_RESPONSE_PATCH = "app.api.routes.candidate.update_response"
+_GET_SESSION_PATCH = "app.api.routes.candidate_ass.get_candidate_assessment_session"
+_UPDATE_RESPONSE_PATCH = "app.api.routes.candidate_ass.update_response"
 
 def test_get_ass_sess_returns_200(auth_client, mock_db):
     mock_session = MagicMock()
     mock_session.candidate_assess_id = 10
-    mock_session.status = "IN_PROGRESS"
+    mock_session.status.value = "IN_PROGRESS"
+    mock_session.access_token = "tok-abc"
 
     with patch(_GET_SESSION_PATCH, return_value=mock_session):
-        response = auth_client.get("/api/v1/candidates/assessments/10")
+        response = auth_client.get("/api/v1/candidate/assessments/10")
     
     body = response.json()
     assert response.status_code == 200
@@ -55,7 +56,7 @@ def test_get_ass_sess_returns_200(auth_client, mock_db):
 def test_get_ass_sess_returns_404(auth_client, mock_db):
     error = HTTPException(status_code=404, detail="Assessment session not found")
     with patch(_GET_SESSION_PATCH, side_effect=error):
-        response = auth_client.get("/api/v1/candidates/assessments/999") 
+        response = auth_client.get("/api/v1/candidate/assessments/999") 
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Assessment session not found"
@@ -63,25 +64,26 @@ def test_get_ass_sess_returns_404(auth_client, mock_db):
 def test_get_ass_sess_returns_403_invalid_token(auth_client, mock_db):
     error = HTTPException(status_code=403, detail="Invalid token")
     with patch(_GET_SESSION_PATCH, side_effect=error):
-        response = auth_client.get("/api/v1/candidates/assessments/10")
+        response = auth_client.get("/api/v1/candidate/assessments/10")
     
     assert response.status_code == 403
     assert response.json()["detail"] == "Invalid token"
 
 def test_get_ass_sess_returns_401_without_jwt(client, mock_db):
-    response = client.get("/api/v1/candidates/assessments/10")
+    response = client.get("/api/v1/candidate/assessments/10")
     
     assert response.status_code == 401
 
 def test_udpate_returns_200(auth_client, mock_db):
     mock_response = MagicMock()
     mock_response.response_id = 5
-    mock_response.candidate_answer = 42
+    mock_response.candidate_answer = "42"
+    mock_response.is_correct = None
 
     with patch(_UPDATE_RESPONSE_PATCH, return_value=mock_response):
-        response = auth_client.patch(
-            "/api/v1/candidates/responses/5",
-            json={"candidate_answer": 42}
+        response = auth_client.put(
+            "/api/v1/candidate/responses/5",
+            json={"candidate_answer": "42"}
         )
 
     assert response.status_code == 200
@@ -90,9 +92,9 @@ def test_udpate_returns_200(auth_client, mock_db):
 def test_update_returns_404(auth_client, mock_db):
     error = HTTPException(status_code=404, detail="Response not found")
     with patch(_UPDATE_RESPONSE_PATCH, side_effect=error):
-        response = auth_client.patch(
-            "/api/v1/candidates/responses/999",
-            json={"candidate_answer": 42}
+        response = auth_client.put(
+            "/api/v1/candidate/responses/999",
+            json={"candidate_answer": "42"}
         )
 
     assert response.status_code == 404
@@ -101,18 +103,18 @@ def test_update_returns_404(auth_client, mock_db):
 def test_update_returns_403(auth_client, mock_db):
     error = HTTPException(status_code=403, detail="Not authenticated for this assessment")
     with patch(_UPDATE_RESPONSE_PATCH, side_effect=error):
-        response = auth_client.patch(
-            "/api/v1/candidates/responses/5",
-            json={"candidate_answer": 42}
+        response = auth_client.put(
+            "/api/v1/candidate/responses/5",
+            json={"candidate_answer": "42"}
         )
 
     assert response.status_code == 403
     assert response.json()["detail"] == "Not authenticated for this assessment"
 
 def test_update_returns_401(client, mock_db):
-    response = client.patch(
-        "/api/v1/candidates/responses/5",
-        json={"candidate_answer": 42}
+    response = client.put(
+        "/api/v1/candidate/responses/5",
+        json={"candidate_answer": "42"}
     )
 
     assert response.status_code == 401
