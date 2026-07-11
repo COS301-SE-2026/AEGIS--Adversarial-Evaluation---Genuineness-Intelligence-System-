@@ -61,3 +61,28 @@ def test_extract_error_message_uses_json_message():
     )
     assert PistonClient.extract_error_message(response) == "bad request"
 
+def test_resolve_runtime_returns_language_and_filename():
+    client = PistonClient(base_url="http://piston.test", timeout_seconds=5)
+    with patch.object(
+        client,
+        "list_runtimes",
+        return_value=[
+            {
+                "language": "go",
+                "version": "1.34",
+                "aliases": ["golang"],
+            }
+        ],
+    ):
+        language, file_name, version = client.resolve_runtime("go")
+    assert language == "go"
+    assert file_name == "main.go"
+    assert version == "1.34"
+
+def test_resolve_runtime_raises_when_missing():
+    client = PistonClient(base_url="http://piston.test", timeout_seconds=5)
+    with patch.object(client, "list_runtimes", return_value=[]):
+        with pytest.raises(PistonError) as exc_info:
+            client.resolve_runtime("rust")
+    
+    assert "No Piston runtime found" in str(exc_info.value)
