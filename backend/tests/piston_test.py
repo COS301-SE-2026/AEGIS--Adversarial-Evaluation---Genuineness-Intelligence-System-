@@ -27,3 +27,11 @@ def test_request_returns_json_on_success():
         json=None,
     )
 
+def test_list_runtimes_caches_response():
+    client = PistonClient(base_url="http://piston.test", timeout_seconds=5)
+    with patch.object(client, "request", return_value=[{"language": "python"}]) as mock_request:
+        first = client.list_runtimes()
+        second = client.list_runtimes()
+    assert first == [{"language": "python"}]
+    assert second == [{"language": "python"}]
+    assert mock_request.call_count == 1
