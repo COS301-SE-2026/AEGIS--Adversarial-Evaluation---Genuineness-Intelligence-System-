@@ -22,8 +22,8 @@ router = APIRouter(prefix="/candidate", tags=["candidate"])
 )
 async def get_candidate_assessment(
     candidate_assessment_id: int,
-    db: Session = Annotated[Session, Depends(get_db)],
-    current_user: dict = Annotated[dict, Depends(get_current_user)]
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     candidate_id = int(current_user["user_id"])
     session = get_candidate_assessment_session(
@@ -49,8 +49,8 @@ async def get_candidate_assessment(
 async def update_cand_response(
     response_id: int,
     payload: ResponseUpdate,
-    db: Session = Annotated[Session, Depends(get_db)],
-    current_user: dict = Annotated[dict, Depends(get_current_user)]
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
 ):
     candidate_id = int(current_user["user_id"])
     response = update_response(
