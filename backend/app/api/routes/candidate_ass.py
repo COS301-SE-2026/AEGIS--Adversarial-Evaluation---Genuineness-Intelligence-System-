@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.database.database import get_db
 from app.schema.candidate_assessment import CandidateAssessmentResponse
-from app.schema.candidate_response import CandidateResponseResponse, ResponseUpdate
+from app.schema.candidate_response import (
+    CandidateResponseResponse,
+    ResponseUpdate
+)
 from app.services.candidate import (
     get_candidate_assessment_session,
     update_response
@@ -36,6 +39,7 @@ async def get_candidate_assessment(
         start_time=session.start_time,
         end_time=session.end_time
     )
+
 
 @router.put(
     "/responses/{response_id}",
