@@ -35,7 +35,7 @@ def update_response(
        db: Session,
        response_id: int,
        candidate_id: int,
-       candidate_answer: int
+       candidate_answer: str
 ) -> CandidateResponse:
     response = (
         db.query(CandidateResponse)
@@ -47,7 +47,7 @@ def update_response(
     if response is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Reponse not found"
+            detail="Response not found"
         )
 
     if candidate_id != response.candidate_assessment.candidate_id:

@@ -112,3 +112,30 @@ def test_returns_403_for_unauth_candidate(candidate_client, mock_db):
 
     assert response.status_code == 403
     assert response.json() == {"detail": "Not authenticated for this assessment"}
+
+def test_get_cand_ass_returns_403_for_unauth_candidate(candidate_client, mock_db):
+    session = MagicMock()
+    session.candidate_assess_id = 42
+    session.status = SessionStatus.STARTED
+    session.access_token = "access-token"
+    session.total_score = None
+    session.start_time = None
+    session.end_time = None
+    session.candidate_id = 99
+    mock_db.query.return_value.filter.return_value.first.return_value = session
+
+    response = candidate_client.get("/api/v1/candidate/assessments/42")
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Invalid token"}
+
+def test_update_response_returns_404_for_missing_response(candidate_client, mock_db):
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    response = candidate_client.put(
+        "/api/v1/candidate/responses/999",
+        json={"candidate_answer": "new answer"},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Reponse not found"}
