@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from typing import Annotated
 from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.database.database import get_db
@@ -21,8 +22,8 @@ router = APIRouter(prefix="/candidate", tags=["candidate"])
 )
 async def get_candidate_assessment(
     candidate_assessment_id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Annotated[Session, Depends(get_db)],
+    current_user: dict = Annotated[dict, Depends(get_current_user)]
 ):
     candidate_id = int(current_user["user_id"])
     session = get_candidate_assessment_session(
@@ -48,8 +49,8 @@ async def get_candidate_assessment(
 async def update_cand_response(
     response_id: int,
     payload: ResponseUpdate,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Annotated[Session, Depends(get_db)],
+    current_user: dict = Annotated[dict, Depends(get_current_user)]
 ):
     candidate_id = int(current_user["user_id"])
     response = update_response(
