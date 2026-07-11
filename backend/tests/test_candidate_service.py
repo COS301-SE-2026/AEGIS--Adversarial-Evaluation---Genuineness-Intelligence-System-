@@ -138,4 +138,4 @@ def test_update_response_returns_404_for_missing_response(candidate_client, mock
     )
 
     assert response.status_code == 404
-    assert response.json() == {"detail": "Reponse not found"}
+    assert response.json() == {"detail": "Response not found"}
