@@ -7,11 +7,11 @@ from app.services.candidate import get_candidate_assessment_session
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 
+
 @router.get(
     "/assessments/{candidate_assessment_id}",
     response_model=CandidateAssessmentResponse
 )
-
 async def get_candidate_assessment(
     candidate_assessment_id: int,
     db: Session = Depends(get_db),
@@ -23,7 +23,7 @@ async def get_candidate_assessment(
         candidate_assessment_id,
         candidate_id
     )
-    
+
     return CandidateAssessmentResponse(
         candidate_assess_id=session.candidate_assess_id,
         status=session.status.value,
