@@ -53,3 +53,37 @@ def test_delete_question_success_as_recruiter(mock_delete):
 
     assert response.status_code == 204
     mock_delete.assert_called_once()
+
+@patch("app.api.routes.test_cases.update_test_case")
+def test_update_test_case_for_candidate(mock_update_test_case):
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override("CANDIDATE")
+    response = client.patch(
+        "/api/v1/questions/adversarial/7/test-cases/11",
+        json={
+            "description": "updated",
+            "input_data": "5",
+            "expected_output": "10",
+            "is_hidden": False,
+        },
+    )
+    app.dependency_overrides.clear()
+    assert response.status_code == 403
+    mock_update_test_case.assert_not_called()
+
+@patch("app.api.routes.test_cases.create_test_case")
+def test_create_test_case_for_candidate(mock_create_test_case):
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override("CANDIDATE")
+    response = client.post(
+        "/api/v1/questions/adversarial/7/test-cases",
+        json={
+            "description": "addition",
+            "input_data": "5",
+            "expected_output": "10",
+            "is_hidden": False,
+        },
+    )
+    app.dependency_overrides.clear()
+    assert response.status_code == 403
+    mock_create_test_case.assert_not_called()
