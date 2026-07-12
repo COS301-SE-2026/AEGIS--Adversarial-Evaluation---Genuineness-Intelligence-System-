@@ -390,7 +390,13 @@ async def get_candidate_assessment_questions(
                 {
                     "question_bank_id": aq.question_bank.question_bank_id,
                     "title": aq.question_bank.title,
-                    "content": aq.question_bank.content,
+                    "content": (
+                        aq.adversarial_question.content
+                        if aq.adversarial_question is not None
+                        and aq.adversarial_question.content
+                        and aq.adversarial_question.content.strip()
+                        else aq.question_bank.content
+                    ),
                     "type": aq.question_bank.type.value,
                     "maximum_score": aq.question_bank.maximum_score,
                     "tags": aq.question_bank.tags,
