@@ -1,5 +1,14 @@
-from app.schema.test_cases import CodingTestCaseResponse
-from app.services.test_cases import get_test_cases_by_question_id
+from app.schema.test_cases import (
+    CodingTestCaseResponse,
+    CodingTestCaseCreate,
+    CodingTestCaseUpdate
+)
+from app.services.test_cases import (
+    get_test_cases_by_question_id,
+    update_test_case,
+    delete_test_case,
+    create_test_case
+)
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from app.database.database import get_db
@@ -25,3 +34,20 @@ async def get_test_cases_for_source_question(
         )
 
     return get_test_cases_by_question_id(db, question_bank_id)
+
+@router.delete(
+    "/adversarial/{adversarial_question_id}/test-cases/{test_case_id}",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_test_case_for_adv_question(
+    test_case_id: int,
+    adversarial_question_id: int,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user)
+):
+    if user.get("role")!= "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can delete test cases."
+        )
+    delete_test_case(db,test_case_id,adversarial_question_id)
