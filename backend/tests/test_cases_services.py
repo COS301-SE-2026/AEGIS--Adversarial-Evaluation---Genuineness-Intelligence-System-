@@ -104,6 +104,19 @@ def test_delete_test_case_deletes_matching_row():
     mock_db.delete.assert_called_once_with(mock_case)
     mock_db.commit.assert_called_once()
 
+def test_delete_test_case_deletes_matching_row():
+    mock_adv_question = MagicMock()
+    mock_adv_question.source_question_id = 42
+    mock_case = MagicMock()
+    mock_case.question_id = 42
+    mock_db = _mock_db(
+        adv_question_result=mock_adv_question,
+        test_case_result=mock_case,
+    )
+    delete_test_case(mock_db, test_case_id=None, adversarial_question_id=None)
+    mock_db.delete.assert_called_once_with(mock_case)
+    mock_db.commit.assert_called_once()
+
 def test_test_case_updates_matching_row():
     mock_adv_question = MagicMock()
     mock_adv_question.source_question_id = 42
