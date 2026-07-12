@@ -335,7 +335,7 @@ def start_candidate_assessment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assessment has expired",
         )
-    
+
     start_time = datetime.now(timezone.utc)
     session.start_time = start_time
     session.end_time = start_time + timedelta(
