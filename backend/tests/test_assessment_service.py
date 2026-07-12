@@ -388,9 +388,10 @@ def test_start_candidate_assessment_returns_in_progress_status():
     mock_session = MagicMock()
     mock_session.status = SessionStatus.STARTED
     mock_session.assessment_id = 1
-
+    
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 60
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 
@@ -405,6 +406,7 @@ def test_start_candidate_assessment_sets_start_time():
 
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 60
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 
@@ -419,11 +421,12 @@ def test_start_candidate_assessment_end_time_is_start_plus_duration():
 
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 45
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 
     start_candidate_assessment(mock_db, "valid-token")
-    assert mock_session.end_time == mock_session.start_time + timedelta(minutes=30)
+    assert mock_session.end_time == mock_session.start_time + timedelta(minutes=45)
 
 
 def test_start_candidate_assessment_end_time_greater_than_start_time():
@@ -433,6 +436,7 @@ def test_start_candidate_assessment_end_time_greater_than_start_time():
 
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 30
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 

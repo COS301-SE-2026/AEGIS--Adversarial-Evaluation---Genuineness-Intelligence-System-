@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import uuid
 
@@ -282,7 +282,7 @@ def submit_candidate_assessment(
     session.candidate_score = candidate_score
     session.total_score = total_score
     session.status = SessionStatus.COMPLETED
-    session.end_time = datetime.utcnow()
+    session.end_time = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(session)
@@ -330,9 +330,12 @@ def start_candidate_assessment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assessment has expired",
         )
-    start_time = datetime.utcnow()
+    
+    start_time = datetime.now(timezone.utc)
     session.start_time = start_time
-    session.end_time = start_time + timedelta(minutes=30)
+    session.end_time = start_time + timedelta(
+        minutes=session.assessment.duration_mins
+    )
     session.status = SessionStatus.IN_PROGRESS
     db.commit()
     db.refresh(session)
