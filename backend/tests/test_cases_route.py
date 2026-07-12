@@ -73,6 +73,34 @@ def test_delete_test_case_for_recruiter(mock_delete_test_case):
     assert response.status_code == 403
     #mock_delete_test_case.assert_called_once()
 
+
+@patch("app.api.routes.test_cases.create_test_case")
+def test_create_test_case_for_recruiter(mock_create_test_case):
+    mock_case = MagicMock(
+        test_case_id=11,
+        description="addition",
+        question_id=42,
+        input_data="5",
+        expected_output="10",
+        is_hidden=False,
+    )
+    mock_create_test_case.return_value = mock_case
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override("RECRUITER")
+    response = client.post(
+        "/api/v1/questions/adversarial/7/test-cases",
+        json={
+            "description": "addition",
+            "input_data": "5",
+            "expected_output": "10",
+            "is_hidden": False,
+        },
+    )
+    app.dependency_overrides.clear()
+    assert response.status_code == 201
+    assert response.json()["test_case_id"] == 11
+    mock_create_test_case.assert_called_once()
+
 @patch("app.api.routes.test_cases.update_test_case")
 def test_update_test_case_for_recruiter(mock_update_test_case):
     mock_case = MagicMock()
