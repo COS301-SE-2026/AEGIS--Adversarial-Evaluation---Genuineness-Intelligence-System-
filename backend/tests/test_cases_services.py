@@ -103,3 +103,35 @@ def test_delete_test_case_deletes_matching_row():
     delete_test_case(mock_db, test_case_id=10, adversarial_question_id=7)
     mock_db.delete.assert_called_once_with(mock_case)
     mock_db.commit.assert_called_once()
+
+def test_test_case_updates_matching_row():
+    mock_adv_question = MagicMock()
+    mock_adv_question.source_question_id = 42
+    mock_case = MagicMock()
+    mock_case.question_id = 42
+    mock_case.description = "old"
+    mock_case.input_data = "1"
+    mock_case.expected_output = "2"
+    mock_case.is_hidden = True
+    mock_db = _mock_db(
+        adv_question_result=mock_adv_question,
+        test_case_result=mock_case,
+    )
+    payload = CodingTestCaseUpdate(
+        description="new",
+        input_data="5",
+        expected_output="10",
+        is_hidden=False,
+    )
+    result = update_test_case(
+        mock_db,
+        adversarial_question_id=7,
+        test_case_id=10,
+        payload=payload,
+    )
+    assert result.description == "new"
+    assert result.input_data == "5"
+    assert result.expected_output == "10"
+    assert result.is_hidden is False
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_case)
