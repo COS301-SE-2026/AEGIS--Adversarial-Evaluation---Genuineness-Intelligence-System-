@@ -10,6 +10,8 @@ from app.schema.test_cases import CodingTestCaseCreate, CodingTestCaseUpdate
 from app.services.test_cases import (
     create_test_case,
     delete_test_case,
+    get_adversarial_question,
+    get_test_case,
     get_test_cases_by_question_id,
     update_test_case,
 )
@@ -91,6 +93,19 @@ def test_create_test_case_creates_row_for_adversarial_question():
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
+
+def test_get_adversarial_question_raises404_when_missing():
+    mock_db = _mock_db(adv_question_result=None)
+    with pytest.raises(HTTPException) as exc_info:
+        get_adversarial_question(mock_db, adv_question_id=7)
+    assert exc_info.value.status_code == 404
+
+def test_get_test_case_raises404_when_missing():
+    mock_db = _mock_db(test_case_result=None)
+    with pytest.raises(HTTPException) as exc_info:
+        get_test_case(mock_db, test_case_id=10)
+    assert exc_info.value.status_code == 404
+
 def test_delete_test_case_deletes_matching_row():
     mock_adv_question = MagicMock()
     mock_adv_question.source_question_id = 42
@@ -104,18 +119,43 @@ def test_delete_test_case_deletes_matching_row():
     mock_db.delete.assert_called_once_with(mock_case)
     mock_db.commit.assert_called_once()
 
-def test_delete_test_case_deletes_matching_row():
+def test_delete_test_case_raises404():
     mock_adv_question = MagicMock()
     mock_adv_question.source_question_id = 42
     mock_case = MagicMock()
-    mock_case.question_id = 42
+    mock_case.question_id = 99
     mock_db = _mock_db(
         adv_question_result=mock_adv_question,
         test_case_result=mock_case,
     )
-    delete_test_case(mock_db, test_case_id=None, adversarial_question_id=None)
-    mock_db.delete.assert_called_once_with(mock_case)
-    mock_db.commit.assert_called_once()
+    with pytest.raises(HTTPException) as exc_info:
+        delete_test_case(mock_db, test_case_id=10, adversarial_question_id=7)
+    assert exc_info.value.status_code == 404
+
+
+def test_update_test_case_raises404():
+    mock_adv_question = MagicMock()
+    mock_adv_question.source_question_id = 42
+    mock_case = MagicMock()
+    mock_case.question_id = 99
+    mock_db = _mock_db(
+        adv_question_result=mock_adv_question,
+        test_case_result=mock_case,
+    )
+    payload = CodingTestCaseUpdate(
+        description="new",
+        input_data="5",
+        expected_output="10",
+        is_hidden=False
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        update_test_case(
+            mock_db,
+            adversarial_question_id=7,
+            test_case_id=10,
+            payload=payload
+        )
+    assert exc_info.value.status_code == 404
 
 def test_test_case_updates_matching_row():
     mock_adv_question = MagicMock()
