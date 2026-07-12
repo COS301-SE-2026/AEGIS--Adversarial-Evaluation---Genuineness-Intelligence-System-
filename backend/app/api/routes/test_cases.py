@@ -51,3 +51,25 @@ async def delete_test_case_for_adv_question(
             detail="Only recruiters can delete test cases."
         )
     delete_test_case(db,test_case_id,adversarial_question_id)
+
+@router.post(
+    "/adversarial/{adversarial_question_id}/test-cases",
+    response_model=CodingTestCaseResponse,
+    status_code=status.HTTP_201_CREATED
+)
+async def create_test_case_for_adv_question(
+    adversarial_question_id: int,
+    payload: CodingTestCaseCreate,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user)
+):
+    if user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can create new test cases"
+        )
+    new_test_case= create_test_case(
+        db,
+        adversarial_question_id,
+        payload)
+    return new_test_case
