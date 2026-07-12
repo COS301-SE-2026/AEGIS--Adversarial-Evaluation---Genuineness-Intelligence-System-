@@ -76,7 +76,7 @@ class PistonClient:
                 target_version = version or runtime.get("version")
                 if target_version:
                     ext = normalized if len(normalized) <= 3 else lang[:3]
-                    file_name = f"main.{ ext }"
+                    file_name = f"main.{ext}"
                     return lang, file_name, str(target_version)
 
         raise PistonError(
