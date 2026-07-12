@@ -39,3 +39,42 @@ def get_adversarial_question(
             detail="Adversarial question not found",
         )
     return adversarial_question
+
+def get_test_case(
+        db: Session,
+        test_case_id: int
+) -> CodingTestCase:
+    test_case = (
+        db.query(CodingTestCase)
+        .filter(CodingTestCase.test_case_id == test_case_id)
+        .first()
+    )
+    if test_case is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail= "Test case not found."
+        )
+    return test_case
+
+def create_test_case(
+        db: Session,
+        adv_question_id: int,
+        payload: CodingTestCaseCreate
+) -> CodingTestCase:
+    adv_question = (
+        get_adversarial_question(
+            db,
+            adv_question_id
+        )
+    )
+    new_test_case = CodingTestCase(
+        question_id=adv_question.source_question_id,
+        description=payload.description,
+        input_data=payload.input_data,
+        expected_output=payload.expected_output,
+        is_hidden=payload.is_hidden
+    )
+    db.add(new_test_case)
+    db.commit()
+    db.refresh(new_test_case)
+    return new_test_case
