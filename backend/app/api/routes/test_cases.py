@@ -35,6 +35,7 @@ async def get_test_cases_for_source_question(
 
     return get_test_cases_by_question_id(db, question_bank_id)
 
+
 @router.delete(
     "/adversarial/{adversarial_question_id}/test-cases/{test_case_id}",
     status_code=status.HTTP_204_NO_CONTENT
@@ -45,12 +46,13 @@ async def delete_test_case_for_adv_question(
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user)
 ):
-    if user.get("role")!= "RECRUITER":
+    if user.get("role") != "RECRUITER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters can delete test cases."
         )
     delete_test_case(db,test_case_id,adversarial_question_id)
+
 
 @router.post(
     "/adversarial/{adversarial_question_id}/test-cases",
@@ -73,3 +75,28 @@ async def create_test_case_for_adv_question(
         adversarial_question_id,
         payload)
     return new_test_case
+
+
+@router.patch(
+    "/adversarial/{adversarial_question_id}/test-cases/{test_case_id}",
+    response_model=CodingTestCaseResponse,
+    status_code=status.HTTP_200_OK
+)
+async def update_test_case_for_adv_question(
+    adversarial_question_id: int,
+    test_case_id: int,
+    payload: CodingTestCaseUpdate,
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_current_user)
+):
+    if user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail= "Only Recruiters can update test cases."
+        )
+    return update_test_case(
+        db,
+        adversarial_question_id,
+        test_case_id,
+        payload
+)
