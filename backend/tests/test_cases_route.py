@@ -63,6 +63,16 @@ def test_delete_test_case_for_recruiter(mock_delete_test_case):
     assert response.status_code == 204
     mock_delete_test_case.assert_called_once()
 
+@patch("app.api.routes.test_cases.delete_test_case")
+def test_delete_test_case_for_recruiter(mock_delete_test_case):
+    mock_delete_test_case.return_value = None
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override("Candidate")
+    response = client.delete("/api/v1/questions/adversarial/7/test-cases/11")
+    app.dependency_overrides.clear()
+    assert response.status_code == 403
+    #mock_delete_test_case.assert_called_once()
+
 @patch("app.api.routes.test_cases.update_test_case")
 def test_update_test_case_for_recruiter(mock_update_test_case):
     mock_case = MagicMock()
