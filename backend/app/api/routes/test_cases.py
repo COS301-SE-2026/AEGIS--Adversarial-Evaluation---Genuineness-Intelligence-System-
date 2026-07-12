@@ -51,7 +51,7 @@ async def delete_test_case_for_adv_question(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters can delete test cases."
         )
-    delete_test_case(db,test_case_id,adversarial_question_id)
+    delete_test_case(db, test_case_id, adversarial_question_id)
 
 
 @router.post(
@@ -70,7 +70,7 @@ async def create_test_case_for_adv_question(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters can create new test cases"
         )
-    new_test_case= create_test_case(
+    new_test_case = create_test_case(
         db,
         adversarial_question_id,
         payload)
@@ -92,11 +92,10 @@ async def update_test_case_for_adv_question(
     if user.get("role") != "RECRUITER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail= "Only Recruiters can update test cases."
+            detail="Only Recruiters can update test cases."
         )
     return update_test_case(
         db,
         adversarial_question_id,
         test_case_id,
-        payload
-)
+        payload)

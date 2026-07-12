@@ -24,6 +24,7 @@ def get_test_cases_by_question_id(
         .order_by(CodingTestCase.test_case_id)
         .all())
 
+
 def get_adversarial_question(
     db: Session,
     adv_question_id: int,
@@ -40,6 +41,7 @@ def get_adversarial_question(
         )
     return adversarial_question
 
+
 def get_test_case(
         db: Session,
         test_case_id: int
@@ -52,9 +54,10 @@ def get_test_case(
     if test_case is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail= "Test case not found."
+            detail="Test case not found."
         )
     return test_case
+
 
 def create_test_case(
         db: Session,
@@ -79,6 +82,7 @@ def create_test_case(
     db.refresh(new_test_case)
     return new_test_case
 
+
 def delete_test_case(
         db: Session,
         test_case_id: int,
@@ -100,35 +104,35 @@ def delete_test_case(
     db.delete(test_case)
     db.commit()
 
+
 def update_test_case(
         db: Session,
         adversarial_question_id: int,
         test_case_id: int,
         payload: CodingTestCaseUpdate
 ) -> CodingTestCase:
-    adv_question=(
+    adv_question = (
         get_adversarial_question(
             db,
             adversarial_question_id
         )
     )
-    test_case=(
-        get_test_case(db,test_case_id
-        )
+    test_case = (
+        get_test_case(db, test_case_id)
     )
     if test_case.question_id != adv_question.source_question_id:
         raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail = "There is no test case linked to that adversarial question."
+                detail="Test case is not linked to that adv question"
         )
     if payload.description is not None:
-        test_case.description=payload.description
+        test_case.description = payload.description
     if payload.input_data is not None:
-        test_case.input_data=payload.input_data
+        test_case.input_data = payload.input_data
     if payload.expected_output is not None:
-        test_case.expected_output=payload.expected_output
+        test_case.expected_output = payload.expected_output
     if payload.is_hidden is not None:
-        test_case.is_hidden=payload.is_hidden
+        test_case.is_hidden = payload.is_hidden
     db.commit()
     db.refresh(test_case)
     return test_case
