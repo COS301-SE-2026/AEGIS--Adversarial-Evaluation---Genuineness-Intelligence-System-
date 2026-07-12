@@ -10,12 +10,18 @@ class CodingTestCaseResponse(BaseModel):
     expected_output: str
     is_hidden: bool
 
+    class Config:
+        orm_mode = True
+
 
 class CodingTestCaseCreate(BaseModel):
     description: Optional[str] = None
     input_data: str
     expected_output: str
     is_hidden: bool = True
+
+    class Config:
+        orm_mode = True
 
 
 class CodingTestCaseUpdate(BaseModel):
@@ -24,6 +30,5 @@ class CodingTestCaseUpdate(BaseModel):
     expected_output: Optional[str] = None
     is_hidden: Optional[bool] = None
 
-
-class Config:
-    orm_mode = True
+    class Config:
+        orm_mode = True

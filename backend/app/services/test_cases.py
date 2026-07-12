@@ -78,3 +78,24 @@ def create_test_case(
     db.commit()
     db.refresh(new_test_case)
     return new_test_case
+
+def delete_test_case(
+        db: Session,
+        test_case_id: int,
+        adversarial_question_id: int
+) -> None:
+    adv_question = get_adversarial_question(
+        db,
+        adversarial_question_id
+    )
+    test_case = get_test_case(
+        db,
+        test_case_id
+    )
+    if test_case.question_id != adv_question.source_question_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Test case not linked to this adversarial question"
+        )
+    db.delete(test_case)
+    db.commit()
