@@ -12,6 +12,7 @@ from app.api.routes.test_cases import router as test_cases_router
 from app.core.config import settings
 
 from app.api.routes.question_management import router as question_router
+from app.api.routes.candidate_ass import router as candidate_assessment_router
 
 
 app = FastAPI()
@@ -32,6 +33,7 @@ app.include_router(question_router2, prefix="/api/v1")
 app.include_router(question_router, prefix="/api/v1")
 app.include_router(test_cases_router, prefix="/api/v1")
 app.include_router(category_router, prefix="/api/v1")
+app.include_router(candidate_assessment_router, prefix="/api/v1")
 
 
 @app.on_event("startup")
