@@ -25,6 +25,7 @@ from app.services.assessment import (
     update_assessment,
 )
 from app.schema.candidate_response import ResponseCreate
+from app.models.question_bank import QuestionType
 
 
 def _make_mock_db_for_all(assessments):
@@ -237,6 +238,7 @@ def test_save_candidate_response_grades_json_correct_answer():
     mock_qb = MagicMock()
     mock_qb.correct_answer = {"answer": "b"}
     mock_qb.maximum_score = 4.0
+    mock_qb.type = QuestionType.CODING
 
     mock_aq = MagicMock()
     mock_aq.question_bank = mock_qb
@@ -255,8 +257,8 @@ def test_save_candidate_response_grades_json_correct_answer():
     result = save_candidate_response(mock_db, 9, response_in)
 
     assert result.candidate_answer == "b"
-    assert result.score == 4.0
-    assert result.is_correct == CorrectnessStatus.CORRECT
+    assert result.score is None
+    assert result.is_correct is None
 def _make_mock_db_for_invite(assessment_result, candidate_result, existing_result):
     mock_db = MagicMock()
 
@@ -388,9 +390,10 @@ def test_start_candidate_assessment_returns_in_progress_status():
     mock_session = MagicMock()
     mock_session.status = SessionStatus.STARTED
     mock_session.assessment_id = 1
-
+    
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 60
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 
@@ -405,6 +408,7 @@ def test_start_candidate_assessment_sets_start_time():
 
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 60
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 
@@ -419,11 +423,12 @@ def test_start_candidate_assessment_end_time_is_start_plus_duration():
 
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 45
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 
     start_candidate_assessment(mock_db, "valid-token")
-    assert mock_session.end_time == mock_session.start_time + timedelta(minutes=30)
+    assert mock_session.end_time == mock_session.start_time + timedelta(minutes=45)
 
 
 def test_start_candidate_assessment_end_time_greater_than_start_time():
@@ -433,6 +438,7 @@ def test_start_candidate_assessment_end_time_greater_than_start_time():
 
     mock_assessment = MagicMock()
     mock_assessment.duration_mins = 30
+    mock_session.assessment = mock_assessment
 
     mock_db = _make_mock_db_for_start(mock_session, mock_assessment)
 

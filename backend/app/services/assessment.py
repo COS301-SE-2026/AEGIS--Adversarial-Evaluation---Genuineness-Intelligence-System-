@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import uuid
 
@@ -11,6 +11,7 @@ from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.user import User
+from app.models.question_bank import QuestionType
 from app.schema.candidate_response import ResponseCreate
 
 ASSESSMENT_NOT_FOUND = "Assessment not found"
@@ -194,16 +195,20 @@ def save_candidate_response(
 
     if assessment_q is not None and assessment_q.question_bank is not None:
         qb = assessment_q.question_bank
-        correct_answer = qb.correct_answer
-        candidate_parsed = _parse_candidate_answer(
-            response_in.candidate_answer
-        )
+        if qb.type == QuestionType.CODING:
+            candidate_response.score = None
+            candidate_response.is_correct = None
+        else:
+            correct_answer = qb.correct_answer
+            candidate_parsed = _parse_candidate_answer(
+                response_in.candidate_answer
+            )
 
-        score, correctness_status = _grade_candidate(
-            qb, correct_answer, candidate_parsed
-        )
-        candidate_response.score = score
-        candidate_response.is_correct = correctness_status
+            score, correctness_status = _grade_candidate(
+                qb, correct_answer, candidate_parsed
+            )
+            candidate_response.score = score
+            candidate_response.is_correct = correctness_status
     else:
         candidate_response.score = None
         candidate_response.is_correct = None
@@ -282,7 +287,7 @@ def submit_candidate_assessment(
     session.candidate_score = candidate_score
     session.total_score = total_score
     session.status = SessionStatus.COMPLETED
-    session.end_time = datetime.utcnow()
+    session.end_time = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(session)
@@ -330,9 +335,12 @@ def start_candidate_assessment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Assessment has expired",
         )
-    start_time = datetime.utcnow()
+
+    start_time = datetime.now(timezone.utc)
     session.start_time = start_time
-    session.end_time = start_time + timedelta(minutes=30)
+    session.end_time = start_time + timedelta(
+        minutes=session.assessment.duration_mins
+    )
     session.status = SessionStatus.IN_PROGRESS
     db.commit()
     db.refresh(session)
