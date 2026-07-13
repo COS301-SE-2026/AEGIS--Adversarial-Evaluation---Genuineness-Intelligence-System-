@@ -47,7 +47,7 @@ jobs:
         run: pnpm --dir frontend build
 
       - name: Run tests with coverage
-        run: pnpm --dir frontend test --coverage --coverageReporters=lcov --passWithNoTests
+        run: pnpm --dir frontend exec jest --coverage --coverageReports=lcov --passWithNoTests
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
