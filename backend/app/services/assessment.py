@@ -9,6 +9,7 @@ from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.models.candidate_test_results import CandidateTestResult
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.question_bank import QuestionBank, QuestionType
 from app.models.coding_test_cases import CodingTestCase
@@ -177,6 +178,25 @@ def execute_code_questions(
         }
 
 
+def save_candidate_code_test_results(
+    db: Session,
+    response_id: int,
+    execution_results: list[dict[str, Any]],
+) -> None:
+    db.query(CandidateTestResult).filter(
+        CandidateTestResult.response_id == response_id,
+    ).delete(synchronize_session=False)
+
+    for result in execution_results:
+        db.add(
+            CandidateTestResult(
+                response_id=response_id,
+                test_case_id=result["test_case_id"],
+                passed=bool(result["passed"]),
+            )
+        )
+
+
 def get_all_assessments(
     db: Session,
     search: str | None = None,
@@ -260,6 +280,8 @@ def save_candidate_response(
         )
         db.add(candidate_response)
 
+    db.flush()
+
     assessment_q = (
         db.query(AssessmentQuestion)
         .options(
@@ -291,6 +313,11 @@ def save_candidate_response(
             candidate_response.test_cases_passed = passed_test_cases
             candidate_response.test_cases_failed = failed_test_cases
             candidate_response.execution_results = execution_result["Results"]
+            save_candidate_code_test_results(
+                db,
+                candidate_response.response_id,
+                execution_result["Results"],
+            )
 
             if total_test_cases > 0:
                 score_fraction = passed_test_cases / total_test_cases
@@ -320,12 +347,16 @@ def save_candidate_response(
             candidate_response.test_cases_total = 0
             candidate_response.test_cases_passed = 0
             candidate_response.test_cases_failed = 0
+            save_candidate_code_test_results(
+                db, candidate_response.response_id, [])
     else:
         candidate_response.score = None
         candidate_response.is_correct = None
         candidate_response.test_cases_total = 0
         candidate_response.test_cases_passed = 0
         candidate_response.test_cases_failed = 0
+        save_candidate_code_test_results(
+            db, candidate_response.response_id, [])
 
     db.commit()
     db.refresh(candidate_response)
