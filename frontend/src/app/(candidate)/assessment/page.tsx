@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AssessmentCard } from "@/components/candidate/ui/cards/assesment-card";
 import type { AssessmentCardProps } from "@/components/candidate/ui/cards/assessment-card.types";
@@ -42,7 +43,7 @@ function getStoredAuthToken(): string | undefined {
     return getToken() ?? undefined;
 }
 
-export default function AssessmentPage() {
+function AssessmentPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -156,4 +157,19 @@ export default function AssessmentPage() {
             )}
         </main>
     );
+}
+
+export default function AssessmentPage() {
+    return (
+        <main>
+            <Suspense 
+                fallback=
+                {<div className="pt-8 text-default-text">
+                    Loading View...
+                </div>}
+            >
+                <AssessmentPageContent/>
+            </Suspense>
+        </main>
+    )
 }
