@@ -10,10 +10,11 @@ from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
 from app.models.adversarial_question import AdversarialQuestion
+from app.models.question_bank import QuestionBank, QuestionType
 from app.models.coding_test_cases import CodingTestCase
 from app.models.user import User
-from app.models.question_bank import QuestionType
 from app.schema.candidate_response import ResponseCreate
+from app.services.test_cases import get_test_cases_by_question_id
 
 ASSESSMENT_NOT_FOUND = "Assessment not found"
 
@@ -109,6 +110,71 @@ def extract_piston_stdout(result: dict[str, Any]) -> str:
     if isinstance(result, dict):
         return str(result.get("stdout") or "")
     return ""
+
+
+def execute_code_questions(
+        db: Session,
+        question_bank: QuestionBank,
+        candidate_code: str,
+        language: str = "python",
+        version: str | None = None,
+        piston_client: PistonClient | None = None,
+) -> dict[str, Any]:
+    if question_bank.type != QuestionType.CODING:
+        raise HTTPException(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            detail="Only coding questions are executed"
+        )
+    client = piston_client or PistonClient()
+    test_cases = get_test_cases_by_question_id(
+        db,
+        question_bank.question_bank_id)
+    passed_count = 0
+    final_exec_result: list[dict[str, Any]] = []
+    for test_case in test_cases:
+        assert isinstance(test_case, CodingTestCase)
+        passed = False
+        error_message = None
+        try:
+            execution_result = client.execute(
+                language=language,
+                source_code=candidate_code,
+                stdin=test_case.input_data or "",
+                version=version,
+            )
+            candidate_exec_output = extract_piston_stdout(execution_result)
+            expected_output = test_case.expected_output or ""
+            passed = (
+                normalize_Piston_output(candidate_exec_output)
+                == normalize_Piston_output(expected_output)
+            )
+        except PistonError as error:
+            error_message = str(error)
+        if passed:
+            passed_count = passed_count + 1
+        final_exec_result.append(
+            {
+                "test_case_id": test_case.test_case_id,
+                "description": test_case.description,
+                "passed": passed,
+                "expected_output": (
+                    test_case.expected_output
+                    if not test_case.is_hidden
+                    else None
+                ),
+                "is_hidden": test_case.is_hidden,
+                "error_message": error_message,
+            }
+        )
+    total_test_cases = len(final_exec_result)
+    failed_test_cases = total_test_cases - passed_count
+
+    return {
+        "Test Cases": total_test_cases,
+        "Passed": passed_count,
+        "Failed": failed_test_cases,
+        "Results": final_exec_result,
+        }
 
 
 def get_all_assessments(
