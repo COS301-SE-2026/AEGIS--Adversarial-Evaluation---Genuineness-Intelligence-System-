@@ -1,15 +1,16 @@
 from datetime import datetime, timedelta, timezone
 import json
 import uuid
-
+from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
-
+from app.core.piston import PistonClient, PistonError
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
 from app.models.adversarial_question import AdversarialQuestion
+from app.models.coding_test_cases import CodingTestCase
 from app.models.user import User
 from app.models.question_bank import QuestionType
 from app.schema.candidate_response import ResponseCreate
@@ -95,6 +96,19 @@ def _grade_candidate(qb, correct_answer, candidate_parsed):
         return 0.0, CorrectnessStatus.INCORRECT
     except Exception:
         return None, None
+
+
+def normalize_Piston_output(value: str | None) -> str:
+    return (value or "").replace("\r\n", "\n").strip()
+
+
+def extract_piston_stdout(result: dict[str, Any]) -> str:
+    run_result = result.get("run") if isinstance(result, dict) else None
+    if isinstance(run_result, dict):
+        return str(run_result.get("stdout") or "")
+    if isinstance(result, dict):
+        return str(result.get("stdout") or "")
+    return ""
 
 
 def get_all_assessments(
