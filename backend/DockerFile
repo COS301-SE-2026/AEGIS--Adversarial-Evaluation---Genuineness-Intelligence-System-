@@ -1,0 +1,18 @@
+# use a lightweight python image
+FROM python:3.11-slim
+
+# set the folder that works inside the container
+WORKDIR /app
+
+# copy the requirements file and install the required depenencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# copy all of the folders and files inside the backend folder
+COPY . .
+
+# expose the port on which FastAPI will run on
+EXPOSE 8000
+
+# command to run the FastAPI app using Uvicorn on any port Render assigns at runtime
+CMD ["sh", "-c", "unicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
