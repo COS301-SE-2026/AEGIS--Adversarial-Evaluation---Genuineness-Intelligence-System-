@@ -11,6 +11,7 @@ from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_test_results import CandidateTestResult
 from app.models.coding_test_cases import CodingTestCase
+from app.models.candidate_response import CorrectnessStatus
 from app.models.user import User
 from app.services.assessment import (
     activate_assessment,
@@ -313,6 +314,57 @@ def test_execute_code_questions_results(monkeypatch):
     assert result["Failed"] == 0
     assert result["Results"][0]["test_case_id"] == 1
     assert result["Results"][0]["passed"] is True
+
+def test_save_candidate_response_code_test_cases(monkeypatch):
+    mock_db = MagicMock()
+    mock_session = MagicMock()
+    mock_existing_response = MagicMock()
+    mock_existing_response.response_id = 99
+    mock_qb = MagicMock()
+    mock_qb.maximum_score = 10.0
+    mock_qb.type = QuestionType.CODING
+    mock_aq = MagicMock()
+    mock_aq.question_bank = mock_qb
+    test_case = CodingTestCase()
+    test_case.test_case_id = 11
+    test_case.input_data = "1"
+    test_case.expected_output = "1"
+    test_case.description = "case 1"
+    test_case.is_hidden = False
+    mock_piston_client = MagicMock()
+    mock_piston_client.execute.return_value = {"run": {"stdout": "1\n"}}
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result(mock_existing_response),
+        _mock_query_result(mock_aq),
+        _mock_query_result(None),
+    ]
+    monkeypatch.setattr(
+        "app.services.assessment.get_test_cases_by_question_id",
+        lambda db, question_id: [test_case],
+    )
+    monkeypatch.setattr(
+        "app.services.assessment.PistonClient",
+        lambda: mock_piston_client,
+    )
+    result = save_candidate_response(
+        mock_db,
+        9,
+        ResponseCreate(
+            assessment_question_id=11,
+            candidate_answer="print(1)",
+        ),
+    )
+    test_result_row = mock_db.add.call_args_list[-1].args[0]
+    assert result.score == pytest.approx(10.0)
+    assert result.is_correct == CorrectnessStatus.CORRECT
+    assert result.test_cases_total == 1
+    assert result.test_cases_passed == 1
+    assert result.test_cases_failed == 0
+    assert isinstance(test_result_row, CandidateTestResult)
+    assert test_result_row.response_id == 99
+    assert test_result_row.test_case_id == 11
+    assert test_result_row.passed is True
 
 def _make_mock_db_for_invite(assessment_result, candidate_result, existing_result):
     mock_db = MagicMock()
