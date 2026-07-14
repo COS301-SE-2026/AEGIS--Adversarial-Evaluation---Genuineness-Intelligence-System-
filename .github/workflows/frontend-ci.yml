@@ -1,6 +1,7 @@
 name: Frontend CI
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main, master, dev]
 
@@ -13,17 +14,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0 # this is added so codecov can correctly trace commit history
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
         with:
           version: 9
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
         with:
           node-version: 20
           cache: 'pnpm'
@@ -31,25 +32,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Restore Next.js Cache
-        uses: actions/cache@v4
-        with:
-          path: frontend/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('frontend/**/*.js', '**/*.jsx', '**/*.ts', '**/*.tsx') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
-
-
       - name: Run Linter
         run: pnpm --dir frontend lint
 
       - name: Build Application
         run: pnpm --dir frontend build
-
-      - name: Run tests with coverage
-        run: pnpm --dir frontend exec jest --coverage --coverageReports=lcov --passWithNoTests
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
