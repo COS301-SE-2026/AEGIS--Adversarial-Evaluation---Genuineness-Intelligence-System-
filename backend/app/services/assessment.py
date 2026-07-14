@@ -347,16 +347,12 @@ def save_candidate_response(
             candidate_response.test_cases_total = 0
             candidate_response.test_cases_passed = 0
             candidate_response.test_cases_failed = 0
-            save_candidate_code_test_results(
-                db, candidate_response.response_id, [])
     else:
         candidate_response.score = None
         candidate_response.is_correct = None
         candidate_response.test_cases_total = 0
         candidate_response.test_cases_passed = 0
         candidate_response.test_cases_failed = 0
-        save_candidate_code_test_results(
-            db, candidate_response.response_id, [])
 
     db.commit()
     db.refresh(candidate_response)

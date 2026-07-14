@@ -9,17 +9,21 @@ from app.models.adversarial_question import AdversarialQuestion
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
+from app.models.candidate_test_results import CandidateTestResult
+from app.models.coding_test_cases import CodingTestCase
 from app.models.user import User
 from app.services.assessment import (
     activate_assessment,
     add_question_to_assessment,
     create_assessment,
     create_candidate_assessment,
+    execute_code_questions,
     get_all_assessments,
     get_assessment_by_id,
     get_candidate_assessments,
     get_questions_for_candidate_assessment,
     remove_question_from_assessment,
+    save_candidate_code_test_results,
     save_candidate_response,
     start_candidate_assessment,
     update_assessment,
@@ -259,6 +263,28 @@ def test_save_candidate_response_grades_json_correct_answer():
     assert result.candidate_answer == "b"
     assert result.score == pytest.approx(4.0)
     assert result.is_correct == CorrectnessStatus.CORRECT
+
+def test_save_candidate_code_test_adds_rows():
+    mock_db = MagicMock()
+    save_candidate_code_test_results(
+        mock_db,
+        response_id=5,
+        execution_results=[
+            {"test_case_id": 1, "passed": True},
+            {"test_case_id": 2, "passed": False},
+        ],
+    )
+    assert mock_db.add.call_count == 2
+    first_row = mock_db.add.call_args_list[0].args[0]
+    second_row = mock_db.add.call_args_list[1].args[0]
+    assert isinstance(first_row, CandidateTestResult)
+    assert first_row.response_id == 5
+    assert first_row.test_case_id == 1
+    assert first_row.passed is True
+    assert isinstance(second_row, CandidateTestResult)
+    assert second_row.test_case_id == 2
+    assert second_row.passed is False
+
 def _make_mock_db_for_invite(assessment_result, candidate_result, existing_result):
     mock_db = MagicMock()
 
