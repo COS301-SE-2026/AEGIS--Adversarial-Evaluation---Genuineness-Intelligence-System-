@@ -20,6 +20,7 @@ from app.services.assessment import (
     create_assessment,
     create_candidate_assessment,
     execute_code_questions,
+    extract_piston_stdout,
     get_all_assessments,
     get_assessment_by_id,
     get_candidate_assessments,
@@ -360,6 +361,19 @@ def test_execute_code_questions_rejects_non_coding_question():
         )
     assert exc_info.value.status_code == 405
     assert exc_info.value.detail == "Only coding questions are executed"
+
+
+def test_extract_piston_stdout_reads_run_stdout():
+    result = {"run": {"stdout": "hello\n"}}
+    assert extract_piston_stdout(result) == "hello\n"
+
+
+def test_extract_piston_stdout_reads_top_level_stdout():
+    result = {"stdout": "hello\n"}
+    assert extract_piston_stdout(result) == "hello\n"
+
+def test_extract_piston_stdout_returns_empty_string_for_non_dict():
+    assert extract_piston_stdout(None) == ""
 
 def test_save_candidate_response_code_test_cases(monkeypatch):
     mock_db = MagicMock()
