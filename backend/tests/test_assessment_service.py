@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 
+from app.core.piston import PistonError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
@@ -314,6 +315,37 @@ def test_execute_code_questions_results(monkeypatch):
     assert result["Failed"] == 0
     assert result["Results"][0]["test_case_id"] == 1
     assert result["Results"][0]["passed"] is True
+
+def test_execute_code_questions_with_piston_error(monkeypatch):
+    mock_db = MagicMock()
+    mock_qb = MagicMock()
+    mock_qb.type = QuestionType.CODING
+    mock_qb.question_bank_id = 10
+
+    test_case = CodingTestCase()
+    test_case.test_case_id = 1
+    test_case.input_data = "1"
+    test_case.expected_output = "1"
+    test_case.description = "case 1"
+    test_case.is_hidden = False
+
+    mock_piston_client = MagicMock()
+    mock_piston_client.execute.side_effect = PistonError("boom")
+    monkeypatch.setattr(
+        "app.services.assessment.get_test_cases_by_question_id",
+        lambda db, question_id: [test_case],
+    )
+    result = execute_code_questions(
+        mock_db,
+        mock_qb,
+        candidate_code="print(1)",
+        piston_client=mock_piston_client,
+    )
+    assert result["Test Cases"] == 1
+    assert result["Passed"] == 0
+    assert result["Failed"] == 1
+    assert result["Results"][0]["passed"] is False
+    assert result["Results"][0]["error_message"] == "boom"
 
 def test_save_candidate_response_code_test_cases(monkeypatch):
     mock_db = MagicMock()
