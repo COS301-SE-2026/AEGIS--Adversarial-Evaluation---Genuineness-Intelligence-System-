@@ -347,6 +347,20 @@ def test_execute_code_questions_with_piston_error(monkeypatch):
     assert result["Results"][0]["passed"] is False
     assert result["Results"][0]["error_message"] == "boom"
 
+
+def test_execute_code_questions_rejects_non_coding_question():
+    mock_db = MagicMock()
+    mock_qb = MagicMock()
+    mock_qb.type = QuestionType.MULTIPLE_CHOICE
+    with pytest.raises(HTTPException) as exc_info:
+        execute_code_questions(
+            mock_db,
+            mock_qb,
+            candidate_code="print(1)",
+        )
+    assert exc_info.value.status_code == 405
+    assert exc_info.value.detail == "Only coding questions are executed"
+
 def test_save_candidate_response_code_test_cases(monkeypatch):
     mock_db = MagicMock()
     mock_session = MagicMock()
@@ -397,6 +411,48 @@ def test_save_candidate_response_code_test_cases(monkeypatch):
     assert test_result_row.response_id == 99
     assert test_result_row.test_case_id == 11
     assert test_result_row.passed is True
+
+
+def test_save_candidate_response_handles_zero_test_cases(monkeypatch):
+    mock_db = MagicMock()
+    mock_session = MagicMock()
+    mock_existing_response = MagicMock()
+    mock_existing_response.response_id = 101
+    mock_qb = MagicMock()
+    mock_qb.maximum_score = 10.0
+    mock_qb.type = QuestionType.CODING
+
+    mock_aq = MagicMock()
+    mock_aq.question_bank = mock_qb
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result(mock_existing_response),
+        _mock_query_result(mock_aq),
+        _mock_query_result(None)
+    ]
+
+    monkeypatch.setattr(
+        "app.services.assessment.execute_code_questions",
+        lambda **kwargs: {
+            "Test Cases": 0,
+            "Passed": 0,
+            "Failed": 0,
+            "Results": [],
+        },
+    )
+    result = save_candidate_response(
+        mock_db,
+        9,
+        ResponseCreate(
+            assessment_question_id=11,
+            candidate_answer="print(1)",
+        ),
+    )
+    assert result.score is None
+    assert result.is_correct is None
+    assert result.test_cases_total == 0
+    assert result.test_cases_passed == 0
+    assert result.test_cases_failed == 0
 
 def _make_mock_db_for_invite(assessment_result, candidate_result, existing_result):
     mock_db = MagicMock()
