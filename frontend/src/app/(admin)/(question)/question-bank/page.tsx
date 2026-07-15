@@ -6,7 +6,7 @@ import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
-import QuestionModal from "./question-modal";
+import LegacyQuestionModal from "./legacy-question-modal";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
@@ -390,7 +390,7 @@ export default function ViewQuestionsPage() {
         </main> 
       </div>
 
-      <QuestionModal
+      <LegacyQuestionModal
         key={isCreateOpen ? "create" : (editQuestionId ?? "closed")}
         isOpen={isCreateOpen || editQuestionId !== null}
         mode={isCreateOpen ? "create" : "edit"}
