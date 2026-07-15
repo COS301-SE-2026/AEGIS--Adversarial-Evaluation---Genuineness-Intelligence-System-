@@ -29,4 +29,6 @@ export interface QuestionPayload {
     correct_answer?: string,
     created_at?: string,
     updated_at?: string
+    source_question_id?: number | null,
+    technique?: string
 }
