@@ -1100,3 +1100,17 @@ def test_activate_assessment_sets_status_to_active():
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
+def test_execute_candidate_code_non_coding_question(monkeypatch):
+    mock_db = MagicMock()
+    query_map = {
+        CandidateAssessment: MagicMock(candidate_assess_id=1),
+        AssessmentQuestion: MagicMock(
+            assessment_q_id=2,
+            adversarial_question=MagicMock(
+                source_question=MagicMock(type=QuestionType.MULTIPLE_CHOICE)
+            )
+        )
+    }
+    with pytest.raises(HTTPException) as exc_info:
+        execute_candidate_code(mock_db, 1, 2, "print('code')")
+    assert exc_info.value.status_code == 400
