@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, RefreshCw, Sparkles } from "lucide-react";
-import { QuestionBank, QuestionCategory } from "../../types/questions";
+import { QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
 
 
 interface AdversarialQuestionModalProps {
@@ -12,25 +12,17 @@ interface AdversarialQuestionModalProps {
     questions: QuestionBank[];
     categories: QuestionCategory[];
     onClose: () => void;
-    onSubmit: (payload: {
-  title: string;
-  content: string;
-  source_question_id?: number | null;
-  technique?: string;
-  category_id?: number;
-  difficulty?: string;
-}) => void;
+    onSubmit: (payload: QuestionPayload) => void;
+    isSaving?: boolean;
 }
 
-export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, onSubmit,}: AdversarialQuestionModalProps) {     
+export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, onSubmit, isSaving = false, mode, question_id}: AdversarialQuestionModalProps) {     
     const [sourceQuestionId, setSourceQuestionId] = useState<number | null>(null);
     const [technique, setTechnique] = useState("");
     const [generatedTitle, setGeneratedTitle] = useState("");
     const [generatedContent, setGeneratedContent] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
 
-
-   
     const selectedSource = questions.find(q => q.question_bank_id === sourceQuestionId);
 
     const handleGenerate = async () => {
@@ -51,36 +43,41 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
     };
 
     const handleSubmit = () => {
-        onSubmit({
+        // Build a proper QuestionPayload with sensible defaults
+        const payload: QuestionPayload = {
             title: generatedTitle || "New Adversarial Question",
-            content: generatedContent,
-            source_question_id: sourceQuestionId,
-            technique,
-            category_id: selectedSource?.category_id,
-            difficulty: "Medium",
-        });
+            content: generatedContent || "",
+            category_id: selectedSource?.category_id || categories[0]?.category_id || 0,
+            difficulty: selectedSource?.difficulty || "Medium",
+            maximum_score: selectedSource?.maximum_score || 10,
+            type: "CODING",
+            tags: [`adversarial-${technique}`, ...(selectedSource?.tags || [])],
+            correct_answer: selectedSource?.correct_answer || "",
+            // Include source question metadata for tracking
+            source_question_id: sourceQuestionId || undefined,
+            technique: technique || undefined,
+        };
+
+        onSubmit(payload);
         onClose();
     };
     
-
     if(!isOpen) return null;
-
-    
-
-        
     
     return (
-        
     <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
       <div className="bg-secondary-surface border border-tertiary-surface rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-tertiary-surface flex items-center justify-between bg-secondary-surface">
-          <h2 className="text-xl font-staatliches tracking-wide">Create Adversarial Question</h2>
-          <button onClick={onClose} className="text-white-smoke/40 hover:text-system-red">
-            <X size={24} />
-          </button>
-        </div>
-
+      <div className="px-6 py-4 border-b border-tertiary-surface flex items-center justify-between bg-secondary-surface">
+  <h2 className="text-xl font-staatliches tracking-wide">
+    {mode === "edit" 
+      ? `Edit Adversarial Question #${question_id}` 
+      : "Create Adversarial Question"}
+  </h2>
+  <button onClick={onClose} className="text-white-smoke/40 hover:text-system-red">
+    <X size={24} />
+  </button>
+</div>
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* Source Question */}
           <div>
@@ -170,7 +167,7 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
           <button onClick={onClose} className="px-6 py-2 border border-default-border rounded">Cancel</button>
           <button 
             onClick={handleSubmit}
-            disabled={!generatedContent}
+            disabled={!generatedContent || isSaving}
             className="px-6 py-2 bg-system-red text-white rounded disabled:opacity-50"
           >
             SAVE ADVERSARIAL QUESTION
