@@ -248,7 +248,7 @@ def test_save_candidate_response_grades_json_correct_answer():
     mock_qb.type = QuestionType.MULTIPLE_CHOICE
 
     mock_aq = MagicMock()
-    mock_aq.question_bank = mock_qb
+    mock_aq.adversarial_question.source_question = mock_qb
 
     mock_db.query.side_effect = [
         _mock_query_result(mock_session),
@@ -375,7 +375,7 @@ def test_extract_piston_stdout_reads_top_level_stdout():
 def test_extract_piston_stdout_returns_empty_string_for_non_dict():
     assert extract_piston_stdout(None) == ""
 
-def test_save_candidate_response_code_test_cases(monkeypatch):
+def test_save_candidate_response_code_test_cases():
     mock_db = MagicMock()
     mock_session = MagicMock()
     mock_existing_response = MagicMock()
@@ -384,29 +384,12 @@ def test_save_candidate_response_code_test_cases(monkeypatch):
     mock_qb.maximum_score = 10.0
     mock_qb.type = QuestionType.CODING
     mock_aq = MagicMock()
-    mock_aq.question_bank = mock_qb
-    test_case = CodingTestCase()
-    test_case.test_case_id = 11
-    test_case.input_data = "1"
-    test_case.expected_output = "1"
-    test_case.description = "case 1"
-    test_case.is_hidden = False
-    mock_piston_client = MagicMock()
-    mock_piston_client.execute.return_value = {"run": {"stdout": "1\n"}}
+    mock_aq.adversarial_question.source_question = mock_qb
     mock_db.query.side_effect = [
         _mock_query_result(mock_session),
         _mock_query_result(mock_existing_response),
         _mock_query_result(mock_aq),
-        _mock_query_result(None),
     ]
-    monkeypatch.setattr(
-        "app.services.assessment.get_test_cases_by_question_id",
-        lambda db, question_id: [test_case],
-    )
-    monkeypatch.setattr(
-        "app.services.assessment.PistonClient",
-        lambda: mock_piston_client,
-    )
     result = save_candidate_response(
         mock_db,
         9,
@@ -415,19 +398,15 @@ def test_save_candidate_response_code_test_cases(monkeypatch):
             candidate_answer="print(1)",
         ),
     )
-    test_result_row = mock_db.add.call_args_list[-1].args[0]
-    assert result.score == pytest.approx(10.0)
-    assert result.is_correct == CorrectnessStatus.CORRECT
-    assert result.test_cases_total == 1
-    assert result.test_cases_passed == 1
+    assert result.score is None
+    assert result.is_correct is None
+    assert result.test_cases_total == 0
+    assert result.test_cases_passed == 0
     assert result.test_cases_failed == 0
-    assert isinstance(test_result_row, CandidateTestResult)
-    assert test_result_row.response_id == 99
-    assert test_result_row.test_case_id == 11
-    assert test_result_row.passed is True
+    assert mock_db.add.call_count == 0
 
 
-def test_save_candidate_response_handles_zero_test_cases(monkeypatch):
+def test_save_candidate_response_handles_zero_test_cases():
     mock_db = MagicMock()
     mock_session = MagicMock()
     mock_existing_response = MagicMock()
@@ -437,23 +416,12 @@ def test_save_candidate_response_handles_zero_test_cases(monkeypatch):
     mock_qb.type = QuestionType.CODING
 
     mock_aq = MagicMock()
-    mock_aq.question_bank = mock_qb
+    mock_aq.adversarial_question.source_question = mock_qb
     mock_db.query.side_effect = [
         _mock_query_result(mock_session),
         _mock_query_result(mock_existing_response),
         _mock_query_result(mock_aq),
-        _mock_query_result(None)
     ]
-
-    monkeypatch.setattr(
-        "app.services.assessment.execute_code_questions",
-        lambda **kwargs: {
-            "Test Cases": 0,
-            "Passed": 0,
-            "Failed": 0,
-            "Results": [],
-        },
-    )
     result = save_candidate_response(
         mock_db,
         9,

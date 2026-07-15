@@ -295,53 +295,27 @@ def save_candidate_response(
         .first()
     )
 
-    if assessment_q is not None and assessment_q.question_bank is not None:
-        qb = assessment_q.question_bank
+    if (
+        assessment_q is not None
+        and assessment_q.adversarial_question is not None
+        and assessment_q.adversarial_question.source_question is not None
+    ):
+        qb = assessment_q.adversarial_question.source_question
         if qb.type == QuestionType.CODING:
-            execution_result = execute_code_questions(
-                db=db,
-                question_bank=qb,
-                candidate_code=response_in.candidate_answer,
-                language="python",
-                version=None,
-                piston_client=None,
-            )
-            total_test_cases = execution_result["Test Cases"]
-            passed_test_cases = execution_result["Passed"]
-            failed_test_cases = execution_result["Failed"]
-            candidate_response.test_cases_total = total_test_cases
-            candidate_response.test_cases_passed = passed_test_cases
-            candidate_response.test_cases_failed = failed_test_cases
-            candidate_response.execution_results = execution_result["Results"]
-            save_candidate_code_test_results(
-                db,
-                candidate_response.response_id,
-                execution_result["Results"],
-            )
-
-            if total_test_cases > 0:
-                score_fraction = passed_test_cases / total_test_cases
-                candidate_response.score = qb.maximum_score * score_fraction
-                if passed_test_cases == total_test_cases:
-                    candidate_response.is_correct = CorrectnessStatus.CORRECT
-                elif passed_test_cases > 0:
-                    candidate_response.is_correct = CorrectnessStatus.PARTIAL
-                else:
-                    candidate_response.is_correct = CorrectnessStatus.INCORRECT
-            else:
-                candidate_response.score = None
-                candidate_response.is_correct = None
-                candidate_response.test_cases_failed = 0
+            candidate_response.score = None
+            candidate_response.is_correct = None
+            candidate_response.test_cases_total = 0
+            candidate_response.test_cases_passed = 0
+            candidate_response.test_cases_failed = 0
 
         else:
             correct_answer = qb.correct_answer
             candidate_parsed = _parse_candidate_answer(
-                response_in.candidate_answer
-            )
-
+                response_in.candidate_answer)
             score, correctness_status = _grade_candidate(
-                qb, correct_answer, candidate_parsed
-            )
+                qb,
+                correct_answer,
+                candidate_parsed)
             candidate_response.score = score
             candidate_response.is_correct = correctness_status
             candidate_response.test_cases_total = 0
