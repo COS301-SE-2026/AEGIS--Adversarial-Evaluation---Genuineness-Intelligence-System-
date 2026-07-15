@@ -28,7 +28,7 @@ export default function AdversarialQuestionsPage() {
   const [questions, setQuestions] = useState<QuestionBank[]>([]);
   const [deleteSuccess, setDeleteSuccess] = useState<string|null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string|null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving, ] = useState(false);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
@@ -261,11 +261,15 @@ export default function AdversarialQuestionsPage() {
         <main className="flex-1 overflow-auto">
           <div className="p-4 sm:p-6 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
-              <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer">
-                <Plus size={18} className="sm:w-5 sm:h-5"/>
-                <span className="hidden sm:inline">New Adverserial Question</span>
-                <span className="sm:hidden">New</span>
-              </button>
+              <button 
+    onClick={() => setIsCreateOpen(true)} 
+    disabled={isSaving}
+    className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer disabled:opacity-50"
+  >
+    <Plus size={18} className="sm:w-5 sm:h-5"/>
+    <span className="hidden sm:inline">New Adverserial Question</span>
+    <span className="sm:hidden">New</span>
+  </button>
             </div>
 
             <QuestionFilters
@@ -401,12 +405,19 @@ export default function AdversarialQuestionsPage() {
           setEditQuestionId(null);
         }}
         onSubmit={(payload) => {
-          if(isCreateOpen) {
-            handleDeployment(payload);
-          } else{
-            handleSavedChanges(payload);
-          }
-        }}
+  if (isCreateOpen) {
+    handleDeployment({
+      ...payload,
+      category_id: payload.category_id || 0,   // Provide default
+      maximum_score: 10,
+    } as QuestionPayload);
+  } else {
+    handleSavedChanges({
+      ...payload,
+      category_id: payload.category_id || 0,
+    } as QuestionPayload);
+  }
+}}
       />
 
       <ConfirmationModal

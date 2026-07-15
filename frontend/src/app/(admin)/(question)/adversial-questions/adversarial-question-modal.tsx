@@ -12,7 +12,14 @@ interface AdversarialQuestionModalProps {
     questions: QuestionBank[];
     categories: QuestionCategory[];
     onClose: () => void;
-    onSubmit: (payload: any) => void;
+    onSubmit: (payload: {
+  title: string;
+  content: string;
+  source_question_id?: number | null;
+  technique?: string;
+  category_id?: number;
+  difficulty?: string;
+}) => void;
 }
 
 export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, onSubmit,}: AdversarialQuestionModalProps) {     
@@ -149,6 +156,13 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
     </div>
   )}
 </div>
+
+{selectedSource && (
+  <div className="text-xs text-white-smoke/60 mt-2">
+    Source Category: {categories.find(c => c.category_id === selectedSource.category_id)?.category_name || "Unknown"}
+  </div>
+)}
+
         </div>
 
         {/* Footer */}
