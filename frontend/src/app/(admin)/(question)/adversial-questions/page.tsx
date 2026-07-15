@@ -6,13 +6,13 @@ import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
-import QuestionModal from "./question-modal";
+import AdversarialQuestionModal from "./adversarial-question-modal";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 
 
-export default function ViewQuestionsPage() {
+export default function AdversarialQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -390,11 +390,9 @@ export default function ViewQuestionsPage() {
         </main> 
       </div>
 
-      <QuestionModal
-        key={isCreateOpen ? "create" : (editQuestionId ?? "closed")}
+      <AdversarialQuestionModal
         isOpen={isCreateOpen || editQuestionId !== null}
         mode={isCreateOpen ? "create" : "edit"}
-        isSaving={isSaving}
         question_id={editQuestionId}
         questions={questions}
         categories={categories}
@@ -405,8 +403,7 @@ export default function ViewQuestionsPage() {
         onSubmit={(payload) => {
           if(isCreateOpen) {
             handleDeployment(payload);
-          }
-          else{
+          } else{
             handleSavedChanges(payload);
           }
         }}
@@ -416,9 +413,9 @@ export default function ViewQuestionsPage() {
         isOpen={deleteTargetId !== null}
         onClose={() => setDeleteTargetId(null)}
         onConfirm={confirmDelete}
-        headerText="Delete Question"
+        headerText="Delete Adversarial Question"
         title="Are you sure you want to delete this question?"
-        description="This action cannot be undone. The question will be permanently removed from the question bank."
+        description="This action cannot be undone. The question will be permanently removed from the adversarial question bank."
         confirmText="DELETE"
         cancelText="CANCEL"
         isDanger
