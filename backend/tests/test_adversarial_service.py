@@ -8,6 +8,7 @@ from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.question_bank import QuestionBank
 from app.services.adversarial_service import (
     generate_adversarial_question,
+    get_all_strategies,
 )
 
 VALID_RESPONSE = {
@@ -164,3 +165,14 @@ def test_generate_adversarial_question_success():
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
+
+
+def test_get_all_strategies_returns_list():
+    strategies = [_mock_strategy(), _mock_strategy()]
+    mock_db = MagicMock()
+    mock_db.query.return_value.all.return_value = strategies
+
+    result = get_all_strategies(mock_db)
+
+    mock_db.query.assert_called_once_with(AdversarialStrategy)
+    assert result == strategies

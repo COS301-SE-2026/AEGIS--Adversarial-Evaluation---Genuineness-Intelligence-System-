@@ -150,3 +150,7 @@ def generate_adversarial_question(
     db.commit()
     db.refresh(adversarial_question)
     return adversarial_question
+
+
+def get_all_strategies(db: Session) -> list:
+    return db.query(AdversarialStrategy).all()
