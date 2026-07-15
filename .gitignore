@@ -42,3 +42,5 @@ build/
 
 # Piston Sandbox Binaries
 sandbox/piston_packages/
+
+/node_modules

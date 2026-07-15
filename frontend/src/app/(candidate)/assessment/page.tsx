@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AssessmentCard } from "@/components/candidate/ui/cards/assesment-card";
 import type { AssessmentCardProps } from "@/components/candidate/ui/cards/assessment-card.types";
 import { apiGet } from "@/lib/apiClient";
@@ -42,12 +43,15 @@ function getStoredAuthToken(): string | undefined {
     return getToken() ?? undefined;
 }
 
-export default function AssessmentPage() {
+function AssessmentPageContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+
     const [authChecked, setAuthChecked] = useState(false);
     const [assessments, setAssessments] = useState<AssessmentCardProps[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const searchQuery = searchParams.get("search")?.toLowerCase() ?? "";
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -104,6 +108,15 @@ export default function AssessmentPage() {
         };
     }, [authChecked]);
 
+
+    const filteredAssessments = useMemo(() => {
+        return assessments.filter((assessment) => {
+            const titleMatches = assessment.title.toLowerCase().includes(searchQuery);
+            const descMatches = assessment.description?.toLowerCase().includes(searchQuery);
+            return titleMatches || descMatches;
+        });
+    }, [assessments, searchQuery]);
+
     if (!authChecked) {
         return (
             <main>
@@ -111,6 +124,8 @@ export default function AssessmentPage() {
             </main>
         );
     }
+
+
 
     return (
         <main>
@@ -128,11 +143,11 @@ export default function AssessmentPage() {
                 <div className="pt-8 text-system-red">{error}</div>
             ) : assessments.length === 0 ? (
                 <div className="pt-8 text-white-smoke">
-                    No assessments assigned yet.
+                    No assessments assigned yet
                 </div>
             ) : (
                 <div className="grid grid-cols-4 gap-x-32 gap-y-16 pt-8 pb-8">
-                    {assessments.map((assessment) => (
+                    {filteredAssessments.map((assessment) => (
                         <AssessmentCard
                             key={assessment.candidateAssessId}
                             {...assessment}
@@ -142,4 +157,19 @@ export default function AssessmentPage() {
             )}
         </main>
     );
+}
+
+export default function AssessmentPage() {
+    return (
+        <main>
+            <Suspense 
+                fallback=
+                {<div className="pt-8 text-default-text">
+                    Loading View...
+                </div>}
+            >
+                <AssessmentPageContent/>
+            </Suspense>
+        </main>
+    )
 }

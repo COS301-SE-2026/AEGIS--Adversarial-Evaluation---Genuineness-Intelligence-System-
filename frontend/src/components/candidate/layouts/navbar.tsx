@@ -1,6 +1,7 @@
 'use client';
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { SearchBar } from "../ui/buttons/search-bar";
@@ -44,7 +45,11 @@ export function Navbar() {
                         </div>
                     </div>
                     <div className="flex items-center gap-16">
-                        <SearchBar />
+                        <Suspense fallback={<div className="w-40  h-[36] bg-default-border/20 rounded-md animated-pulse"/>}
+                        >
+                            <SearchBar />
+                        </Suspense>
+                           
                         <NotificationBell />
                         <UserIcon />
                     </div>
