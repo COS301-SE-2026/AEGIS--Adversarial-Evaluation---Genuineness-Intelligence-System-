@@ -178,6 +178,114 @@ def execute_code_questions(
         }
 
 
+def execute_candidate_code(
+    db: Session,
+    candidate_assessment_id: int,
+    assessment_question_id: int,
+    code: str,
+    piston_client: PistonClient | None = None
+) -> dict:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            candidate_assessment_id == CandidateAssessment.candidate_assess_id)
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate assessment not found."
+        )
+    assessment_q = (
+        db.query(AssessmentQuestion)
+        .options(
+            selectinload(AssessmentQuestion.adversarial_question)
+            .selectinload(AdversarialQuestion.source_question)
+        )
+        .filter(AssessmentQuestion.assessment_q_id == assessment_question_id)
+        .first()
+    )
+
+    if assessment_q is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment question not found."
+        )
+
+    source_question = assessment_q.adversarial_question.source_question
+
+    if source_question.type != QuestionType.CODING:
+        raise HTTPException(
+            status_code=400,
+            detail="Code execution is only available for coding questions."
+        )
+
+    execution_result = execute_code_questions(
+        db=db,
+        question_bank=source_question,
+        candidate_code=code,
+        language="python",
+        version=None,
+        piston_client=piston_client
+    )
+
+    total = execution_result["Test Cases"]
+    passed = execution_result["Passed"]
+    failed = execution_result["Failed"]
+    results = execution_result["Results"]
+
+    if total > 0:
+        score = round((passed/total)*100, 2)
+    else:
+        score = 0.0
+
+    candidate_response = (
+        db.query(CandidateResponse)
+        .filter(
+            CandidateResponse.candidate_assessment_id
+            == candidate_assessment_id,
+            CandidateResponse.assessment_question_id
+            == assessment_question_id,
+        )
+        .first()
+    )
+
+    if candidate_response is None:
+        candidate_response = CandidateResponse(
+            candidate_assessment_id=candidate_assessment_id,
+            assessment_question_id=assessment_question_id,
+            candidate_answer=code
+        )
+        db.add(candidate_response)
+        db.flush()
+    else:
+        candidate_response.candidate_answer = code
+
+    candidate_response.score = score
+    candidate_response.is_correct = passed == total
+    candidate_response.test_cases_passed = passed
+    candidate_response.test_cases_failed = failed
+    candidate_response.test_cases_total = total
+
+    save_candidate_code_test_results(
+        db=db,
+        response_id=candidate_response.response_id,
+        execution_results=results)
+
+    db.commit()
+    db.refresh(candidate_response)
+
+    return {
+        "score": score,
+        "is_correct": passed == total,
+        "test_cases_passed": passed,
+        "test_cases_failed": failed,
+        "test_cases_total": total,
+        "results": results
+    }
+
+
 def save_candidate_code_test_results(
     db: Session,
     response_id: int,
