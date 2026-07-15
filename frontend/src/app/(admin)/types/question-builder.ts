@@ -46,3 +46,10 @@ export const defaultQuestionState: QuestionBuilderState = {
     blanks: [],
     testCases: [],
 }
+
+export const defaultTestCaseState: TestCase = {
+    id: crypto.randomUUID(),
+    input: "",
+    expectedOutput: "",
+    hidden: false,
+}
