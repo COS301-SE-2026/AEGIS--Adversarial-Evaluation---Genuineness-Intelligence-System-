@@ -32,7 +32,7 @@ const Question_Types = [
         type: "FILL_BLANKS" as const,
         title: "Fill in the Blanks",
         description: "Create sentences with missing words that candidates complete.",
-        icon: Code2,
+        icon: BetweenHorizontalStart,
     }
 ];
 
