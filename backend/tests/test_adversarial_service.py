@@ -5,10 +5,12 @@ import pytest
 from fastapi import HTTPException
 
 from app.models.adversarial_strategies import AdversarialStrategy
+from app.models.assessment import Assessment
 from app.models.question_bank import QuestionBank
 from app.services.adversarial_service import (
     generate_adversarial_question,
     get_all_strategies,
+    verify_assessment_exists,
 )
 
 VALID_RESPONSE = {
@@ -176,3 +178,28 @@ def test_get_all_strategies_returns_list():
 
     mock_db.query.assert_called_once_with(AdversarialStrategy)
     assert result == strategies
+
+
+def test_verify_assessment_exists_returns_assessment():
+    mock_assessment = MagicMock(spec=Assessment)
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = (
+        mock_assessment
+    )
+
+    result = verify_assessment_exists(mock_db, assessment_id=1)
+
+    assert result is mock_assessment
+
+
+def test_verify_assessment_exists_404_when_missing():
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = (
+        None
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        verify_assessment_exists(mock_db, assessment_id=999)
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"

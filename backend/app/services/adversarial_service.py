@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.gemini import get_gemini_model
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
+from app.models.assessment import Assessment
 from app.models.question_bank import QuestionBank
 
 _WEAPONISER_DIR = Path(__file__).parent.parent / "core" / "weaponiser"
@@ -154,3 +155,17 @@ def generate_adversarial_question(
 
 def get_all_strategies(db: Session) -> list:
     return db.query(AdversarialStrategy).all()
+
+
+def verify_assessment_exists(db: Session, assessment_id: int) -> Assessment:
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
+    )
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+    return assessment
