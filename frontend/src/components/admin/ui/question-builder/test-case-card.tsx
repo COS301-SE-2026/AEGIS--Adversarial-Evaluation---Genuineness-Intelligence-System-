@@ -1,5 +1,6 @@
 "use client"
 
+import { useId } from "react";
 import { Trash2 } from "lucide-react";
 import { TestCase } from "@/app/(admin)/types/question-builder";
 
@@ -11,6 +12,9 @@ interface TestCardProps {
 }
 
 export default function TestCaseCard({testCase, index, onChange, onDelete}: TestCardProps) {
+    const inputId = useId();
+    const outputId = useId();
+
     return (
         <div className="rounded-lg border border-tertiary-surface bg-secondary-surface p-5 space-y-5">
     
@@ -29,13 +33,13 @@ export default function TestCaseCard({testCase, index, onChange, onDelete}: Test
 
             <div className="space-y-2">
                 <label 
-                    htmlFor={`test-input-${testCase.id}`}
+                    htmlFor={inputId}
                     className="text-sm uppercase tracking-wider text-default-border"
                 >
                     Test Input
                 </label>
                 <textarea
-                    id={`test-input-${testCase.id}`}
+                    id={inputId}
                     value={testCase.input}
                     onChange={(element) => onChange({...testCase, input: element.target.value})}
                     className="w-full min-h-28 rounded border border-default-border bg-background p-4"
@@ -44,13 +48,13 @@ export default function TestCaseCard({testCase, index, onChange, onDelete}: Test
 
             <div className="space-y-2">
                 <label 
-                    htmlFor={`expected-output-${testCase.id}`}
+                    htmlFor={outputId}
                     className="text-xs uppercase tracking-wider text-default-border"
                 >
                     Expected Output
                 </label>
                 <textarea
-                    id={`expected-output-${testCase.id}`}
+                    id={outputId}
                     value={testCase.expectedOutput}
                     onChange={(element) => onChange({...testCase, expectedOutput: element.target.value})}
                     className="w-full min-h-28 rounded border border-default-border bg-background p-4"

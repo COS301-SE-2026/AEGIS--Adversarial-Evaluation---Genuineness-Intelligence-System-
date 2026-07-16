@@ -134,7 +134,7 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
 </div>
 
 {/* Always Visible Preview Box */}
-<div className="border border-tertiary-surface rounded p-5 bg-secondary-surface min-h-[200px]">
+<div className="border border-tertiary-surface rounded p-5 bg-secondary-surface min-h-50">
   <h3 className="font-staatliches text-lg mb-3 flex items-center gap-2">
     Generated Question Preview
     {generatedContent && <span className="text-status-success text-sm">✓ Ready</span>}
