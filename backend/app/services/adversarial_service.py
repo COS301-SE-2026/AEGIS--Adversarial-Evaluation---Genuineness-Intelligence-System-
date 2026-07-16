@@ -9,6 +9,7 @@ from app.core.gemini import get_gemini_model
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
+from app.models.assessment_question import AssessmentQuestion
 from app.models.question_bank import QuestionBank
 
 _WEAPONISER_DIR = Path(__file__).parent.parent / "core" / "weaponiser"
@@ -169,3 +170,19 @@ def verify_assessment_exists(db: Session, assessment_id: int) -> Assessment:
             detail="Assessment not found",
         )
     return assessment
+
+
+def get_adversarial_questions_for_assessment(
+    db: Session, assessment_id: int
+) -> list:
+    verify_assessment_exists(db, assessment_id)
+    return (
+        db.query(AdversarialQuestion)
+        .join(
+            AssessmentQuestion,
+            AssessmentQuestion.adv_question_id
+            == AdversarialQuestion.adv_question_id,
+        )
+        .filter(AssessmentQuestion.assessments_id == assessment_id)
+        .all()
+    )
