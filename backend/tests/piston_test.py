@@ -104,7 +104,7 @@ def test_execute_uses_resolved_runtime_and_posts_payload():
             stdin="input",
         )
     assert result == {"run": {"stdout": "hello"}}
-    mock_resolve_runtime.assert_called_once_with("Python", None)
+    mock_resolve_runtime.assert_called_once_with("python", None)
     mock_request.assert_called_once_with(
         "POST",
         "/execute",
@@ -115,6 +115,16 @@ def test_execute_uses_resolved_runtime_and_posts_payload():
             "stdin": "input",
         },
     )
+
+
+def test_execute_rejects_non_python_languages():
+    client = PistonClient(base_url="http://piston.test", timeout_seconds=5)
+    with pytest.raises(PistonError) as exc_info:
+        client.execute(
+            language="go",
+            source_code="fmt.Println(\"hello\")",
+        )
+    assert "Only Python execution is supported for now" in str(exc_info.value)
 
 def test_extract_error_for_json_parsing_fail():
     response = MagicMock()

@@ -1,5 +1,5 @@
 from typing import Optional
-
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -30,6 +30,10 @@ class CandidateResponseResponse(BaseModel):
     candidate_answer: Optional[str] = None
     score: Optional[float] = None
     is_correct: Optional[str] = None
+    test_cases_total: Optional[int] = None
+    test_cases_passed: Optional[int] = None
+    test_cases_failed: Optional[int] = None
+    execution_results: Optional[list[dict[str, Any]]] = None
 
     class Config:
         orm_mode = True
