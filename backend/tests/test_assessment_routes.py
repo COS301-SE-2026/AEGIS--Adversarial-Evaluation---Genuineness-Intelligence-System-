@@ -288,7 +288,7 @@ def test_save_candidate_response_grades_json_correct_answer(client, mock_db):
     mock_qb.maximum_score = 4.0
 
     mock_aq = MagicMock()
-    mock_aq.question_bank = mock_qb
+    mock_aq.adversarial_question.source_question = mock_qb
 
     # query sequence: CandidateAssessment, CandidateResponse (None), AssessmentQuestion (with qb)
     mock_db.query.side_effect = [

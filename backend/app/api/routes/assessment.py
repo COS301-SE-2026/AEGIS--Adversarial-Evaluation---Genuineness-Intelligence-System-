@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-
+from app.core.piston import PistonClient
 from app.database.database import get_db
 from app.schema.candidate_assessment import InviteCreate
 from app.schema.assessment import (
@@ -14,6 +14,7 @@ from app.schema.assessment import (
     AssessmentQuestionCreate,
     AssessmentQuestionCreatedResponse,
     AssessmentUpdate,
+    ExecuteRequest
 )
 from app.services.assessment import (
     get_all_assessments,
@@ -22,6 +23,7 @@ from app.services.assessment import (
     get_candidate_assessments,
     get_questions_for_candidate_assessment,
     save_candidate_response,
+    execute_candidate_code,
     submit_candidate_assessment,
     create_candidate_assessment,
     start_candidate_assessment,
@@ -408,3 +410,20 @@ async def get_candidate_assessment_questions(
         }
         for aq in questions
     ]
+
+
+@router.post(
+    "/execute"
+)
+def execute_code(
+    payload: ExecuteRequest,
+    db: Session = Depends(get_db)
+):
+    piston_client = PistonClient()
+    return execute_candidate_code(
+        db=db,
+        candidate_assessment_id=payload.candidate_assessment_id,
+        assessment_question_id=payload.assessment_question_id,
+        code=payload.code,
+        piston_client=piston_client,
+    )

@@ -1,18 +1,21 @@
 from datetime import datetime, timedelta, timezone
 import json
 import uuid
-
+from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, selectinload
-
+from app.core.piston import PistonClient, PistonError
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.models.candidate_test_results import CandidateTestResult
 from app.models.adversarial_question import AdversarialQuestion
+from app.models.question_bank import QuestionBank, QuestionType
+from app.models.coding_test_cases import CodingTestCase
 from app.models.user import User
-from app.models.question_bank import QuestionType
 from app.schema.candidate_response import ResponseCreate
+from app.services.test_cases import get_test_cases_by_question_id
 
 ASSESSMENT_NOT_FOUND = "Assessment not found"
 
@@ -95,6 +98,211 @@ def _grade_candidate(qb, correct_answer, candidate_parsed):
         return 0.0, CorrectnessStatus.INCORRECT
     except Exception:
         return None, None
+
+
+def normalize_Piston_output(value: str | None) -> str:
+    return (value or "").replace("\r\n", "\n").strip()
+
+
+def extract_piston_stdout(result: dict[str, Any]) -> str:
+    run_result = result.get("run") if isinstance(result, dict) else None
+    if isinstance(run_result, dict):
+        return str(run_result.get("stdout") or "")
+    if isinstance(result, dict):
+        return str(result.get("stdout") or "")
+    return ""
+
+
+def execute_code_questions(
+        db: Session,
+        question_bank: QuestionBank,
+        candidate_code: str,
+        language: str = "python",
+        version: str | None = None,
+        piston_client: PistonClient | None = None,
+) -> dict[str, Any]:
+    if question_bank.type != QuestionType.CODING:
+        raise HTTPException(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            detail="Only coding questions are executed"
+        )
+    client = piston_client or PistonClient()
+    test_cases = get_test_cases_by_question_id(
+        db,
+        question_bank.question_bank_id)
+    passed_count = 0
+    final_exec_result: list[dict[str, Any]] = []
+    for test_case in test_cases:
+        assert isinstance(test_case, CodingTestCase)
+        passed = False
+        error_message = None
+        try:
+            execution_result = client.execute(
+                language=language,
+                source_code=candidate_code,
+                stdin=test_case.input_data or "",
+                version=version,
+            )
+            candidate_exec_output = extract_piston_stdout(execution_result)
+            expected_output = test_case.expected_output or ""
+            passed = (
+                normalize_Piston_output(candidate_exec_output)
+                == normalize_Piston_output(expected_output)
+            )
+        except PistonError as error:
+            error_message = str(error)
+        if passed:
+            passed_count = passed_count + 1
+        final_exec_result.append(
+            {
+                "test_case_id": test_case.test_case_id,
+                "description": test_case.description,
+                "passed": passed,
+                "expected_output": (
+                    test_case.expected_output
+                    if not test_case.is_hidden
+                    else None
+                ),
+                "is_hidden": test_case.is_hidden,
+                "error_message": error_message,
+            }
+        )
+    total_test_cases = len(final_exec_result)
+    failed_test_cases = total_test_cases - passed_count
+
+    return {
+        "Test Cases": total_test_cases,
+        "Passed": passed_count,
+        "Failed": failed_test_cases,
+        "Results": final_exec_result,
+        }
+
+
+def execute_candidate_code(
+    db: Session,
+    candidate_assessment_id: int,
+    assessment_question_id: int,
+    code: str,
+    piston_client: PistonClient | None = None
+) -> dict:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            candidate_assessment_id == CandidateAssessment.candidate_assess_id)
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate assessment not found."
+        )
+    assessment_q = (
+        db.query(AssessmentQuestion)
+        .options(
+            selectinload(AssessmentQuestion.adversarial_question)
+            .selectinload(AdversarialQuestion.source_question)
+        )
+        .filter(AssessmentQuestion.assessment_q_id == assessment_question_id)
+        .first()
+    )
+
+    if assessment_q is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment question not found."
+        )
+
+    source_question = assessment_q.adversarial_question.source_question
+
+    if source_question.type != QuestionType.CODING:
+        raise HTTPException(
+            status_code=400,
+            detail="Code execution is only available for coding questions."
+        )
+
+    execution_result = execute_code_questions(
+        db=db,
+        question_bank=source_question,
+        candidate_code=code,
+        language="python",
+        version=None,
+        piston_client=piston_client
+    )
+
+    total = execution_result["Test Cases"]
+    passed = execution_result["Passed"]
+    failed = execution_result["Failed"]
+    results = execution_result["Results"]
+
+    if total > 0:
+        score = round((passed/total)*100, 2)
+    else:
+        score = 0.0
+
+    candidate_response = (
+        db.query(CandidateResponse)
+        .filter(
+            CandidateResponse.candidate_assessment_id
+            == candidate_assessment_id,
+            CandidateResponse.assessment_question_id
+            == assessment_question_id,
+        )
+        .first()
+    )
+
+    if candidate_response is None:
+        candidate_response = CandidateResponse(
+            candidate_assessment_id=candidate_assessment_id,
+            assessment_question_id=assessment_question_id,
+            candidate_answer=code
+        )
+        db.add(candidate_response)
+        db.flush()
+    else:
+        candidate_response.candidate_answer = code
+
+    candidate_response.score = score
+    candidate_response.is_correct = passed == total
+    candidate_response.test_cases_passed = passed
+    candidate_response.test_cases_failed = failed
+    candidate_response.test_cases_total = total
+
+    save_candidate_code_test_results(
+        db=db,
+        response_id=candidate_response.response_id,
+        execution_results=results)
+
+    db.commit()
+    db.refresh(candidate_response)
+
+    return {
+        "score": score,
+        "is_correct": passed == total,
+        "test_cases_passed": passed,
+        "test_cases_failed": failed,
+        "test_cases_total": total,
+        "results": results
+    }
+
+
+def save_candidate_code_test_results(
+    db: Session,
+    response_id: int,
+    execution_results: list[dict[str, Any]],
+) -> None:
+    db.query(CandidateTestResult).filter(
+        CandidateTestResult.response_id == response_id,
+    ).delete(synchronize_session=False)
+
+    for result in execution_results:
+        db.add(
+            CandidateTestResult(
+                response_id=response_id,
+                test_case_id=result["test_case_id"],
+                passed=bool(result["passed"]),
+            )
+        )
 
 
 def get_all_assessments(
@@ -180,6 +388,8 @@ def save_candidate_response(
         )
         db.add(candidate_response)
 
+    db.flush()
+
     assessment_q = (
         db.query(AssessmentQuestion)
         .options(
@@ -193,25 +403,38 @@ def save_candidate_response(
         .first()
     )
 
-    if assessment_q is not None and assessment_q.question_bank is not None:
-        qb = assessment_q.question_bank
+    if (
+        assessment_q is not None
+        and assessment_q.adversarial_question is not None
+        and assessment_q.adversarial_question.source_question is not None
+    ):
+        qb = assessment_q.adversarial_question.source_question
         if qb.type == QuestionType.CODING:
             candidate_response.score = None
             candidate_response.is_correct = None
+            candidate_response.test_cases_total = 0
+            candidate_response.test_cases_passed = 0
+            candidate_response.test_cases_failed = 0
+
         else:
             correct_answer = qb.correct_answer
             candidate_parsed = _parse_candidate_answer(
-                response_in.candidate_answer
-            )
-
+                response_in.candidate_answer)
             score, correctness_status = _grade_candidate(
-                qb, correct_answer, candidate_parsed
-            )
+                qb,
+                correct_answer,
+                candidate_parsed)
             candidate_response.score = score
             candidate_response.is_correct = correctness_status
+            candidate_response.test_cases_total = 0
+            candidate_response.test_cases_passed = 0
+            candidate_response.test_cases_failed = 0
     else:
         candidate_response.score = None
         candidate_response.is_correct = None
+        candidate_response.test_cases_total = 0
+        candidate_response.test_cases_passed = 0
+        candidate_response.test_cases_failed = 0
 
     db.commit()
     db.refresh(candidate_response)

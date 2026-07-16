@@ -90,9 +90,16 @@ class PistonClient:
         stdin: str = "",
         version: str | None = None
     ) -> dict[str, Any]:
+        normalized_language = language.strip().lower()
+        if normalized_language not in {"python", "python3", "py"}:
+            raise PistonError(
+                "Only Python execution is supported for now."
+            )
+
         runtime_language, file_name, runtime_version = self.resolve_runtime(
-            language,
-            version)
+            "python",
+            version,
+        )
         payload = {
             "language": runtime_language,
             "version": runtime_version,
