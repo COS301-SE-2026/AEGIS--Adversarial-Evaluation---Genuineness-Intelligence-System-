@@ -1,14 +1,26 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.security import get_current_user
 from app.database.database import get_db
-from app.schema.adversarial import StrategyResponse
-from app.services.adversarial_service import get_all_strategies
+from app.schema.adversarial import (
+    AdversarialQuestionResponse,
+    GenerateAdversarialRequest,
+    StrategyResponse,
+)
+from app.services.adversarial_service import (
+    generate_adversarial_question,
+    get_all_strategies,
+    verify_assessment_exists,
+)
 
 router = APIRouter(
     prefix="/adversarial-strategies", tags=["adversarial"]
+)
+assessment_adversarial_router = APIRouter(
+    prefix="/assessments", tags=["adversarial"]
 )
 
 
@@ -20,3 +32,28 @@ router = APIRouter(
 )
 async def list_strategies(db: Session = Depends(get_db)):
     return get_all_strategies(db)
+
+
+@assessment_adversarial_router.post(
+    "/{assessment_id}/generate-adversarial",
+    response_model=AdversarialQuestionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Generate an adversarial question preview",
+)
+async def generate_adversarial_question_route(
+    assessment_id: int,
+    payload: GenerateAdversarialRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can generate adversarial questions.",
+        )
+    verify_assessment_exists(db, assessment_id)
+    return generate_adversarial_question(
+        db,
+        payload.source_question_id,
+        payload.strategy_id,
+    )
