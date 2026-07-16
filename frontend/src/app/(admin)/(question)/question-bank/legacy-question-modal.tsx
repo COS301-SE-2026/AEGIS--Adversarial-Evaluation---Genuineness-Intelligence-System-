@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { X, Save } from "lucide-react";
-import MetaDataForm from "@/components/admin/ui/question-builder/universal-fields";
-import EditorPanel from "@/components/admin/ui/input/editor-panel";
+import MetaDataForm from "@/components/admin/ui/input/metadata-form";
 import { QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
 
 

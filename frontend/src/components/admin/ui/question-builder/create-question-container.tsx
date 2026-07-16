@@ -39,6 +39,12 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
         setQuestion({...defaultQuestionState, type});
     }
 
+    const handleClose = () => {
+        setSelectedType(null);
+        setQuestion(defaultQuestionState);
+        onClose();
+    }
+
     const builder = useMemo(() => {
         switch(question.type) {
             
@@ -100,14 +106,14 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
         <>
             <QuestionTypeModal
                 open={open && selectedType === null}
-                onClose={onClose}
+                onClose={handleClose}
                 onSelect={handleSelectedType}
             />
 
             <QuestionBuilderDrawer
-                open={selectedType != null}
+                open={open && selectedType !== null}
                 title="Create Question"
-                onClose={onClose}
+                onClose={handleClose}
                 onSave={handleSave}
                 isSaving={isSaving}
             >

@@ -16,8 +16,9 @@ export default function MCQOptionCard({option, index, onChange, onDelete, disabl
         <div className="flex items-center gap-4 rounded-lg border border-tertiary-surface bg-secondary-surface p-4">
             <input
                 type="radio"
+                name="correct-option"
                 checked={option.isCorrect}
-                onClick={() => onChange({...option, isCorrect: true})}
+                onChange={() => onChange({...option, isCorrect: true})}
                 className="h-5 w-5 cursor-pointer"
             />
             <input

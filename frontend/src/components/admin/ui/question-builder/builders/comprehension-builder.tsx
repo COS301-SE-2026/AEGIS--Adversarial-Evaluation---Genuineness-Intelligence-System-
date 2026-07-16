@@ -17,7 +17,7 @@ export default function ComprehensionBuilder({question, update}: ComprehensionBu
                 <h2 className="text-xl tracking-widest">
                     Marking Rubric
                 </h2>
-                <p className="text-sm" text-default-border>
+                <p className="text-sm text-default-border">
                     Describe how this answer should be graded.
                 </p>
                 <textarea

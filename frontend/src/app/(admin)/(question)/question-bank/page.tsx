@@ -7,6 +7,7 @@ import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import LegacyQuestionModal from "./legacy-question-modal";
+import CreateQuestionContainer from "@/components/admin/ui/question-builder/create-question-container";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
@@ -145,7 +146,8 @@ export default function ViewQuestionsPage() {
     setCategoryFilter("all");
     setDifficultyFilter("all");
     setCurrentPage(1);
-  }
+  };
+
   const handleSavedChanges = async (updatedData: QuestionPayload) => {
     if (editQuestionId === null) return;
     setUpdateError(null);
@@ -170,7 +172,61 @@ export default function ViewQuestionsPage() {
       setIsSaving(false);
     }
     
-  }
+  };
+
+  function buildMetadata(question: QuestionPayload) {
+    switch (question.type) {
+      
+      case "CODING":
+        return {
+          starterCode: question.starterCode,
+          testCases: question.testCases
+        };
+
+      case "MCQ":
+        return {
+          options: question.options
+        };
+
+      case "COMPREHENSION":
+        return {
+          rubric: question.rubric,
+          expectedKeywords: question.expectedKeywords,
+        };
+
+      case "FILL_BLANKS":
+        return {
+          blanks: question.blanks
+        };
+
+      default:
+          return {};
+    }
+  };
+
+  function buildCorrectAnswer(question: QuestionPayload): string {
+    switch (question.type) {
+      
+      case "CODING":
+        return question.starterCode ?? "";
+      
+      case "MCQ":
+        return (
+          question.options 
+            ?.find(option => option.isCorrect)
+            ?.text ?? ""
+        );
+
+      case "COMPREHENSION":
+        return "";
+
+      case "FILL_BLANKS":
+        return question.blanks?.join("|") ?? "";
+
+      default:
+        return "";
+    }
+  };
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
     setDeleteError(null);
@@ -183,8 +239,8 @@ export default function ViewQuestionsPage() {
           content: newQuestion.content ?? "",
           type: newQuestion.type ?? "TEXT",
           maximum_score: newQuestion.maximum_score ?? 10,
-          correct_answer: newQuestion.correct_answer,
-          question_metadata: undefined,
+          correct_answer: buildCorrectAnswer(newQuestion),
+          question_metadata: JSON.stringify(buildMetadata(newQuestion)),
           tags: newQuestion.tags ?? [],
           category_id: newQuestion.category_id,
           difficulty: newQuestion.difficulty,
@@ -210,9 +266,10 @@ export default function ViewQuestionsPage() {
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : "Failed to create question.");
     }
-  }
+  };
 
   const totalNumberOfPages = Math.ceil(questionsFiltered.length / itemsPerPage)
+
   const sectionedQuestions = questionsFiltered.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -383,23 +440,31 @@ export default function ViewQuestionsPage() {
                     <option value={12}>12</option>
                     <option value={16}>16</option>
                     <option value={25}>25</option>
-                  </select>
+                </select>
               </div>
             </div>
           </div>
         </main> 
       </div>
 
+
+      <CreateQuestionContainer
+        open={isCreateOpen}
+        categories={categories}
+        isSaving={isSaving}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={handleDeployment}
+      />
+
       <LegacyQuestionModal
-        key={isCreateOpen ? "create" : (editQuestionId ?? "closed")}
-        isOpen={isCreateOpen || editQuestionId !== null}
-        mode={isCreateOpen ? "create" : "edit"}
+        key={editQuestionId ?? "closed"}
+        isOpen={editQuestionId !== null}
+        mode={"edit"}
         isSaving={isSaving}
         question_id={editQuestionId}
         questions={questions}
         categories={categories}
         onClose={() => {
-          setIsCreateOpen(false);
           setEditQuestionId(null);
         }}
         onSubmit={(payload) => {
