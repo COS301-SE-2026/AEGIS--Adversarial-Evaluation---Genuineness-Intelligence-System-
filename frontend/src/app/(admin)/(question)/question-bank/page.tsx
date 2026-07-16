@@ -11,7 +11,6 @@ import CreateQuestionContainer from "@/components/admin/ui/question-builder/crea
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
-import { headers } from "next/headers";
 
   function buildQuestionData(question: QuestionPayload) {
     switch (question.type) {
@@ -126,7 +125,27 @@ export default function ViewQuestionsPage() {
     }, {} as Record<number, string>); 
   }, [categories]);
 
-  const questionsFiltered = questions
+  function getSortValue (
+    question: QuestionBank,
+    column: "title" | "category" | "difficulty",
+    categoriesMap: Record<number, string>
+  ): string | number {
+    
+    switch(column) {
+
+      case "title":
+        return question.title.toLowerCase();
+      
+      case "category":
+        return (categoriesMap[question.category_id] ?? "").toLowerCase();
+
+      case "difficulty":
+        return {Easy: 1, Medium: 2, Hard: 3}[question.difficulty] ?? 0;
+    }
+  };
+
+  const questionsFiltered = useMemo(() => {
+    return questions
     .filter((question) => {
       const normalizedSearch = searchTerm.toLowerCase();
 
@@ -158,36 +177,33 @@ export default function ViewQuestionsPage() {
       
       return matchesSearch && matchesCategory && matchesDifficulty;
 
-  }).sort ((a, b) => {
-    if(!sortColumn) return 0;
-    let aValue: string | number = "";
-    let bValue: string | number = "";
+    }).sort ((a, b) => {
+      
+      if(!sortColumn) return 0;
 
-    if(sortColumn === "title") {
-      aValue = a.title.toLowerCase();
-      bValue = b.title.toLowerCase();
-    }
-    else if (sortColumn === "category") {
-      aValue = (categoriesMap[a.category_id] || "").toLowerCase();
-      bValue = (categoriesMap[b.category_id] || "").toLowerCase();
-    }
-    else {
-      const difficultyOrder = {"Easy" : 1, "Medium" : 2, "Hard" : 3};
-      aValue = difficultyOrder[a.difficulty as keyof typeof difficultyOrder] || 0;
-      bValue = difficultyOrder[b.difficulty as keyof typeof difficultyOrder] || 0;
-    }
+      const aValue = getSortValue(a, sortColumn, categoriesMap);
+      const bValue = getSortValue(b, sortColumn, categoriesMap);
 
-    if(aValue < bValue) {
-      return sortDirection === "asc" ? -1 : 1;
-    }
+      if(aValue < bValue) {
+        return sortDirection === "asc" ? -1 : 1;
+      }
 
-    if(bValue > aValue) {
-      return sortDirection === "asc" ? 1 : -1;
-    }
+      if(aValue > bValue) {
+        return sortDirection === "asc" ? 1 : -1
+      }
 
-    return 0;
-  });
-
+      return 0;
+    });
+  }, [
+    questions,
+    searchTerm,
+    categoryFilter,
+    difficultyFilter,
+    sortColumn,
+    sortDirection,
+    categoriesMap,
+  ]);
+ 
   const sortHandle = (column: "title" | "category" | "difficulty") => {
     if(sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -231,7 +247,6 @@ export default function ViewQuestionsPage() {
     }
     
   };
-
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
     setDeleteError(null);
@@ -280,6 +295,11 @@ export default function ViewQuestionsPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const updateFilter = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, value: T) => {
+    setter(value);
+    setCurrentPage(1);
+  }
   
   const handleDelete = async (quesetionId: number) => {
     setDeleteTargetId(quesetionId);
@@ -333,12 +353,12 @@ export default function ViewQuestionsPage() {
 
             <QuestionFilters
               searchTerm={searchTerm}
-              onSearchChange={(value) => {setSearchTerm(value); setCurrentPage(1);}}
+              onSearchChange={(value) => updateFilter(setSearchTerm, value)}
               categoryFilter={categoryFilter}
-              onChangeCategory={(value) => {setCategoryFilter(value); setCurrentPage(1);}}
+              onChangeCategory={(value) => updateFilter(setCategoryFilter, value)}
               categories={categories}
               difficultyFilter={difficultyFilter}
-              onDifficultyChange={(value) => {setDifficultyFilter(value); setCurrentPage(1);}}
+              onDifficultyChange={(value) => updateFilter(setDifficultyFilter, value)}
               onClearFilters={clearFiltersHandle}
             />
 
