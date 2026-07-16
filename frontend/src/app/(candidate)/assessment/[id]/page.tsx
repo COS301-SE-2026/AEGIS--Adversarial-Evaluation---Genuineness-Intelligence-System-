@@ -38,8 +38,8 @@ function mapQuestionType(value: string): Question["type"] {
    if (value === "MULTIPLE_CHOICE") {
       return "multiple-choice";
    }
-   if (value === "TEXT") {
-      return "fill-in-the-blank";
+   if (value === "CODING") {
+      return "coding";
    }
    return "fill-in-the-blank";
 }

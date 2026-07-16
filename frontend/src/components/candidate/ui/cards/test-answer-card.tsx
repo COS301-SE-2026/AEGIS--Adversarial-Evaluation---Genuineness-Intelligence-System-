@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { TestMultipleChoiceCard } from "./test-multiple-choice-card";
 import { Question } from "./question.type";
 import CodeEditorCard from "./test-code-editor-card";
+import { TestFillInTheBlanksCard } from "./test-fill-in-the-blanks-card";
 
 type TestAnswerCardProps = {
     question: Question;
@@ -28,7 +29,11 @@ export function TestAnswerCard({ question, value, onChange }: TestAnswerCardProp
                 }}
             />
             ),
-            'fill-in-the-blank': null,
+            'fill-in-the-blank': (
+            <TestFillInTheBlanksCard
+            question={question}
+            />
+        ),
         } as const;
     }, [onChange, question, value]);
 
