@@ -11,61 +11,52 @@ import CreateQuestionContainer from "@/components/admin/ui/question-builder/crea
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
+import { headers } from "next/headers";
 
-  function buildMetadata(question: QuestionPayload) {
+  function buildQuestionData(question: QuestionPayload) {
     switch (question.type) {
       
       case "CODING":
         return {
-          starterCode: question.starterCode,
-          testCases: question.testCases
+          correctAnswer: question.starterCode ?? "",
+          metadata: {
+            starterCode: question.starterCode,
+            testCases: question.testCases,
+          }  
         };
 
       case "MCQ":
         return {
-          options: question.options
+          correctAnswer: question.options?.find(option => option.isCorrect)?.text ?? "",
+          metadata: {
+             options: question.options
+          }
         };
 
       case "COMPREHENSION":
         return {
-          rubric: question.rubric,
-          expectedKeywords: question.expectedKeywords,
+          correctAnswer: "",
+          metadata: {
+            rubric: question.rubric,
+            expectedKeywords: question.expectedKeywords,
+          }
         };
 
       case "FILL_BLANKS":
         return {
-          blanks: question.blanks
+          correctAnswer: question.blanks?.join("|") ?? "",
+          metadata: {
+            blanks: question.blanks
+          }
         };
 
       default:
-          return {};
+        return {
+          correctAnswer: "",
+          metadata: {},
+        };
     }
-  };
-
-  function buildCorrectAnswer(question: QuestionPayload): string {
-    switch (question.type) {
-      
-      case "CODING":
-        return question.starterCode ?? "";
-      
-      case "MCQ":
-        return (
-          question.options 
-            ?.find(option => option.isCorrect)
-            ?.text ?? ""
-        );
-
-      case "COMPREHENSION":
-        return "";
-
-      case "FILL_BLANKS":
-        return question.blanks?.join("|") ?? "";
-
-      default:
-        return "";
-    }
-  };
-
+  }
 
 export default function ViewQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
@@ -91,46 +82,41 @@ export default function ViewQuestionsPage() {
 
 
   useEffect(() => {
-    let isMounted = true;
-    const loadCategories = async () => {
+    let mounted = true;
+
+    const loadData = async () => {
       try {
-        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/", {
-          headers: getAuthHeaders(),
-        });
-        if (isMounted) {
-          setCategories(response);
-        }
-      } catch (error) {
-        console.error("Failed to load categories:", error);
+        const [categories, questions] = await Promise.all([
+          apiGet<QuestionCategory[]>("/api/v1/categories/", {
+            headers: getAuthHeaders(),
+          }),
+          apiGet<QuestionBank[]>("/api/v1/questions/", {
+            headers: getAuthHeaders(),
+          }),
+        ]);
+
+        if(!mounted) return;
+
+        setCategories(categories);
+
+        setQuestions(
+          questions.map(question => ({
+            ...question,
+            category_id: question.category_id ?? 0,
+            difficulty: question.difficulty ?? "Easy",
+          }))
+        );
+      }
+      catch(err) {
+        console.error(err);
       }
     };
 
-    const loadQuestions = async () => {
-      try {
-        const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
-          headers: getAuthHeaders(),
-        });
-
-        if (isMounted) {
-          setQuestions(
-            response.map((question) => ({
-              ...question,
-              category_id: question.category_id ?? 0,
-              difficulty: question.difficulty ?? "Easy",
-            }))
-          );
-        }
-      } catch (error) {
-        console.error("Failed to load questions:", error);
-      }
-    };
-
-    void loadCategories();
-    void loadQuestions();
+    void loadData();
 
     return () => {
-      isMounted = false;
-    };
+      mounted = false;
+    }
   }, []);
 
   const categoriesMap = useMemo( () => {
@@ -249,6 +235,7 @@ export default function ViewQuestionsPage() {
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
     setDeleteError(null);
+    const { correctAnswer, metadata } = buildQuestionData(newQuestion);
 
     try {
       const createdQuestion = await apiPost<QuestionBank>(
@@ -258,8 +245,8 @@ export default function ViewQuestionsPage() {
           content: newQuestion.content ?? "",
           type: newQuestion.type ?? "TEXT",
           maximum_score: newQuestion.maximum_score ?? 10,
-          correct_answer: buildCorrectAnswer(newQuestion),
-          question_metadata: JSON.stringify(buildMetadata(newQuestion)),
+          correct_answer: correctAnswer,
+          question_metadata: JSON.stringify(metadata),
           tags: newQuestion.tags ?? [],
           category_id: newQuestion.category_id,
           difficulty: newQuestion.difficulty,
@@ -326,8 +313,6 @@ export default function ViewQuestionsPage() {
   }, [deleteSuccess]);
 
   return (
-
-    
     <div className="flex min-h-screen bg-background">
       <div className="fixed md:static top-0 left-0 w-55 h-screen md:min-h-screen z-50 transform transition-transform md:transform-none">
         <AdminSidebar/>
