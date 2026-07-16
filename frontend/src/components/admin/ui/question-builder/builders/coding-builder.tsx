@@ -5,13 +5,13 @@ import TestCaseCard from '../test-case-card'
 import EditorPanel from "@/components/admin/ui/input/editor-panel";
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
-interface CodingBuilderProps {
+type CodingBuilderProps = Readonly <{
     question: QuestionBuilderState;
     update<K extends keyof QuestionBuilderState>(
         key: K,
         value: QuestionBuilderState[K]
-    ) : void
-}
+    ) : void;
+}>
 
 export default function CodingBuilder({question, update}: CodingBuilderProps) {
     

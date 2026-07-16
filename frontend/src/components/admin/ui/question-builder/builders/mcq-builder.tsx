@@ -4,13 +4,13 @@ import { Plus } from "lucide-react";
 import { MCQOption, QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 import MCQOptionCard from "../mcq-option-card";
 
-interface MCQBuilderProps {
+type MCQBuilderProps = Readonly <{
     question: QuestionBuilderState;
     update<K extends keyof QuestionBuilderState>(
         key: K,
         value: QuestionBuilderState[K]
-    ) : void
-}
+    ) : void;
+}>
 
 export default function MCQBuilder({question, update}: MCQBuilderProps) {
     const setCorrectAnswer = (selectedId: string) => {

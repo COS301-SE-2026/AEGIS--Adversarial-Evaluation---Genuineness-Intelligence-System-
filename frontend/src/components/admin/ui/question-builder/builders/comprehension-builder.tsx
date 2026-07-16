@@ -2,13 +2,13 @@
 
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
-interface ComprehensionBuilderProps {
+type ComprehensionBuilderProps = Readonly <{
     question: QuestionBuilderState;
     update<K extends keyof QuestionBuilderState>(
         key: K,
         value: QuestionBuilderState[K]
     ) : void;
-}
+}>
 
 export default function ComprehensionBuilder({question, update}: ComprehensionBuilderProps){
     return (

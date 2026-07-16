@@ -3,13 +3,13 @@
 import { Plus, Trash2 } from "lucide-react";
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
-interface FillBlanksBuilderProps {
+type FillBlanksBuilderProps = Readonly <{
     question: QuestionBuilderState;
     update<K extends keyof QuestionBuilderState>(
         key: K,
         value: QuestionBuilderState[K]
     ) : void;
-}
+}>
 
 export default function FillBlanksBuilder({question, update}: FillBlanksBuilderProps) {
     const updateBlank = (index: number, value: string) => {

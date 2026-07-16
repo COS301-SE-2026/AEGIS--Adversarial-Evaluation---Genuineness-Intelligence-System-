@@ -4,14 +4,15 @@ import { QuestionCategory } from "@/app/(admin)/types/questions"
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
 
-interface UniversalFieldsProps {
+type UniversalFieldsProps = Readonly <{
     question: QuestionBuilderState;
     categories: QuestionCategory[];
     update<K extends keyof QuestionBuilderState>(
         key: K,
         value: QuestionBuilderState[K]
     ) : void
-}
+}>
+
 
 export default function UniversalFields({
     question,
@@ -19,7 +20,7 @@ export default function UniversalFields({
     update,
 }: UniversalFieldsProps) {
     
-    const difficulties = ["Easy", "Medium", "Hard"];
+    const difficulties = ["Easy", "Medium", "Hard"] as const;
 
     return (
         <div className="space-y-6 bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
@@ -69,18 +70,22 @@ export default function UniversalFields({
                 <div className="grid grid-cols-3 gap-2">
                     {difficulties.map((level) => {
                         const isActive = question.difficulty === level;
-                        const activeColors =
-                            level === "Easy" ? "border-status-success text-status-success bg-status-success/10" :
-                            level === "Medium" ? "border-status-warning text-status-warning bg-status-warning/10" :
-                            "border-system-red text-system-red bg-system-red/10";
+                        
+                        const difficultyColors = {
+                            Easy : "border-status-success text-status-success bg-status-success/10",
+                            Medium: "border-status-warning text-status-warning bg-status-warning/10",
+                            Hard: "border-system-red text-system-red bg-system-red/10",
+                        }
 
+                        const activeColor = difficultyColors[level];
+                            
                         return (
                             <button
                                 type="button"
                                 key={level}
                                 onClick={() => update("difficulty", level as QuestionBuilderState["difficulty"])}
                                 className={`py-2 text-center rounded font-staatliches text-sm tracking-wider border transition-all duration-150 cursor-pointer
-                                    ${isActive ? activeColors : "border-default-border/45 text-default-border hover:text-default-text hover:border-default-border"
+                                    ${isActive ? activeColor : "border-default-border/45 text-default-border hover:text-default-text hover:border-default-border"
                                     }`}
                             >
                                 {level}
