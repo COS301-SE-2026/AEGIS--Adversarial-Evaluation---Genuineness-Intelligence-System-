@@ -1,6 +1,8 @@
+import MCQOptionCard from "@/components/admin/ui/question-builder/mcq-option-card";
+
 export type QuestionType = "CODING" | "MCQ" | "COMPREHENSION" | "FILL_BLANKS";
 
-export type Difficulty = "EASY" | "MEDIUM" | "HARD";
+export type Difficulty = "Easy" | "Medium" | "Hard";
 
 export interface MCQOption {
     id: string;
@@ -31,25 +33,37 @@ export interface QuestionBuilderState {
     testCases: TestCase[];
 }
 
+export const createDefaultTestCase = (): TestCase => ({
+    id: crypto.randomUUID(),
+    input: "",
+    expectedOutput: "",
+    hidden: false,
+})
+
+export const createDefaultMCQQuestion = (isCorrect = false): MCQOption => ({
+    id: crypto.randomUUID(),
+    text: "",
+    isCorrect,
+})
+
 export const defaultQuestionState: QuestionBuilderState = {
     type: "CODING",
     title: "",
     content: "",
     category_id: 0,
-    difficulty: "EASY",
+    difficulty: "Easy",
     maximum_score: 10,
     tags: [],
     starterCode: "",
-    options: [],
+    options: [
+        createDefaultMCQQuestion(true),
+        createDefaultMCQQuestion(false),
+    ],
     rubric: "",
     expectedKeywords: [],
     blanks: [],
-    testCases: [],
+    testCases: [
+        createDefaultTestCase(),
+    ],
 }
 
-export const defaultTestCaseState: TestCase = {
-    id: crypto.randomUUID(),
-    input: "",
-    expectedOutput: "",
-    hidden: false,
-}

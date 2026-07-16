@@ -3,6 +3,7 @@
 import { QuestionCategory } from "@/app/(admin)/types/questions"
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
+
 interface UniversalFieldsProps {
     question: QuestionBuilderState;
     categories: QuestionCategory[];
