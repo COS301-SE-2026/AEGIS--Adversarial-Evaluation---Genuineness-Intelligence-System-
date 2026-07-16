@@ -22,13 +22,16 @@ export default function QuestionBuilderDrawer({
 
     return (
         <>
-            <div
+            <button
+                type="button"
+                aria-label="Close modal"
+                onClick={onClose}
                 className={`fixed insert-0 z-40 bg-background/70 backdrop:blur-sm transition-opacity duration-300
                     ${open
                         ? "opacity-100 pointer-events-auto"
                         : "opacity-0 pointer-events-none"
                 }`}
-                onClick={onClose}
+                
             />
 
             <aside

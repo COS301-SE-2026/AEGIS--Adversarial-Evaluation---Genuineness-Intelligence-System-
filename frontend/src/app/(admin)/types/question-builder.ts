@@ -10,6 +10,11 @@ export interface MCQOption {
     isCorrect: boolean;
 }
 
+export interface FillBlank {
+    id: string;
+    answer: string;
+}
+
 export interface TestCase {
     id: string;
     input: string;
@@ -29,7 +34,7 @@ export interface QuestionBuilderState {
     options: MCQOption[];
     rubric: string;
     expectedKeywords: string[];
-    blanks: string[];
+    blanks: FillBlank[];
     testCases: TestCase[];
 }
 

@@ -30,7 +30,7 @@ export default function LegacyQuestionModal({isOpen, mode, question_id, question
     const [tags, setTags] = useState(Array.isArray(questionTargeted?.tags) ? questionTargeted.tags.join(", ") : "");
     const [maxScore, setMaxScore] = useState<number>(questionTargeted?.maximum_score || 10);
     const [content, setContent] = useState(questionTargeted?.content || "");
-    const [correctAnswer, setCorrectAnswer] = useState(questionTargeted?.correct_answer || "");
+
 
     if(mode === "create" && category_id === 0 && categories.length > 0) {
         setCategoryId(categories[0].category_id);
@@ -49,7 +49,6 @@ export default function LegacyQuestionModal({isOpen, mode, question_id, question
             type: "CODING",
             tags: tags.split(",").map(tag => tag.trim()).filter(Boolean),
             content,
-            correct_answer: correctAnswer,
         };
 
         const payload = mode === "create" ?

@@ -12,6 +12,60 @@ import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 
+  function buildMetadata(question: QuestionPayload) {
+    switch (question.type) {
+      
+      case "CODING":
+        return {
+          starterCode: question.starterCode,
+          testCases: question.testCases
+        };
+
+      case "MCQ":
+        return {
+          options: question.options
+        };
+
+      case "COMPREHENSION":
+        return {
+          rubric: question.rubric,
+          expectedKeywords: question.expectedKeywords,
+        };
+
+      case "FILL_BLANKS":
+        return {
+          blanks: question.blanks
+        };
+
+      default:
+          return {};
+    }
+  };
+
+  function buildCorrectAnswer(question: QuestionPayload): string {
+    switch (question.type) {
+      
+      case "CODING":
+        return question.starterCode ?? "";
+      
+      case "MCQ":
+        return (
+          question.options 
+            ?.find(option => option.isCorrect)
+            ?.text ?? ""
+        );
+
+      case "COMPREHENSION":
+        return "";
+
+      case "FILL_BLANKS":
+        return question.blanks?.join("|") ?? "";
+
+      default:
+        return "";
+    }
+  };
+
 
 export default function ViewQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
@@ -86,20 +140,38 @@ export default function ViewQuestionsPage() {
     }, {} as Record<number, string>); 
   }, [categories]);
 
-  const questionsFiltered = questions.filter((question) => {
-    const matchTag = Array.isArray(question.tags) ?
-    question.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) :
-    typeof question.tags === "string" ?
-    question.tags.toLowerCase().includes(searchTerm.toLowerCase()):
-    false;
+  const questionsFiltered = questions
+    .filter((question) => {
+      const normalizedSearch = searchTerm.toLowerCase();
 
-    const matchesSearch = question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          question.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          matchTag;
+      let matchTag = false;
 
-    const matchesCategory = categoryFilter === "all" || String(question.category_id) === categoryFilter;
-    const matchesDifficulty = difficultyFilter === "all" || question.difficulty === difficultyFilter;
-    return matchesSearch && matchesCategory && matchesDifficulty;
+      if(Array.isArray(question.tags)){
+        matchTag = question.tags.some((tag) => 
+          tag.toLocaleLowerCase().includes(normalizedSearch)
+        );
+      }
+      else if (typeof question.tags === "string") {
+        matchTag = question.tags
+          .toLowerCase()
+          .includes(normalizedSearch);
+      }
+
+      const matchesSearch = 
+        question.title.toLowerCase().includes(normalizedSearch) ||
+        question.content.toLowerCase().includes(normalizedSearch) ||
+        matchTag;
+
+      const matchesCategory = 
+        categoryFilter === "all" ||
+        String(question.category_id) === categoryFilter;
+      
+      const matchesDifficulty =
+        difficultyFilter === "all" ||
+        question.difficulty === difficultyFilter;
+      
+      return matchesSearch && matchesCategory && matchesDifficulty;
+
   }).sort ((a, b) => {
     if(!sortColumn) return 0;
     let aValue: string | number = "";
@@ -174,59 +246,6 @@ export default function ViewQuestionsPage() {
     
   };
 
-  function buildMetadata(question: QuestionPayload) {
-    switch (question.type) {
-      
-      case "CODING":
-        return {
-          starterCode: question.starterCode,
-          testCases: question.testCases
-        };
-
-      case "MCQ":
-        return {
-          options: question.options
-        };
-
-      case "COMPREHENSION":
-        return {
-          rubric: question.rubric,
-          expectedKeywords: question.expectedKeywords,
-        };
-
-      case "FILL_BLANKS":
-        return {
-          blanks: question.blanks
-        };
-
-      default:
-          return {};
-    }
-  };
-
-  function buildCorrectAnswer(question: QuestionPayload): string {
-    switch (question.type) {
-      
-      case "CODING":
-        return question.starterCode ?? "";
-      
-      case "MCQ":
-        return (
-          question.options 
-            ?.find(option => option.isCorrect)
-            ?.text ?? ""
-        );
-
-      case "COMPREHENSION":
-        return "";
-
-      case "FILL_BLANKS":
-        return question.blanks?.join("|") ?? "";
-
-      default:
-        return "";
-    }
-  };
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
     setDeleteError(null);

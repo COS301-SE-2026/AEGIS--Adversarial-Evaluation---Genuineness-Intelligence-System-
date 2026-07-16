@@ -29,8 +29,13 @@ export default function UniversalFields({
             </h2>
             
             <div className="space-y-2">
-                <label className="block text-xs uppercase tracking-wider text-default-border">Question Title</label>
+                <label 
+                    htmlFor="question-title"
+                    className="block text-xs uppercase tracking-wider text-default-border">
+                    Question Title
+                </label>
                 <input
+                    id="question-title"
                     type="text"
                     value={question.title}
                     onChange={(event) => update("title", event.target.value)}
@@ -40,10 +45,14 @@ export default function UniversalFields({
             </div>
 
             <div className="flex-1 flex flex-col bg-secondary-surface rounded-lg ">
-                <h2 className="text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2 mb-4">
+                <label
+                    htmlFor="question-description"
+                    className="block text-xl text-default-text tracking-widest border-b border-tertiary-surface pb-2 mb-4"
+                >
                     Description
-                </h2>
+                </label>
                 <textarea
+                    id="question-description"
                     value={question.content}
                     onChange={(event) => update("content", event.target.value)}
                     placeholder="Describe the constraints, requirements and edge cases here..."
@@ -52,8 +61,14 @@ export default function UniversalFields({
             </div>
 
             <div className="space-y-2">
-                <label className="block text-xs text-default-border uppercase tracking-wider">Category</label>
+                <label 
+                    htmlFor="question-category"
+                    className="block text-xs text-default-border uppercase tracking-wider"
+                >   
+                    Category
+                </label>
                 <select
+                    id="question-category"
                     value={question.category_id}
                     onChange={(event) => update("category_id",Number(event.target.value))}
                     className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors cursor-pointer"
@@ -65,8 +80,8 @@ export default function UniversalFields({
                 </select>
             </div>
 
-            <div className="space-y-2">
-                <label className="block text-xs uppercase tracking-wider text-default-border">Difficulty</label>
+            <fieldset className="space-y-2">
+                <legend className="block text-xs uppercase tracking-wider text-default-border">Difficulty</legend>
                 <div className="grid grid-cols-3 gap-2">
                     {difficulties.map((level) => {
                         const isActive = question.difficulty === level;
@@ -93,11 +108,17 @@ export default function UniversalFields({
                         )
                     })}
                 </div>
-            </div>
+            </fieldset>
 
             <div className="space-y-2">
-                <label className="block text-xs uppercase tracking-wider text-default-border">Score Allocation</label>
+                <label 
+                    htmlFor="question-score"
+                    className="block text-xs uppercase tracking-wider text-default-border"
+                >
+                    Score Allocation
+                </label>
                 <input
+                    id="question-score"
                     type="number"
                     value={question.maximum_score || ""}
                     onChange={(event) => update("maximum_score", Number(event.target.value))}
@@ -107,8 +128,14 @@ export default function UniversalFields({
             </div>
 
             <div className="space-y-2">
-                <label className="block text-xs uppercase tracking-wider text-default-border">Indexed Tags (Comma Seperated)</label>
+                <label 
+                    htmlFor="question-tags"
+                    className="block text-xs uppercase tracking-wider text-default-border"
+                >
+                    Indexed Tags (Comma Seperated)
+                </label>
                 <input
+                    id="question-tag"
                     type="text"
                     value={question.tags.join(", ")}
                     onChange={(event) => update("tags", event.target.value.split(",").map(tag => tag.trim()).filter(Boolean))}

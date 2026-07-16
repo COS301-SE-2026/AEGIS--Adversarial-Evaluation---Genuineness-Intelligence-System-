@@ -28,10 +28,14 @@ export default function TestCaseCard({testCase, index, onChange, onDelete}: Test
             </div>
 
             <div className="space-y-2">
-                <label className="text-sm uppercase tracking-wider text-default-border">
+                <label 
+                    htmlFor={`test-input-${testCase.id}`}
+                    className="text-sm uppercase tracking-wider text-default-border"
+                >
                     Test Input
                 </label>
                 <textarea
+                    id={`test-input-${testCase.id}`}
                     value={testCase.input}
                     onChange={(element) => onChange({...testCase, input: element.target.value})}
                     className="w-full min-h-28 rounded border border-default-border bg-background p-4"
@@ -39,10 +43,14 @@ export default function TestCaseCard({testCase, index, onChange, onDelete}: Test
             </div>
 
             <div className="space-y-2">
-                <label className="text-xs uppercase tracking-wider text-default-border">
+                <label 
+                    htmlFor={`expected-output-${testCase.id}`}
+                    className="text-xs uppercase tracking-wider text-default-border"
+                >
                     Expected Output
                 </label>
                 <textarea
+                    id={`expected-output-${testCase.id}`}
                     value={testCase.expectedOutput}
                     onChange={(element) => onChange({...testCase, expectedOutput: element.target.value})}
                     className="w-full min-h-28 rounded border border-default-border bg-background p-4"
