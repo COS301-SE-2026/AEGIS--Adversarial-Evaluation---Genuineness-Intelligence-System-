@@ -11,6 +11,7 @@ from app.models.question_bank import QuestionBank
 from app.services.adversarial_service import (
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
+    get_all_adversarial_questions,
     get_all_strategies,
     verify_assessment_exists,
 )
@@ -180,6 +181,17 @@ def test_get_all_strategies_returns_list():
 
     mock_db.query.assert_called_once_with(AdversarialStrategy)
     assert result == strategies
+
+
+def test_get_all_adversarial_questions_returns_list():
+    questions = [MagicMock(), MagicMock()]
+    mock_db = MagicMock()
+    mock_db.query.return_value.all.return_value = questions
+
+    result = get_all_adversarial_questions(mock_db)
+
+    mock_db.query.assert_called_once_with(AdversarialQuestion)
+    assert result == questions
 
 
 def test_verify_assessment_exists_returns_assessment():
