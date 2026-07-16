@@ -11,7 +11,7 @@ interface FillBlanksBuilderProps {
     ) : void;
 }
 
-export default function FillBlankBuilder({question, update}: FillBlanksBuilderProps) {
+export default function FillBlanksBuilder({question, update}: FillBlanksBuilderProps) {
     const updateBlank = (index: number, value: string) => {
         const blanks = [...question.blanks];
         blanks[index] = value;

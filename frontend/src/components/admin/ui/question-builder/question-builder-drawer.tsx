@@ -9,7 +9,7 @@ interface QuestionBuilderDrawerProps {
     isSaving?: boolean;
     onClose: () => void;
     onSave: () => void;
-    children: ReactNode;
+    children?: ReactNode;
 }
 
 export default function QuestionBuilderDrawer({
