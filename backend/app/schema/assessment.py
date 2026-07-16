@@ -78,9 +78,3 @@ class AssessmentResponse(BaseModel):
 
     class Config:
         orm_mode = True
-
-
-class ExecuteRequest(BaseModel):
-    candidate_assessment_id: int
-    assessment_question_id:  int
-    code:                    str
