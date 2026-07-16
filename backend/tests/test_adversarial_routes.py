@@ -133,3 +133,82 @@ def test_generate_adversarial_201_on_success(mock_verify, mock_generate):
     call_args = mock_generate.call_args[0]
     assert call_args[1] == 1
     assert call_args[2] == 2
+
+
+QUESTIONS_URL = "/api/v1/assessments/1/adversarial-questions"
+
+
+def test_get_adversarial_questions_401_when_no_jwt():
+    app.dependency_overrides[get_db] = _db_override
+    response = client.get(QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+
+
+@patch(
+    "app.api.routes.adversarial."
+    "get_adversarial_questions_for_assessment"
+)
+def test_get_adversarial_questions_200_empty_list(mock_get):
+    mock_get.return_value = []
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.get(QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+@patch(
+    "app.api.routes.adversarial."
+    "get_adversarial_questions_for_assessment"
+)
+def test_get_adversarial_questions_200_with_list(mock_get):
+    mock_get.return_value = [
+        MagicMock(
+            adv_question_id=5,
+            source_question_id=1,
+            content="What does f(6) return?",
+            strategy_id=2,
+            llm="gemini-2.5-flash",
+            generated_at=datetime.now(timezone.utc),
+        )
+    ]
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.get(QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["adv_question_id"] == 5
+    assert body[0]["source_question_id"] == 1
+    assert body[0]["strategy_id"] == 2
+
+
+@patch(
+    "app.api.routes.adversarial."
+    "get_adversarial_questions_for_assessment"
+)
+def test_get_adversarial_questions_404_when_missing(mock_get):
+    mock_get.side_effect = HTTPException(
+        status_code=404, detail="Assessment not found"
+    )
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.get(QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 404

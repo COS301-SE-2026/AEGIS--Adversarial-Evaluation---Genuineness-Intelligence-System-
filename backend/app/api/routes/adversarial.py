@@ -12,6 +12,7 @@ from app.schema.adversarial import (
 )
 from app.services.adversarial_service import (
     generate_adversarial_question,
+    get_adversarial_questions_for_assessment,
     get_all_strategies,
     verify_assessment_exists,
 )
@@ -56,4 +57,20 @@ async def generate_adversarial_question_route(
         db,
         payload.source_question_id,
         payload.strategy_id,
+    )
+
+
+@assessment_adversarial_router.get(
+    "/{assessment_id}/adversarial-questions",
+    response_model=List[AdversarialQuestionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get adversarial questions for an assessment",
+)
+async def get_adversarial_questions_route(
+    assessment_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return get_adversarial_questions_for_assessment(
+        db, assessment_id
     )
