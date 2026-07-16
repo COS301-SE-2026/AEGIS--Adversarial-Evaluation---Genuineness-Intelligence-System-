@@ -158,6 +158,10 @@ def get_all_strategies(db: Session) -> list:
     return db.query(AdversarialStrategy).all()
 
 
+def get_all_adversarial_questions(db: Session) -> list:
+    return db.query(AdversarialQuestion).all()
+
+
 def verify_assessment_exists(db: Session, assessment_id: int) -> Assessment:
     assessment = (
         db.query(Assessment)

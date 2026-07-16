@@ -19,9 +19,6 @@ class StrategyResponse(BaseModel):
 
 
 class GenerateAdversarialRequest(BaseModel):
-    source_question_id: int = Field(
-        ..., description="ID of the source question"
-    )
     strategy_id: int = Field(
         ..., description="ID of the adversarial strategy"
     )

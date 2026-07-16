@@ -13,8 +13,8 @@ from app.schema.adversarial import (
 from app.services.adversarial_service import (
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
+    get_all_adversarial_questions,
     get_all_strategies,
-    verify_assessment_exists,
 )
 
 router = APIRouter(
@@ -23,6 +23,10 @@ router = APIRouter(
 assessment_adversarial_router = APIRouter(
     prefix="/assessments", tags=["adversarial"]
 )
+question_adversarial_router = APIRouter(
+    prefix="/questions", tags=["adversarial"]
+)
+adversarial_questions_router = APIRouter(tags=["adversarial"])
 
 
 @router.get(
@@ -35,14 +39,14 @@ async def list_strategies(db: Session = Depends(get_db)):
     return get_all_strategies(db)
 
 
-@assessment_adversarial_router.post(
-    "/{assessment_id}/generate-adversarial",
+@question_adversarial_router.post(
+    "/{source_question_id}/generate-adversarial",
     response_model=AdversarialQuestionResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Generate an adversarial question preview",
 )
 async def generate_adversarial_question_route(
-    assessment_id: int,
+    source_question_id: int,
     payload: GenerateAdversarialRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -52,10 +56,9 @@ async def generate_adversarial_question_route(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters can generate adversarial questions.",
         )
-    verify_assessment_exists(db, assessment_id)
     return generate_adversarial_question(
         db,
-        payload.source_question_id,
+        source_question_id,
         payload.strategy_id,
     )
 
@@ -74,3 +77,16 @@ async def get_adversarial_questions_route(
     return get_adversarial_questions_for_assessment(
         db, assessment_id
     )
+
+
+@adversarial_questions_router.get(
+    "/adversarial-questions",
+    response_model=List[AdversarialQuestionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get all adversarial questions",
+)
+async def get_all_adversarial_questions_route(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return get_all_adversarial_questions(db)
