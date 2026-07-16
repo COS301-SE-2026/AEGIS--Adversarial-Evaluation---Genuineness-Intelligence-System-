@@ -55,7 +55,7 @@ export default function LegacyQuestionModal({isOpen, mode, question_id, question
             {...standardPayload, created_at: new Date().toISOString()} :
             {...standardPayload, updated_at: new Date().toISOString()}
 
-        onSubmit(payload);
+        onSubmit(payload as QuestionPayload);
     };
 
     

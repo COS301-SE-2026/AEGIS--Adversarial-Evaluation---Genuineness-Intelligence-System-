@@ -97,6 +97,8 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
             tags: question.tags,
             type: question.type,
             correct_answer: "",
+            source_question_id: -1,
+            technique: "",
         };
 
         onSubmit(payload);
