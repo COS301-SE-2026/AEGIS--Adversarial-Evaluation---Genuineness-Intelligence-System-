@@ -7,6 +7,7 @@ import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-butt
 import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-button";
 import { TestSubmitButton } from "@/components/candidate/ui/buttons/test-submit-button";
 import type { Question } from "@/components/candidate/ui/cards/question.type";
+import { useAssessmentTimer } from '@/components/candidate/context/assessment-timer';
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 
@@ -33,6 +34,15 @@ type CandidateResponseApi = {
    score?: number | null;
    is_correct?: string | null;
 };
+
+type CandidateAssessmentSessionApi = {
+   candidate_assess_id: number;
+   status: string;
+   access_token?: string | null;
+   total_score?: number | null;
+   start_time?: string | null;
+   end_time?: string | null;
+}
 
 function mapQuestionType(value: string): Question["type"] {
    if (value === "MULTIPLE_CHOICE") {
@@ -85,6 +95,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [submitError, setSubmitError] = useState<string | null>(null);
    const [error, setError] = useState<string | null>(null);
    const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
+   const {endTime, setEndTime} = useAssessmentTimer();
 
    useEffect(() => {
       params.then(p => setCandidateAssessId(p.id));
@@ -102,7 +113,11 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
             setIsLoading(true);
             setError(null);
             const authToken = getToken() ?? undefined;
-            const [questionData, responseData] = await Promise.all([
+            const [sessionData, questionData, responseData] = await Promise.all([
+               apiGet<CandidateAssessmentSessionApi>(
+                  `/api/v1/candidate/assessments/${candidateAssessId}`,
+                  authToken ? { authToken } : {}                  
+               ),
                apiGet<CandidateAssessmentQuestionApi[]>(
                   `/api/v1/assessments/candidate/${candidateAssessId}/questions`,
                   authToken ? { authToken } : {}
@@ -148,6 +163,10 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                setQuestions(mapped);
                setCurrentQuestionIndex(0);
                setAnswersByQuestionId(existingAnswers);
+               
+               if (sessionData.end_time) {
+                  setEndTime(sessionData.end_time);
+               }
             }
          } catch (err) {
             const message = err instanceof Error
@@ -168,7 +187,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       return () => {
          isMounted = false;
       };
-   }, [candidateAssessId]);
+   }, [candidateAssessId, setEndTime]);
 
    const currentQuestion = questions[currentQuestionIndex];
    const totalQuestions = questions.length;
@@ -235,6 +254,21 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
          setIsSubmitting(false);
       }
    };
+
+   useEffect(()=>{
+      if (!endTime || isSubmitted || isSubmitting) return;
+
+      const timeRemaining = new Date(endTime).getTime() - Date.now();
+      if (timeRemaining <= 0) {
+         handleSubmit();
+         return;
+      } 
+      const timeout = setTimeout(()=>{
+         handleSubmit()
+      }, timeRemaining);
+
+      return () => clearTimeout(timeout);
+   }, [endTime, isSubmitted, isSubmitting]);
 
    if (!candidateAssessId || isLoading) {
       return (

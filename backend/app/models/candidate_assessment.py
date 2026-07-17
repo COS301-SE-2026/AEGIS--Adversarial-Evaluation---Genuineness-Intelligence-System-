@@ -21,8 +21,8 @@ class CandidateAssessment(Base):
     access_token = Column(String, unique=True, nullable=False)
     candidate_score = Column(Float, nullable=True)
     total_score = Column(Float, nullable=True)
-    start_time = Column(TIMESTAMP, nullable=True)
-    end_time = Column(TIMESTAMP, nullable=True)
+    start_time = Column(TIMESTAMP(timezone=True), nullable=True)
+    end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     candidate_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     assessment_id = Column(Integer,
                            ForeignKey("assessments.assessment_id"),

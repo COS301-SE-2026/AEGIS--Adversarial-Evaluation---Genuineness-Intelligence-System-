@@ -1,5 +1,6 @@
 export interface AssessmentCardProps {
     candidateAssessId: number;
+    accessToken: string | null;
     assessmentId: number;
     title: string;
     description: string;
