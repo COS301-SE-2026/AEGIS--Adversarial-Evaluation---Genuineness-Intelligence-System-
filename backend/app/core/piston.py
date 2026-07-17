@@ -57,7 +57,7 @@ class PistonClient:
 
     def list_runtimes(self) -> list[dict[str, Any]]:
         if self.runtime_cache is None:
-            runtimes = self.request("GET", "/runtimes")
+            runtimes = self.request("GET", "/api/v2/runtimes")
             self.runtime_cache = runtimes if isinstance(runtimes, list) else []
         return self.runtime_cache
 
@@ -106,4 +106,4 @@ class PistonClient:
             "files": [{"name": file_name, "content": source_code}],
             "stdin": stdin,
         }
-        return self.request("POST", "/execute", json=payload)
+        return self.request("POST", "/api/v2/execute", json=payload)
