@@ -30,5 +30,6 @@ export interface QuestionPayload {
     created_at?: string,
     updated_at?: string
     source_question_id?: number | null,
-    technique?: string
+    technique?: string,
+    adv_question_id?: number
 }
