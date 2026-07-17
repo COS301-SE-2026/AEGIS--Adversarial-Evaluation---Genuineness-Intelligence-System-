@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import HTTPException, status
+from google.genai import types
 from sqlalchemy.orm import Session
 
-from app.core.gemini import get_gemini_model
+from app.core.gemini import get_gemini_client
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
@@ -130,13 +131,15 @@ def generate_adversarial_question(
         examples_block,
     )
 
-    model = get_gemini_model(system_instruction=system_prompt)
-    response = model.generate_content(
-        user_message,
-        generation_config={
-            "temperature": 0.0,
-            "response_mime_type": "application/json",
-        },
+    client = get_gemini_client()
+    response = client.models.generate_content(
+        model="gemini-3.1-flash-lite",
+        contents=user_message,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=0.0,
+            response_mime_type="application/json",
+        ),
     )
 
     parsed = _parse_gemini_response(response.text)
@@ -145,8 +148,12 @@ def generate_adversarial_question(
         source_question_id=source_question_id,
         content=parsed["weaponised_question"],
         strategy_id=strategy_id,
-        llm="gemini-2.5-flash",
+        llm="gemini-3.1-flash-lite",
         generated_at=datetime.now(timezone.utc),
+        correct_answer=parsed["correct_answer"],
+        predicted_wrong_answer=parsed["predicted_wrong_answer"],
+        trap_mechanism=parsed["trap_mechanism"],
+        pattern_used=parsed["pattern_used"],
     )
     db.add(adversarial_question)
     db.commit()
