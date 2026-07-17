@@ -259,13 +259,10 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       if (!endTime || isSubmitted || isSubmitting) return;
 
       const timeRemaining = new Date(endTime).getTime() - Date.now();
-      if (timeRemaining <= 0) {
-         handleSubmit();
-         return;
-      } 
+
       const timeout = setTimeout(()=>{
          handleSubmit()
-      }, timeRemaining);
+      }, Math.max(timeRemaining, 0));
 
       return () => clearTimeout(timeout);
    }, [endTime, isSubmitted, isSubmitting]);
