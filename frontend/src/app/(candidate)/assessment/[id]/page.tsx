@@ -35,13 +35,22 @@ type CandidateResponseApi = {
 };
 
 function mapQuestionType(value: string): Question["type"] {
-   if (value === "MULTIPLE_CHOICE") {
-      return "multiple-choice";
+   const type = value.trim().toUpperCase();
+
+   switch (type) {
+      case "MULTIPLE_CHOICE":
+         return "multiple-choice";
+
+      case "CODING":
+         return "coding";
+
+      case "FILL_IN_BLANK":
+         return "fill-in-blank"
+
+      default:
+         console.warn(`Unknown question type: ${value}`);
+         return "fill-in-blank"
    }
-   if (value === "TEXT") {
-      return "fill-in-the-blank";
-   }
-   return "fill-in-the-blank";
 }
 
 function mapQuestionOptions(
@@ -119,7 +128,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                   const question = item.question as NonNullable<
                      CandidateAssessmentQuestionApi["question"]
                   >;
-
+                  console.log(question.type);
                   const mappedType = mapQuestionType(question.type);
 
                   return {

@@ -1,7 +1,8 @@
 import { useMemo } from "react";
-import { TestMultipleChoiceCard } from "./test-multiple-choice-card";
 import { Question } from "./question.type";
+import { TestMultipleChoiceCard } from "./test-multiple-choice-card";
 import CodeEditorCard from "./test-code-editor-card";
+import { TestFillInTheBlanksCard } from "./test-fill-in-the-blanks-card";
 
 type TestAnswerCardProps = {
     question: Question;
@@ -23,12 +24,18 @@ export function TestAnswerCard({ question, value, onChange }: TestAnswerCardProp
             <CodeEditorCard
                 code={value ?? ""}
                 setCode={(next) => {
-                    const resolved = typeof next === "function" ? next(value ?? "") : next;
+                    const resolved = typeof next === "function" ? 
+                    next(value ?? "") : 
+                    next;
                     onChange?.(resolved);
                 }}
             />
             ),
-            'fill-in-the-blank': null,
+            'fill-in-blank': (
+                <TestFillInTheBlanksCard
+                    question={question}
+                />
+            ),
         } as const;
     }, [onChange, question, value]);
 
@@ -40,7 +47,7 @@ export function TestAnswerCard({ question, value, onChange }: TestAnswerCardProp
                 return 'Multiple Choice';
             case 'coding':
                 return 'Code Editor';
-            case 'fill-in-the-blank':
+            case 'fill-in-blank':
                 return 'Fill in the Blanks';
             default:
                 return 'Answer';
