@@ -95,14 +95,14 @@ def test_generate_adversarial_question_422_on_invalid_json():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_model = MagicMock()
-    mock_model.generate_content.return_value = MagicMock(
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
         text="not valid json",
     )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_model",
-        return_value=mock_model,
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
     ):
         with pytest.raises(HTTPException) as exc_info:
             generate_adversarial_question(
@@ -123,14 +123,14 @@ def test_generate_adversarial_question_422_on_missing_fields():
         "weaponised_question": "What does f(6) return?",
         "correct_answer": "8",
     }
-    mock_model = MagicMock()
-    mock_model.generate_content.return_value = MagicMock(
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
         text=json.dumps(incomplete),
     )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_model",
-        return_value=mock_model,
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
     ):
         with pytest.raises(HTTPException) as exc_info:
             generate_adversarial_question(
@@ -147,26 +147,33 @@ def test_generate_adversarial_question_success():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_model = MagicMock()
-    mock_model.generate_content.return_value = MagicMock(
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
         text=json.dumps(VALID_RESPONSE),
     )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_model",
-        return_value=mock_model,
-    ) as mock_get_model:
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ) as mock_get_client:
         result = generate_adversarial_question(
             mock_db,
             source_question_id=1,
             strategy_id=2,
         )
 
-    mock_get_model.assert_called_once()
+    mock_get_client.assert_called_once()
     assert result.source_question_id == 1
     assert result.strategy_id == 2
-    assert result.llm == "gemini-2.5-flash"
+    assert result.llm == "gemini-3.1-flash-lite"
     assert result.content == VALID_RESPONSE["weaponised_question"]
+    assert result.correct_answer == VALID_RESPONSE["correct_answer"]
+    assert (
+        result.predicted_wrong_answer
+        == VALID_RESPONSE["predicted_wrong_answer"]
+    )
+    assert result.trap_mechanism == VALID_RESPONSE["trap_mechanism"]
+    assert result.pattern_used == VALID_RESPONSE["pattern_used"]
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()

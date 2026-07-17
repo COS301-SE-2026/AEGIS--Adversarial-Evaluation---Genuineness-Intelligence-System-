@@ -103,6 +103,10 @@ def test_generate_adversarial_201_on_success(mock_generate):
         strategy_id=2,
         llm="gemini-2.5-flash",
         generated_at=datetime.now(timezone.utc),
+        correct_answer="8",
+        predicted_wrong_answer="13",
+        trap_mechanism="Irrelevant context distracts the model.",
+        pattern_used="SYMBOL_REDEFINITION",
     )
 
     app.dependency_overrides[get_db] = _db_override
@@ -119,6 +123,13 @@ def test_generate_adversarial_201_on_success(mock_generate):
     assert body["content"] == "What does f(6) return?"
     assert body["strategy_id"] == 2
     assert body["llm"] == "gemini-2.5-flash"
+    assert body["correct_answer"] == "8"
+    assert body["predicted_wrong_answer"] == "13"
+    assert (
+        body["trap_mechanism"]
+        == "Irrelevant context distracts the model."
+    )
+    assert body["pattern_used"] == "SYMBOL_REDEFINITION"
     mock_generate.assert_called_once()
     call_args = mock_generate.call_args[0]
     assert call_args[1] == 1
@@ -167,6 +178,10 @@ def test_get_adversarial_questions_200_with_list(mock_get):
             strategy_id=2,
             llm="gemini-2.5-flash",
             generated_at=datetime.now(timezone.utc),
+            correct_answer=None,
+            predicted_wrong_answer=None,
+            trap_mechanism=None,
+            pattern_used=None,
         )
     ]
 
@@ -225,6 +240,10 @@ def test_get_all_adversarial_questions_200_with_list(mock_get):
             strategy_id=2,
             llm="gemini-2.5-flash",
             generated_at=datetime.now(timezone.utc),
+            correct_answer=None,
+            predicted_wrong_answer=None,
+            trap_mechanism=None,
+            pattern_used=None,
         )
     ]
 
