@@ -128,7 +128,7 @@ function AssessmentPageContent() {
 
 
     return (
-        <main>
+        <main className="min-h-screen px-8 py-8">
             <div className="mt-8">
                 <h1 className="font-staatliches text-3xl text-default-text mb-2">Available Assessments</h1>
                 <div>
@@ -146,7 +146,7 @@ function AssessmentPageContent() {
                     No assessments assigned yet
                 </div>
             ) : (
-                <div className="grid grid-cols-4 gap-x-32 gap-y-16 pt-8 pb-8">
+                <div className="grid grind-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-8 pb-8">
                     {filteredAssessments.map((assessment) => (
                         <AssessmentCard
                             key={assessment.candidateAssessId}

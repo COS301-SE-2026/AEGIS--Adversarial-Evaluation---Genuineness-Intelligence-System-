@@ -90,32 +90,34 @@ export default function CodeEditorCard({ code, setCode }: CodeEditorProps) {
             </div>
 
             <div onPaste={handlePaste} className="border border-default-border rounded-md overflow-hidden">
-                <Editor
-                    height="60vh"
-                    language={language}
-                    value={code}
-                    theme="vs-dark"
-                    onChange={(value) => setCode(value || '')}
-                    options={{
-                        quickSuggestions: false,
-                        suggestOnTriggerCharacters: false,
-                        parameterHints: { enabled: false },
-                        wordBasedSuggestions: "off",
-                        inlineSuggest: { enabled: false },
-                        snippetSuggestions: "none",
-                        contextmenu: false,
-                        minimap: { enabled: false },
-                        fontSize: 14,
-                        automaticLayout: true,
-                    }}
-                />
+                <div className="h-100">
+                    <Editor
+                        height="100%"
+                        language={language}
+                        value={code}
+                        theme="vs-dark"
+                        onChange={(value) => setCode(value || '')}
+                        options={{
+                            quickSuggestions: false,
+                            suggestOnTriggerCharacters: false,
+                            parameterHints: { enabled: false },
+                            wordBasedSuggestions: "off",
+                            inlineSuggest: { enabled: false },
+                            snippetSuggestions: "none",
+                            contextmenu: false,
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            automaticLayout: true,
+                        }}
+                    />
+                </div>
             </div>
 
-            <div className="mt-4 border border-default-border bg-background rounded-md p-4">
+            <div className="flex flex-col mt-4 border border-default-border text-default-text/95 bg-background rounded-md p-4">
                 <div className="mb-2 text-sm font-staatliches">
                     Output
                 </div>
-                <pre className="min-h-28 overflow-auto whitespace-pre-wrap text-sm">
+                <pre className="flex-1 min-h-32 overflow-auto whitespace-pre-wrap text-sm">
                     {output || "Run your code to see the output."}
                 </pre>
             </div>
