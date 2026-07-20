@@ -38,8 +38,6 @@ export interface QuestionPayload {
     blanks?: string[], // for the fill in blanks questions
     source_question_id?: number | undefined,
     technique?: string | undefined,
-    created_at?: string,
-    updated_at?: string,
     adv_question_id?: number,
     created_at?: string,
     updated_at?: string
