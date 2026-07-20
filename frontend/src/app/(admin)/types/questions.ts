@@ -1,9 +1,11 @@
+import { MCQOption, TestCase, QuestionType } from "./question-builder"
+
 export interface QuestionBank {
     question_bank_id: number,
     title: string,
     content: string,
     type?: string,
-    question_metadata?: string | string[],
+    question_metadata?: unknown,
     maximum_score?: number,
     correct_answer?: string,
     tags?: string | string[],
@@ -27,9 +29,18 @@ export interface QuestionPayload {
     tags?: string[],
     content?: string,
     correct_answer?: string,
+    question_metadata?: unknown //assuming its a json object
+    starterCode?: string;
+    options?: MCQOption[],
+    testCases?: TestCase[],
+    rubric?: string, // for the paragraph/comprehension questions
+    expectedKeywords?: string[], // for comprehension
+    blanks?: string[], // for the fill in blanks questions
+    source_question_id?: number | undefined,
+    technique?: string | undefined,
+    created_at?: string,
+    updated_at?: string,
+    adv_question_id?: number,
     created_at?: string,
     updated_at?: string
-    source_question_id?: number | null,
-    technique?: string,
-    adv_question_id?: number
 }

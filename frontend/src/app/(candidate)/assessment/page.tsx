@@ -29,6 +29,7 @@ function mapCandidateAssessment(session: CandidateAssessmentApi): AssessmentCard
 
     return {
         candidateAssessId: session.candidate_assess_id,
+        accessToken: session.access_token?? null,
         assessmentId: session.assessment.assessment_id,
         title: session.assessment.title,
         description: session.assessment.description ?? "No description provided.",

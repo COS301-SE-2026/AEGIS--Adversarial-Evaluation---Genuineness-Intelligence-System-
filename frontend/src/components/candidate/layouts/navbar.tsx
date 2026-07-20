@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useAssessmentTimer } from "../context/assessment-timer";
 import { SearchBar } from "../ui/buttons/search-bar";
 import { NotificationBell } from "../ui/buttons/notification-bell-button";
 import { UserIcon } from "../ui/buttons/user-profile-button";
@@ -13,16 +14,21 @@ import { ExitSessionButton } from "../ui/buttons/exit-session-button";
 export function Navbar() {
 
     const pathname = usePathname();
-    const [timer, setTimer] = useState(60 * 60); // 60 minutes in seconds
+    const {endTime} = useAssessmentTimer();
+    const [timer, setTimer] = useState(0);
 
     useEffect(() => {
-        if (pathname !== "/assessment") {
-            const interval = setInterval(() => {
-                setTimer((prev) => (prev > 0 ? prev - 1 : 0));
-            }, 1000);
-            return () => clearInterval(interval);
+        if (!endTime) return;
+        const updateTimer = () => {
+            const remainingTime = Math.floor((new Date(endTime).getTime() - Date.now()) / 1000);
+            setTimer(remainingTime > 0 ? remainingTime : 0);
         }
-    }, [pathname]);
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [endTime]);
+
+
 
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600);
