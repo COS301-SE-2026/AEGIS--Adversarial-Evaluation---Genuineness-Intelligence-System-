@@ -51,3 +51,21 @@
     font-family: var(--font-jetbrains-mono), monospace;
   }
 }
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-secondary-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-white-smoke);
+  border-radius: 9999px;
+  border: 2px solid var(--color-secondary-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-system-red);
+}

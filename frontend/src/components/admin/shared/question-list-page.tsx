@@ -9,6 +9,7 @@ import QuestionTable from "@/components/admin/ui/cards/question-table";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
+import MobileSidebar from "../layouts/mobile-sidebar";
 
 
 export interface QuestionListModalProps {
@@ -55,9 +56,11 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId, setEditQuestionId] = useState<number | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -277,19 +280,24 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
 
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="fixed md:static top-0 left-0 w-55 h-screen md:min-h-screen z-50 transform transition-transform md:transform-none">
-        <AdminSidebar />
-      </div>
+      
+      <AdminSidebar />
+      <MobileSidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      
+      <div className="flex-1 min-w-0">
+        <AdminTopbar 
+          onOpenSideBar={() => setSidebarOpen(true)}
+        />
 
-      <div className="flex-1 flex flex-col w-full">
-        <AdminTopbar />
-
-        <main className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 md:p-8">
+        <main className="px-4 sm:px-6 lg:px-8 py-6">
+          <div className="p-4 py-6 sm:p-6 lg:px-8 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button
                 onClick={() => setIsCreateOpen(true)}
-                className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer"
+                className="inline-flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base whitespace-nowrap duration-300 cursor-pointer"
               >
                 <Plus size={18} className="sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">{config.newButtonLabel}</span>
@@ -341,22 +349,24 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
               </div>
             )}
 
-            <QuestionTable
-              questions={sectionedQuestions}
-              categoryMap={categoriesMap}
-              sortColumn={sortColumn}
-              sortDirection={sortDirection}
-              onSort={sortHandle}
-              openMenuId={openMenuId}
-              setOpenMenuId={setOpenMenuId}
-              onEdit={(id) => {
-                setEditQuestionId(id);
-                setOpenMenuId(null);
-              }}
-              onDelete={handleDelete}
-            />
+            <div className="overflow-x-auto rounded-lg">
+              <QuestionTable
+                questions={sectionedQuestions}
+                categoryMap={categoriesMap}
+                sortColumn={sortColumn}
+                sortDirection={sortDirection}
+                onSort={sortHandle}
+                openMenuId={openMenuId}
+                setOpenMenuId={setOpenMenuId}
+                onEdit={(id) => {
+                  setEditQuestionId(id);
+                  setOpenMenuId(null);
+                }}
+                onDelete={handleDelete}
+              />
+            </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-2 mt-10 border border-t border-default-border rounded-b-lg text-sm text-default-text">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 px-4 py-2 mt-10 border border-t border-default-border rounded-b-lg text-sm text-default-text">
               <div className="text-default-text order-2 sm:order-1">
                 Page <span className="font-semibold">{currentPage}</span> of{" "}
                 <span className="font-semibold">{totalNumberOfPages}</span>

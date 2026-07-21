@@ -6,13 +6,26 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import  logo from "../../../../public/illustrations/AEGIS-logo-candidate-nav.png"
 
-export default function AdminSidebar() {
+interface AdminSidebarProps {
+  mobile?: boolean;
+}
+
+export default function AdminSidebar({mobile}: AdminSidebarProps) {
   const pathname = usePathname();
   return (
-    <aside className="w-55 min-h-screen bg-secondary-surface border-r border-tertiary-surface flex flex-col shrink-0">
-      <div className="mt-4 flex items-center gap-2">
+    <aside className={`flex flex-col bg-secondary-surface border-r border-tertiary-surface
+      ${mobile 
+        ? "w-full flex-1 min-h-0 overflow-y-auto"
+        : "hidden lg:flex lg:w-64 xl:w-72 min-h-screen shrink-0"
+      }
+    `}>
+      <div className="flex items-center gap-2 px-5 mt-2 shrink-0">
        <Link href="/">
-          <Image src={logo} alt="Logo" width={75} height={55} />
+          <Image 
+            src={logo} 
+            alt="Logo" 
+            className="w-12 sm:w-14 lg:w-16 h-auto"
+           />
         </Link>
         <div>
           <div className="font-staatliches text-2xl tracking-widest leading-none text-white-smoke">
@@ -36,7 +49,7 @@ export default function AdminSidebar() {
               href={item.href}
               className={`
                 flex items-center gap-2.5 px-5 py-2.5
-                font-staatliches text-base tracking-wider
+                font-staatliches text-sm xl:text-base tracking-wider
                 border-l-2 transition-all duration-150
                 ${
                   isActive

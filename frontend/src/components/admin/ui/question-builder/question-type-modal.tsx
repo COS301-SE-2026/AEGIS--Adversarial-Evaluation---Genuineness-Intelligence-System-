@@ -41,9 +41,9 @@ export default function QuestionTypeModal({open, onClose, onSelect}: QuestionTyp
 
     return (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 md:p-6 overflow-hidden">
-            <div className="w-full max-w-5xl rounded-xl border border-tertiary-surface bg-secondary-surface shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+            <div className="w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-xl border border-tertiary-surface bg-secondary-surface shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200">
                 
-                <div className="flex items-center justify-between border-b border-tertiary-surface px-8">
+                <div className="flex items-start justify-between gap-4 border-b border-tertiary-surface p-6 md:p-8">
                     <div>
                         <h2 className="text-2xl tracking-widest">
                             Create Question
@@ -61,7 +61,7 @@ export default function QuestionTypeModal({open, onClose, onSelect}: QuestionTyp
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 md-grid-cols2 gap-6 p-8">
+                <div className="grid gap-6 p-6 md:p-8 [grid-cols:reapeat(auto-fit,minmax(260px,1fr))]">
                     {Question_Types.map((item) => {
                         const Icon = item.icon;
 
@@ -70,7 +70,7 @@ export default function QuestionTypeModal({open, onClose, onSelect}: QuestionTyp
                                 key={item.type}
                                 type="button"
                                 onClick={() => onSelect(item.type)}
-                                className="group rounded-xl border-default-border/40 bg-background p-6 text-left transition-all duration-200 hover:border-system-red hover:-translate-y-1 cursor-pointer"
+                                className="flex flex-col h-full group rounded-xl border-default-border/40 bg-background p-6 transition-all duration-200 hover:border-system-red hover:-translate-y-1 cursor-pointer"
                             >
                                 <div className="flex items-center justify-center mb-4 rounded-lg">
                                     <Icon 
@@ -81,7 +81,7 @@ export default function QuestionTypeModal({open, onClose, onSelect}: QuestionTyp
                                 <h3 className="text-xl tracking-widest text-default-text">
                                     {item.title}
                                 </h3>
-                                <p className="mt-3 text-sm leading-6 text-default-border">
+                                <p className="flex-1 mt-3 text-sm leading-6 text-default-border">
                                     {item.description}
                                 </p>
                             </button>
