@@ -36,8 +36,9 @@ export interface QuestionPayload {
     rubric?: string, // for the paragraph/comprehension questions
     expectedKeywords?: string[], // for comprehension
     blanks?: string[], // for the fill in blanks questions
-    source_question_id: number | undefined,
-    technique: string | undefined
+    source_question_id?: number,
+    technique?: string,
+    adv_question_id?: number,
     created_at?: string,
     updated_at?: string
 }
