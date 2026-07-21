@@ -165,6 +165,7 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
           {/* Generate Buttons */}
 <div className="flex gap-3">
   <button
+    type="button"
     onClick={handleGenerate}
     disabled={!sourceQuestionId || !strategyId || isGenerating}
     className="flex-1 py-3 bg-system-red text-white rounded flex items-center justify-center gap-2 hover:bg-red-600 disabled:opacity-50"
@@ -174,6 +175,7 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
   </button>
 
   <button
+    type="button"
     onClick={handleGenerate}
     disabled={!generated || isGenerating}
     className="flex-1 py-3 border border-default-border text-white-smoke rounded hover:bg-tertiary-surface disabled:opacity-50"
@@ -221,6 +223,7 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
         <div className="p-6 border-t border-tertiary-surface flex justify-end gap-3">
           <button onClick={onClose} className="px-6 py-2 border border-default-border rounded">Cancel</button>
           <button
+            type="button"
             onClick={handleSubmit}
             disabled={!generated || isSaving}
             className="px-6 py-2 bg-system-red text-white rounded disabled:opacity-50"

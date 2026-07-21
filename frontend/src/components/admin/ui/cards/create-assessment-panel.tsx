@@ -150,6 +150,63 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
     onClose();
   }
 
+  const renderQuestionsList = () => {
+    if (questionsLoading) {
+      return (
+        <div className="text-xs text-white-smoke/40 text-center py-4">
+          Loading questions...
+        </div>
+      );
+    }
+
+    if (questionsError) {
+      return (
+        <div className="text-xs text-system-red text-center py-4">
+          {questionsError}
+        </div>
+      );
+    }
+
+    return questions.map(q => {
+      const selected = selectedIds.includes(q.adv_question_id);
+      const cardClassName = selected
+       ? "border-system-red bg-system-red/5"
+       : "border-default-border hover:border-white-smoke/30";
+      const label = q.content.length > 80
+        ? `${q.content.slice(0, 80)}...`
+        : q.content;
+
+      return(
+
+      <button
+      type="button"
+      key={q.adv_question_id}
+      onClick = {() => toggleQuestion(q.adv_question_id)}
+      onKeyDown = {(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleQuestion(q.adv_question_id);
+        }
+      }}
+  className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${cardClassName}`}>
+
+      <div className="flex justify-between">
+        <div>
+          <div className="font-medium">{label}</div>
+          <div className="flex gap-2 mt-2">
+            <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">Strategy #{q.strategy_id}</span>
+            <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">{q.llm ?? "—"}</span>
+          </div>
+        </div>
+        <div className={`w-5 h-5 rounded flex items-center justify-center border mt-1 ${selected ? "bg-system-red text-white" : "border-default-border"}`}>
+          {selected && "✓"}
+        </div>
+      </div>
+    </button>
+  );
+    });
+  };
+
   //will add the other sections later
   return(
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-end" onClick={(e) => e.target === e.currentTarget && onClose()} onKeyDown={(e) => {
@@ -258,54 +315,7 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
                   </div>
 
                 <div className="max-h-[340px] overflow-y-auto pr-2 space-y-2">
-                  {questionsLoading ? (
-                    <div className="text-xs text-white-smoke/40 text-center py-4">
-                      Loading questions...
-                    </div>
-                  ) : questionsError ? (
-                    <div className="text-xs text-system-red text-center py-4">
-                      {questionsError}
-                    </div>
-                  ) : (
-                    questions.map(q => {
-                    const selected = selectedIds.includes(q.adv_question_id);
-                    const cardClassName = selected
-                     ? "border-system-red bg-system-red/5"
-                     : "border-default-border hover:border-white-smoke/30";
-                    const label = q.content.length > 80
-                      ? `${q.content.slice(0, 80)}...`
-                      : q.content;
-
-                    return(
-
-                    <button
-                    type="button"
-                    key={q.adv_question_id}
-                    onClick = {() => toggleQuestion(q.adv_question_id)}
-                    onKeyDown = {(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleQuestion(q.adv_question_id);
-                      }
-                    }}
-                className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${cardClassName}`}>
-
-                    <div className="flex justify-between">
-                      <div>
-                        <div className="font-medium">{label}</div>
-                        <div className="flex gap-2 mt-2">
-                          <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">Strategy #{q.strategy_id}</span>
-                          <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">{q.llm ?? "—"}</span>
-                        </div>
-                      </div>
-                      <div className={`w-5 h-5 rounded flex items-center justify-center border mt-1 ${selected ? "bg-system-red text-white" : "border-default-border"}`}>
-                        {selected && "✓"}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })
-                  )}
+                  {renderQuestionsList()}
             </div>
                   </div>
             )}
