@@ -17,7 +17,6 @@ from app.models.coding_test_cases import CodingTestCase
 from app.models.user import User
 from app.schema.candidate_response import ResponseCreate
 import ast
-from typing import Any
 from app.services.test_cases import get_test_cases_by_question_id
 
 ASSESSMENT_NOT_FOUND = "Assessment not found"
@@ -124,10 +123,12 @@ def _get_expected_function_name(question_bank: QuestionBank) -> str | None:
             if "(" in signature_text:
                 function_name = signature_text.split("(", 1)[0].strip()
     function_name = str(function_name or "").strip()
-    if not function_name or not function_name.isidentifier() or keyword.iskeyword(function_name):
+    if not function_name or not function_name.isidentifier(
+    ) or keyword.iskeyword(function_name):
         return None
 
     return function_name
+
 
 def _parse_test_case_arguments(input_data: str | None) -> list[Any]:
     if input_data is None:
@@ -222,11 +223,15 @@ def execute_code_questions(
         error_message = None
         try:
             arguments = _parse_test_case_arguments(test_case.input_data)
-            if expected_parameter_count is not None and len(arguments) != expected_parameter_count:
+            if (
+                expected_parameter_count is not None
+                and len(arguments) != expected_parameter_count
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=(
-                        "Test case input does not match the expected parameter count for this question."
+                        "Test case input does not match the expected"
+                        " parameter count for this question."
                     ),
                 )
             source_code = candidate_code
