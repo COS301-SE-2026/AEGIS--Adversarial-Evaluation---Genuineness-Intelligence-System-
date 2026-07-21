@@ -45,13 +45,22 @@ type CandidateAssessmentSessionApi = {
 }
 
 function mapQuestionType(value: string): Question["type"] {
-   if (value === "MULTIPLE_CHOICE") {
-      return "multiple-choice";
+   const type = value.trim().toUpperCase();
+
+   switch (type) {
+      case "MULTIPLE_CHOICE":
+         return "multiple-choice";
+
+      case "CODING":
+         return "coding";
+
+      case "FILL_IN_BLANK":
+         return "fill-in-blank"
+
+      default:
+         console.warn(`Unknown question type: ${value}`);
+         return "fill-in-blank"
    }
-   if (value === "TEXT") {
-      return "fill-in-the-blank";
-   }
-   return "fill-in-the-blank";
 }
 
 function mapQuestionOptions(
@@ -134,7 +143,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                   const question = item.question as NonNullable<
                      CandidateAssessmentQuestionApi["question"]
                   >;
-
+                  console.log(question.type);
                   const mappedType = mapQuestionType(question.type);
 
                   return {
@@ -302,23 +311,30 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
      }
 
     return (
-        <main className="flex flex-col items-center justify-start min-h-screen 2xl:gap-8">
-            <div className="flex flex-row items-center 2xl:gap-4">
-               <TestDescriptionCard question={currentQuestion} />
-               <TestAnswerCard
-                  question={currentQuestion}
-                  value={answersByQuestionId[currentQuestion.questionId] ?? ""}
-                  onChange={(value) => {
-                     setAnswersByQuestionId((prev) => ({
-                        ...prev,
-                        [currentQuestion.questionId]: value,
-                     }));
-                  }}
-               />
+        <main className="min-h-screen py-8 px-8">
+            <div className="mx-auto max-w-screen-2xl">
+               
+               <section className="flex flex-col lg:flex-row gap-6">
+               
+                  <TestDescriptionCard question={currentQuestion} />
+                  
+                  <section className='flex-1'>
+                     <TestAnswerCard
+                        question={currentQuestion}
+                        value={answersByQuestionId[currentQuestion.questionId] ?? ""}
+                        onChange={(value) => {
+                           setAnswersByQuestionId((prev) => ({
+                              ...prev,
+                              [currentQuestion.questionId]: value,
+                           }));
+                        }}
+                     />
+                  </section>
+               </section>
 
             </div>
 
-            <div className="relative flex w-full items-center">
+            <footer className="flex justify-between items-center mt-8">
                <div className="mx-auto flex flex-row items-center gap-4">
                   <TestPreviousButton handlePrevious={handlePrevious} />
                   <p>{currentQuestionIndex + 1} / {totalQuestions}</p>
@@ -332,7 +348,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                      <TestSubmitButton onClick={handleSubmit} disabled={isSaving || isSubmitting} isSubmitting={isSubmitting} />
                   )}
                </div>
-            </div>
+            </footer>
             
         </main>
     );

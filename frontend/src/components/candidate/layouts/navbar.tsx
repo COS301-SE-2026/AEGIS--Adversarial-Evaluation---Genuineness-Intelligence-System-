@@ -8,7 +8,6 @@ import { useAssessmentTimer } from "../context/assessment-timer";
 import { SearchBar } from "../ui/buttons/search-bar";
 import { NotificationBell } from "../ui/buttons/notification-bell-button";
 import { UserIcon } from "../ui/buttons/user-profile-button";
-// import { TestSaveButton } from "../ui/buttons/test-save-button";
 import { ExitSessionButton } from "../ui/buttons/exit-session-button";
 
 export function Navbar() {
@@ -40,7 +39,7 @@ export function Navbar() {
     if (pathname === "/assessment" || pathname === "/reports") {
         return (
             <header>
-                <nav className="bg-secondary-surface border-b border-tertiary-surface py-4 px-24 flex items-center justify-between">
+                <nav className="bg-secondary-surface border-b border-tertiary-surface py-4 px-6 lg:px-12 2xl:px-24 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link href="/assessment">
                             <Image src="/illustrations/AEGIS-logo-candidate-nav.png" alt="Logo" width={75} height={55} />

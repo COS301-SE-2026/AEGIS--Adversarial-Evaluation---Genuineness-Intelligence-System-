@@ -319,11 +319,11 @@ export default function ViewQuestionsPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="fixed md:static top-0 left-0 w-55 h-screen md:min-h-screen z-50 transform transition-transform md:transform-none">
+      <aside>
         <AdminSidebar/>
-      </div>
+      </aside>
 
-      <div className="flex-1 flex flex-col w-full">
+      <div className="flex-1 flex flex-col w-full min-w-0 overflow-hidden">
         <AdminTopbar/>
 
         <main className="flex-1 overflow-auto">
