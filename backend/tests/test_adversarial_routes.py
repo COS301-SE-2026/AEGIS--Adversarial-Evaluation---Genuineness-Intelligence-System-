@@ -53,8 +53,8 @@ def test_list_strategies_returns_empty_list(mock_get_all):
     assert response.json() == []
 
 
-GENERATE_URL = "/api/v1/assessments/1/generate-adversarial"
-GENERATE_BODY = {"source_question_id": 1, "strategy_id": 2}
+GENERATE_URL = "/api/v1/questions/1/generate-adversarial"
+GENERATE_BODY = {"strategy_id": 2}
 
 
 def test_generate_adversarial_401_when_no_jwt():
@@ -66,10 +66,7 @@ def test_generate_adversarial_401_when_no_jwt():
 
 
 @patch("app.api.routes.adversarial.generate_adversarial_question")
-@patch("app.api.routes.adversarial.verify_assessment_exists")
-def test_generate_adversarial_403_when_not_recruiter(
-    mock_verify, mock_generate
-):
+def test_generate_adversarial_403_when_not_recruiter(mock_generate):
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override(
         "CANDIDATE"
@@ -78,17 +75,13 @@ def test_generate_adversarial_403_when_not_recruiter(
     app.dependency_overrides.clear()
 
     assert response.status_code == 403
-    mock_verify.assert_not_called()
     mock_generate.assert_not_called()
 
 
 @patch("app.api.routes.adversarial.generate_adversarial_question")
-@patch("app.api.routes.adversarial.verify_assessment_exists")
-def test_generate_adversarial_404_when_assessment_missing(
-    mock_verify, mock_generate
-):
-    mock_verify.side_effect = HTTPException(
-        status_code=404, detail="Assessment not found"
+def test_generate_adversarial_404_when_source_missing(mock_generate):
+    mock_generate.side_effect = HTTPException(
+        status_code=404, detail="Source question not found"
     )
 
     app.dependency_overrides[get_db] = _db_override
@@ -99,13 +92,10 @@ def test_generate_adversarial_404_when_assessment_missing(
     app.dependency_overrides.clear()
 
     assert response.status_code == 404
-    mock_generate.assert_not_called()
 
 
 @patch("app.api.routes.adversarial.generate_adversarial_question")
-@patch("app.api.routes.adversarial.verify_assessment_exists")
-def test_generate_adversarial_201_on_success(mock_verify, mock_generate):
-    mock_verify.return_value = MagicMock()
+def test_generate_adversarial_201_on_success(mock_generate):
     mock_generate.return_value = MagicMock(
         adv_question_id=5,
         source_question_id=1,
@@ -113,6 +103,10 @@ def test_generate_adversarial_201_on_success(mock_verify, mock_generate):
         strategy_id=2,
         llm="gemini-2.5-flash",
         generated_at=datetime.now(timezone.utc),
+        correct_answer="8",
+        predicted_wrong_answer="13",
+        trap_mechanism="Irrelevant context distracts the model.",
+        pattern_used="SYMBOL_REDEFINITION",
     )
 
     app.dependency_overrides[get_db] = _db_override
@@ -129,6 +123,13 @@ def test_generate_adversarial_201_on_success(mock_verify, mock_generate):
     assert body["content"] == "What does f(6) return?"
     assert body["strategy_id"] == 2
     assert body["llm"] == "gemini-2.5-flash"
+    assert body["correct_answer"] == "8"
+    assert body["predicted_wrong_answer"] == "13"
+    assert (
+        body["trap_mechanism"]
+        == "Irrelevant context distracts the model."
+    )
+    assert body["pattern_used"] == "SYMBOL_REDEFINITION"
     mock_generate.assert_called_once()
     call_args = mock_generate.call_args[0]
     assert call_args[1] == 1
@@ -177,6 +178,10 @@ def test_get_adversarial_questions_200_with_list(mock_get):
             strategy_id=2,
             llm="gemini-2.5-flash",
             generated_at=datetime.now(timezone.utc),
+            correct_answer=None,
+            predicted_wrong_answer=None,
+            trap_mechanism=None,
+            pattern_used=None,
         )
     ]
 
@@ -212,3 +217,44 @@ def test_get_adversarial_questions_404_when_missing(mock_get):
     app.dependency_overrides.clear()
 
     assert response.status_code == 404
+
+
+ALL_QUESTIONS_URL = "/api/v1/adversarial-questions"
+
+
+def test_get_all_adversarial_questions_401_when_no_jwt():
+    app.dependency_overrides[get_db] = _db_override
+    response = client.get(ALL_QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+
+
+@patch("app.api.routes.adversarial.get_all_adversarial_questions")
+def test_get_all_adversarial_questions_200_with_list(mock_get):
+    mock_get.return_value = [
+        MagicMock(
+            adv_question_id=5,
+            source_question_id=1,
+            content="What does f(6) return?",
+            strategy_id=2,
+            llm="gemini-2.5-flash",
+            generated_at=datetime.now(timezone.utc),
+            correct_answer=None,
+            predicted_wrong_answer=None,
+            trap_mechanism=None,
+            pattern_used=None,
+        )
+    ]
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.get(ALL_QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["adv_question_id"] == 5

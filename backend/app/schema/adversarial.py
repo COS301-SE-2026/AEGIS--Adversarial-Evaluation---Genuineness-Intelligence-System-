@@ -19,9 +19,6 @@ class StrategyResponse(BaseModel):
 
 
 class GenerateAdversarialRequest(BaseModel):
-    source_question_id: int = Field(
-        ..., description="ID of the source question"
-    )
     strategy_id: int = Field(
         ..., description="ID of the adversarial strategy"
     )
@@ -45,6 +42,18 @@ class AdversarialQuestionResponse(BaseModel):
     )
     generated_at: datetime = Field(
         ..., description="Timestamp of generation"
+    )
+    correct_answer: Optional[str] = Field(
+        None, description="Correct answer to the question"
+    )
+    predicted_wrong_answer: Optional[str] = Field(
+        None, description="Predicted incorrect AI answer"
+    )
+    trap_mechanism: Optional[str] = Field(
+        None, description="How the adversarial trap works"
+    )
+    pattern_used: Optional[str] = Field(
+        None, description="Adversarial pattern used"
     )
 
     class Config:

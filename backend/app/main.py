@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.adversarial import (
+    adversarial_questions_router,
     assessment_adversarial_router,
+    question_adversarial_router,
     router as adversarial_router,
 )
 from app.api.routes.assessment import (
@@ -40,6 +42,8 @@ app.include_router(category_router, prefix="/api/v1")
 app.include_router(candidate_assessment_router, prefix="/api/v1")
 app.include_router(adversarial_router, prefix="/api/v1")
 app.include_router(assessment_adversarial_router, prefix="/api/v1")
+app.include_router(question_adversarial_router, prefix="/api/v1")
+app.include_router(adversarial_questions_router, prefix="/api/v1")
 
 
 @app.on_event("startup")

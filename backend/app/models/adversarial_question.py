@@ -16,6 +16,10 @@ class AdversarialQuestion(Base):
                          nullable=False)
     llm = Column(String, nullable=True)
     generated_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    correct_answer = Column(Text, nullable=True)
+    predicted_wrong_answer = Column(Text, nullable=True)
+    trap_mechanism = Column(Text, nullable=True)
+    pattern_used = Column(Text, nullable=True)
 
     source_question = relationship("QuestionBank",
                                    back_populates="adversarial_questions")

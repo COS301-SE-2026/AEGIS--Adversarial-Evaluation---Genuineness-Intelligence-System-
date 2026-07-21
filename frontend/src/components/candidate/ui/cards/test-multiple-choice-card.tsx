@@ -1,6 +1,5 @@
 'use client';
 import { Question } from "./question.type";
-import React from "react";
 
 type MultipleChoiceProps = {
     question: Question;
@@ -31,7 +30,7 @@ export function TestMultipleChoiceCard({ question, value, onChange }: MultipleCh
     const selectedIndex = letterToIndex(value);
 
     return (
-        <div>
+        <div className="flex flex-col h-full">
             <div>
                 <h3 className="text-base tracking-widest uppercase mt-4 mb-6">Choose The Most Correct answer</h3>
             </div>
@@ -39,8 +38,8 @@ export function TestMultipleChoiceCard({ question, value, onChange }: MultipleCh
                 {options.map((option, index) => (
                     <label 
                         key={index} 
-                        className={`flex items-center gap-4 p-4 rounded-md cursor-pointer border transition-colors ${
-                            selectedIndex === index ? 'border-blue-400' : 'border-default-border'
+                        className={`flex items-center gap-4 p-4 rounded-md cursor-pointer border-2 transition-colors ${
+                            selectedIndex === index ? 'border-blue-500' : 'border-default-border'
                         }`}
                     >
                         <input
