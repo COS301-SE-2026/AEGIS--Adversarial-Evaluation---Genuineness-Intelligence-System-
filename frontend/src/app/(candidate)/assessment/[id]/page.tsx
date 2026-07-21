@@ -74,6 +74,17 @@ function mapQuestionOptions(
       .filter((option): option is string => Boolean(option));
 }
 
+function mapFunctionSignature(
+   metadata: Record<string, unknown> | null | undefined,
+): string {
+   const rawSignature = metadata?.function_signature ?? metadata?.functionSignature;
+   if (typeof rawSignature === "string" && rawSignature.trim()) {
+      return rawSignature.trim();
+   }
+
+   return "";
+}
+
 export default function AssessmentCompletionPage({ params }: { params: Promise<{ id: string }> }) {
    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
    const [candidateAssessId, setCandidateAssessId] = useState<string | null>(null);
@@ -127,6 +138,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                      questionTitle: question.title,
                      questionContent: question.content,
                      type: mappedType,
+                     functionSignature: mapFunctionSignature(question.question_metadata),
                      options: mapQuestionOptions(question.question_metadata, mappedType),
                      correctAnswer: "" as Question["correctAnswer"],
                      tags: question.tags ?? [],
@@ -277,6 +289,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                <TestAnswerCard
                   question={currentQuestion}
                   value={answersByQuestionId[currentQuestion.questionId] ?? ""}
+                  candidateAssessId={candidateAssessId}
                   onChange={(value) => {
                      setAnswersByQuestionId((prev) => ({
                         ...prev,

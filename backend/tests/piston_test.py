@@ -107,7 +107,7 @@ def test_execute_uses_resolved_runtime_and_posts_payload():
     mock_resolve_runtime.assert_called_once_with("python", None)
     mock_request.assert_called_once_with(
         "POST",
-        "/execute",
+        "/api/v2/execute",
         json={
             "language": "python",
             "version": "3.12.0",
