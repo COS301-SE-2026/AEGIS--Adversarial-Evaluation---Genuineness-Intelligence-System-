@@ -23,6 +23,7 @@ export default function MobileSidebar({open, onClose}: Readonly<MobileSidebarPro
             <div className="flex flex-col fixed left-0 top-0 z-50 h-screen w-72 bg-secondary-surface shadow-2xl lg:hidden min-h-0 overflow-hidden">
                 <div className="flex justify-end p-4 shrink-0">
                     <button
+                        type="button"
                         onClick={onClose}
                         className="text-default-text hover:text-system-red"
                     >
