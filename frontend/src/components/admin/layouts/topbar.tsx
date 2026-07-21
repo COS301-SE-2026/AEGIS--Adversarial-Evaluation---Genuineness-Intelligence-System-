@@ -7,7 +7,7 @@ interface AdminTopbarProps {
   onOpenSideBar?: () => void;
 }
 
-export default function AdminTopbar({onOpenSideBar}: AdminTopbarProps) {
+export default function AdminTopbar({onOpenSideBar}: Readonly<AdminTopbarProps>) {
   const pathname = usePathname();
   const activePage = NAV_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}`));
   const title = activePage ? activePage.label : ""
@@ -17,6 +17,7 @@ export default function AdminTopbar({onOpenSideBar}: AdminTopbarProps) {
       
       <div className="flex items-center gap-3">
         <button 
+          type="button"
           onClick={onOpenSideBar}
           className="lg:hidden text-default-text hover:text-system-red"
         >

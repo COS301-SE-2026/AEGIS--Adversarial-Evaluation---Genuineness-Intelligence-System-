@@ -80,6 +80,7 @@ export default function CodeEditorCard({ code, setCode }: CodeEditorProps) {
                     {running ? <Pause size={18}/> : <Play size={18}/> }
                     
                     <button
+                        type="button"
                         onClick={running ? handleStop : handleRun}
                         className=" text-sm font-medium"
                     >

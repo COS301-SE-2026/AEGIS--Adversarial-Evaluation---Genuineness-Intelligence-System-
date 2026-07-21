@@ -8,12 +8,14 @@ interface MobileSidebarProps {
     onClose: () => void;
 }
 
-export default function MobileSidebar({open, onClose}: MobileSidebarProps) {
+export default function MobileSidebar({open, onClose}: Readonly<MobileSidebarProps>) {
     if(!open) return null;
 
     return (
         <>
-            <div
+            <button
+                type="button"
+                aria-label="Close sidebar overlay"
                 className="fixed z-40 inset-0 bg-background/60 lg:hidden"
                 onClick={onClose}
             />

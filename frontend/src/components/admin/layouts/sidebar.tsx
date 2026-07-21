@@ -10,7 +10,7 @@ interface AdminSidebarProps {
   mobile?: boolean;
 }
 
-export default function AdminSidebar({mobile}: AdminSidebarProps) {
+export default function AdminSidebar({mobile}: Readonly<AdminSidebarProps>) {
   const pathname = usePathname();
   return (
     <aside className={`flex flex-col bg-secondary-surface border-r border-tertiary-surface
