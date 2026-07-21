@@ -25,9 +25,9 @@ _REQUIRED_FIELDS = (
     "pattern_used",
 )
 
-
-def _load_system_prompt() -> str:
-    return _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+_SYSTEM_PROMPT: str = (
+    _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+)
 
 
 def _load_few_shot_examples(strategy_name: str) -> list[dict]:
@@ -134,7 +134,7 @@ def generate_adversarial_question(
             detail="Adversarial strategy not found",
         )
 
-    system_prompt = _load_system_prompt()
+    system_prompt = _SYSTEM_PROMPT
     examples = _load_few_shot_examples(strategy.strategy_name)
     examples_block = _format_few_shot_examples(examples)
     user_message = _build_user_message(
