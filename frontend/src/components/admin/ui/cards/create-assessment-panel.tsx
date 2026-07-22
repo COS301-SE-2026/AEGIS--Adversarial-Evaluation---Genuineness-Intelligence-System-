@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {CreateAssessmentForm, Difficulty} from "../../../../app/(admin)/types/assessment";
 import {
   TARGET_ROLES,
 } from "../../../../app/(admin)/types/mock-data";
-import { apiPost } from "@/lib/apiClient";
+import { apiGet, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 
 const labelCls = "font-ibm-plex text-[10px] tracking-[0.1em] text-white-smoke/40 uppercase font-medium";
@@ -26,13 +26,14 @@ interface CreatedAssessment {
   status: string;
   created_at: string;
 }
-//mock questions
-const QUICK_QUESTIONS= [
-  {id: 1, title:"Two Sum", content: "Find two numbers that add up to a target in an array", category: "Algorithms", difficulty: "Easy" as const}, 
-  {id: 2, title:"Add Two Numbers", content: "Add two numbers represented as linked lists in reverse order", category: "Data Structures", difficulty: "Medium" as const},
-  {id: 3, title: "Find Longest Substring", content: "Find the length of the longest substring without repeating characters", category: "Algorithms", difficulty: "Hard" as const },
-  {id: 4, title: "Valid Parentheses", content: "Determine if the input string continas valid parentheses", category: "Data Structures", difficulty: "Easy" as const},
-];
+interface AdversarialQuestionOption {
+  adv_question_id: number;
+  source_question_id: number;
+  content: string;
+  strategy_id: number;
+  llm: string | null;
+  generated_at: string;
+}
 
 
 
@@ -63,9 +64,37 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]); //this tracks the selected question
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<AdversarialQuestionOption[]>([]);
+  const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [questionsError, setQuestionsError] = useState<string | null>(null);
 
   const updateForm = useCallback(<K extends keyof CreateAssessmentForm>(key: K, value: CreateAssessmentForm[K]) => {
     setFormData(prev => ({...prev, [key]: value}));
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadQuestions = async () => {
+      setQuestionsLoading(true);
+      setQuestionsError(null);
+      try {
+        const response = await apiGet<AdversarialQuestionOption[]>(
+          "/api/v1/adversarial-questions",
+          { headers: getAuthHeaders() }
+        );
+        if (isMounted) setQuestions(response);
+      } catch (err) {
+        if (isMounted) {
+          setQuestionsError(
+            err instanceof Error ? err.message : "Failed to load questions."
+          );
+        }
+      } finally {
+        if (isMounted) setQuestionsLoading(false);
+      }
+    };
+    void loadQuestions();
+    return () => { isMounted = false; };
   }, []);
 
   const toggleQuestion = (id: number) => {
@@ -96,6 +125,16 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
       return;
     }
 
+    for (const advQuestionId of selectedIds) {
+      try {
+        await apiPost(
+          `/api/v1/assessments/${createdAssessmentId}/questions`,
+          { adv_question_id: advQuestionId },
+          { headers: getAuthHeaders() }
+        );
+      } catch {}
+    }
+
     for (const candidateId of formData.assignedCandidates) {
       try {
         await apiPost(
@@ -110,6 +149,63 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
     await onCreated?.();
     onClose();
   }
+
+  const renderQuestionsList = () => {
+    if (questionsLoading) {
+      return (
+        <div className="text-xs text-white-smoke/40 text-center py-4">
+          Loading questions...
+        </div>
+      );
+    }
+
+    if (questionsError) {
+      return (
+        <div className="text-xs text-system-red text-center py-4">
+          {questionsError}
+        </div>
+      );
+    }
+
+    return questions.map(q => {
+      const selected = selectedIds.includes(q.adv_question_id);
+      const cardClassName = selected
+       ? "border-system-red bg-system-red/5"
+       : "border-default-border hover:border-white-smoke/30";
+      const label = q.content.length > 80
+        ? `${q.content.slice(0, 80)}...`
+        : q.content;
+
+      return(
+
+      <button
+      type="button"
+      key={q.adv_question_id}
+      onClick = {() => toggleQuestion(q.adv_question_id)}
+      onKeyDown = {(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggleQuestion(q.adv_question_id);
+        }
+      }}
+  className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${cardClassName}`}>
+
+      <div className="flex justify-between">
+        <div>
+          <div className="font-medium">{label}</div>
+          <div className="flex gap-2 mt-2">
+            <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">Strategy #{q.strategy_id}</span>
+            <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">{q.llm ?? "—"}</span>
+          </div>
+        </div>
+        <div className={`w-5 h-5 rounded flex items-center justify-center border mt-1 ${selected ? "bg-system-red text-white" : "border-default-border"}`}>
+          {selected && "✓"}
+        </div>
+      </div>
+    </button>
+  );
+    });
+  };
 
   //will add the other sections later
   return(
@@ -219,42 +315,7 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
                   </div>
 
                 <div className="max-h-[340px] overflow-y-auto pr-2 space-y-2">
-                  {QUICK_QUESTIONS.map(q => {
-                    const selected = selectedIds.includes(q.id);
-                    const cardClassName = selected
-                     ? "border-system-red bg-system-red/5"
-                     : "border-default-border hover:border-white-smoke/30";
-
-                    return(
-
-                    <button
-                    type="button"
-                    key={q.id}
-                    onClick = {() => toggleQuestion(q.id)}
-                    onKeyDown = {(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        toggleQuestion(q.id);
-                      }
-                    }}
-                className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${cardClassName}`}>
-
-                    <div className="flex justify-between">
-                      <div>
-                        <div className="font-medium">{q.title}</div>
-                        <div className="text-xs text-white-smoke/60 line-clamp-2">{q.content}</div>
-                        <div className="flex gap-2 mt-2">
-                          <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">{q.category}</span>
-                          <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">{q.difficulty}</span>
-                        </div>
-                      </div>
-                      <div className={`w-5 h-5 rounded flex items-center justify-center border mt-1 ${selected ? "bg-system-red text-white" : "border-default-border"}`}>
-                        {selected && "✓"}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+                  {renderQuestionsList()}
             </div>
                   </div>
             )}

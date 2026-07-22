@@ -1,9 +1,27 @@
 "use client"
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X, RefreshCw, Sparkles } from "lucide-react";
 import { QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
+import { apiGet, apiPost } from "@/lib/apiClient";
+import { getAuthHeaders } from "@/lib/auth";
 
+
+interface AdversarialStrategy {
+    strategy_id: number;
+    strategy_name: string;
+    description: string | null;
+    trap_mechanism_summary: string | null;
+}
+
+interface GeneratedAdversarialQuestion {
+    adv_question_id: number;
+    source_question_id: number;
+    content: string;
+    strategy_id: number;
+    llm: string | null;
+    generated_at: string;
+}
 
 interface AdversarialQuestionModalProps {
     isOpen: boolean;
@@ -16,52 +34,77 @@ interface AdversarialQuestionModalProps {
     isSaving?: boolean;
 }
 
-export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, onSubmit, isSaving = false, mode, question_id}: AdversarialQuestionModalProps) {     
+export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, onSubmit, isSaving = false, mode, question_id}: AdversarialQuestionModalProps) {
     const [sourceQuestionId, setSourceQuestionId] = useState<number | null>(null);
-    const [technique, setTechnique] = useState("");
-    const [generatedTitle, setGeneratedTitle] = useState("");
-    const [generatedContent, setGeneratedContent] = useState("");
+    const [strategyId, setStrategyId] = useState<number | null>(null);
+    const [strategies, setStrategies] = useState<AdversarialStrategy[]>([]);
+    const [strategiesLoading, setStrategiesLoading] = useState(false);
+    const [strategiesError, setStrategiesError] = useState<string | null>(null);
+    const [generated, setGenerated] = useState<GeneratedAdversarialQuestion | null>(null);
+    const [generateError, setGenerateError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
 
     const selectedSource = questions.find(q => q.question_bank_id === sourceQuestionId);
 
+    useEffect(() => {
+        let isMounted = true;
+        const loadStrategies = async () => {
+            setStrategiesLoading(true);
+            setStrategiesError(null);
+            try {
+                const response = await apiGet<AdversarialStrategy[]>(
+                    "/api/v1/adversarial-strategies/",
+                    { headers: getAuthHeaders() }
+                );
+                if (isMounted) setStrategies(response);
+            } catch (err) {
+                if (isMounted) {
+                    setStrategiesError(
+                        err instanceof Error ? err.message : "Failed to load strategies."
+                    );
+                }
+            } finally {
+                if (isMounted) setStrategiesLoading(false);
+            }
+        };
+        void loadStrategies();
+        return () => { isMounted = false; };
+    }, []);
+
     const handleGenerate = async () => {
-        if(!sourceQuestionId || !technique) return;
+        if(!sourceQuestionId || !strategyId) return;
 
         setIsGenerating(true);
+        setGenerateError(null);
         try{
-            //mocking generation for now( replace with real API call)
-            await new Promise(resolve => setTimeout(resolve, 1200));
-
-            setGeneratedTitle(`Adversarial: ${selectedSource?.title || "Generated Question"}`);
-            setGeneratedContent(`[Generated adversarial version using ${technique} technique]\n\nOriginal: ${selectedSource?.content || ""}\n\nModified content here...`);
+            const response = await apiPost<GeneratedAdversarialQuestion>(
+                `/api/v1/questions/${sourceQuestionId}/generate-adversarial`,
+                { strategy_id: strategyId },
+                { headers: getAuthHeaders() }
+            );
+            setGenerated(response);
         } catch (err) {
-            console.error(err);
+            setGenerateError(
+                err instanceof Error ? err.message : "Failed to generate adversarial question."
+            );
         } finally {
             setIsGenerating(false);
         }
     };
 
     const handleSubmit = () => {
-        // Build a proper QuestionPayload with sensible defaults
+        if (!generated) return;
         const payload: QuestionPayload = {
-            title: generatedTitle || "New Adversarial Question",
-            content: generatedContent || "",
+            title: selectedSource?.title || "New Adversarial Question",
             category_id: selectedSource?.category_id || categories[0]?.category_id || 0,
             difficulty: selectedSource?.difficulty || "Medium",
-            maximum_score: selectedSource?.maximum_score || 10,
-            type: "CODING",
-            tags: [`adversarial-${technique}`, ...(selectedSource?.tags || [])],
-            correct_answer: selectedSource?.correct_answer || "",
-            // Include source question metadata for tracking
-            source_question_id: sourceQuestionId || undefined,
-            technique: technique || undefined,
+            adv_question_id: generated.adv_question_id,
         };
 
         onSubmit(payload);
         onClose();
     };
-    
+
     if(!isOpen) return null;
     
     return (
@@ -99,52 +142,66 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
           {/* Adversarial Technique */}
           <div>
             <label className="block text-sm font-medium mb-2">Adversarial Technique</label>
-            <select 
-              value={technique} 
-              onChange={(e) => setTechnique(e.target.value)}
+            <select
+              value={strategyId ?? ""}
+              onChange={(e) => setStrategyId(e.target.value ? Number(e.target.value) : null)}
+              disabled={strategiesLoading}
               className="w-full p-3 border border-default-border rounded bg-secondary-surface text-white-smoke"
             >
-              <option value="">Select technique...</option>
-              <option value="paraphrase">Paraphrase Attack</option>
-              <option value="semantic_shift">Semantic Shift</option>
-              <option value="misleading_context">Misleading Context</option>
-              <option value="adversarial_rewrite">Adversarial Rewrite</option>
-              <option value="logic_trap">Logic Trap</option>
+              <option value="">
+                {strategiesLoading ? "Loading strategies..." : "Select technique..."}
+              </option>
+              {strategies.map(s => (
+                <option key={s.strategy_id} value={s.strategy_id}>
+                  {s.strategy_name}
+                </option>
+              ))}
             </select>
+            {strategiesError && (
+              <p className="text-xs text-system-red mt-1">{strategiesError}</p>
+            )}
           </div>
 
           {/* Generate Buttons */}
 <div className="flex gap-3">
   <button
+    type="button"
     onClick={handleGenerate}
-    disabled={!sourceQuestionId || !technique || isGenerating}
+    disabled={!sourceQuestionId || !strategyId || isGenerating}
     className="flex-1 py-3 bg-system-red text-white rounded flex items-center justify-center gap-2 hover:bg-red-600 disabled:opacity-50"
   >
     {isGenerating ? <RefreshCw className="animate-spin" size={18} /> : <Sparkles size={18} />}
-    GENERATE ADVERSARIAL QUESTION
+    {isGenerating ? "GENERATING..." : "GENERATE ADVERSARIAL QUESTION"}
   </button>
 
   <button
+    type="button"
     onClick={handleGenerate}
-    disabled={!generatedContent || isGenerating}
+    disabled={!generated || isGenerating}
     className="flex-1 py-3 border border-default-border text-white-smoke rounded hover:bg-tertiary-surface disabled:opacity-50"
   >
     REGENERATE
   </button>
 </div>
 
+{generateError && (
+  <p className="text-xs text-system-red">{generateError}</p>
+)}
+
 {/* Always Visible Preview Box */}
-<div className="border border-tertiary-surface rounded p-5 bg-secondary-surface min-h-[200px]">
+<div className="border border-tertiary-surface rounded p-5 bg-secondary-surface min-h-50">
   <h3 className="font-staatliches text-lg mb-3 flex items-center gap-2">
     Generated Question Preview
-    {generatedContent && <span className="text-status-success text-sm">✓ Ready</span>}
+    {generated && <span className="text-status-success text-sm">✓ Ready</span>}
   </h3>
-  
-  {generatedContent ? (
+
+  {generated ? (
     <div>
-      <div className="font-medium text-white-smoke mb-3">{generatedTitle}</div>
+      <div className="font-medium text-white-smoke mb-3">
+        {selectedSource?.title || "Generated Question"}
+      </div>
       <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed border-l-2 border-system-red pl-4">
-        {generatedContent}
+        {generated.content}
       </div>
     </div>
   ) : (
@@ -165,9 +222,10 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
         {/* Footer */}
         <div className="p-6 border-t border-tertiary-surface flex justify-end gap-3">
           <button onClick={onClose} className="px-6 py-2 border border-default-border rounded">Cancel</button>
-          <button 
+          <button
+            type="button"
             onClick={handleSubmit}
-            disabled={!generatedContent || isSaving}
+            disabled={!generated || isSaving}
             className="px-6 py-2 bg-system-red text-white rounded disabled:opacity-50"
           >
             SAVE ADVERSARIAL QUESTION

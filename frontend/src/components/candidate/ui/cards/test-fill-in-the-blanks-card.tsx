@@ -1,7 +1,7 @@
 'use client';
 
 import { Question } from "./question.type";
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 export function TestFillInTheBlanksCard({ question }: { question: Question }) {
     const [orderedOptions, setOrderedOptions] = useState<string[]>(() => [...question.options]);
@@ -35,7 +35,7 @@ export function TestFillInTheBlanksCard({ question }: { question: Question }) {
     };
 
     return (
-        <div>
+        <div className="flex flex-col h-full">
             <div>
                 <h3 className="text-base tracking-widest uppercase mt-4 mb-6">Arrange The Answers In The Correct Order</h3>
             </div>
