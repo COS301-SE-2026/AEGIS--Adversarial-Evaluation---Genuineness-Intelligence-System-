@@ -29,6 +29,8 @@ _SYSTEM_PROMPT: str = (
     _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 )
 
+_GEMINI_MODEL = "gemini-3.1-flash-lite"
+
 
 def _load_few_shot_examples(strategy_name: str) -> list[dict]:
     with open(_SEED_LIBRARY_PATH, encoding="utf-8") as seed_file:
@@ -107,6 +109,33 @@ def _parse_gemini_response(raw_text: str) -> dict:
     return parsed
 
 
+def _call_gemini_and_parse(
+    strategy: AdversarialStrategy,
+    source_question: QuestionBank,
+) -> dict:
+    system_prompt = _SYSTEM_PROMPT
+    examples = _load_few_shot_examples(strategy.strategy_name)
+    examples_block = _format_few_shot_examples(examples)
+    user_message = _build_user_message(
+        strategy,
+        source_question,
+        examples_block,
+    )
+
+    client = get_gemini_client()
+    response = client.models.generate_content(
+        model=_GEMINI_MODEL,
+        contents=user_message,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            temperature=0.0,
+            response_mime_type="application/json",
+        ),
+    )
+
+    return _parse_gemini_response(response.text)
+
+
 def generate_adversarial_question(
     db: Session,
     source_question_id: int,
@@ -134,33 +163,13 @@ def generate_adversarial_question(
             detail="Adversarial strategy not found",
         )
 
-    system_prompt = _SYSTEM_PROMPT
-    examples = _load_few_shot_examples(strategy.strategy_name)
-    examples_block = _format_few_shot_examples(examples)
-    user_message = _build_user_message(
-        strategy,
-        source_question,
-        examples_block,
-    )
-
-    client = get_gemini_client()
-    response = client.models.generate_content(
-        model="gemini-3.1-flash-lite",
-        contents=user_message,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.0,
-            response_mime_type="application/json",
-        ),
-    )
-
-    parsed = _parse_gemini_response(response.text)
+    parsed = _call_gemini_and_parse(strategy, source_question)
 
     adversarial_question = AdversarialQuestion(
         source_question_id=source_question_id,
         content=parsed["weaponised_question"],
         strategy_id=strategy_id,
-        llm="gemini-3.1-flash-lite",
+        llm=_GEMINI_MODEL,
         generated_at=datetime.now(timezone.utc),
         correct_answer=parsed["correct_answer"],
         predicted_wrong_answer=parsed["predicted_wrong_answer"],
@@ -168,6 +177,73 @@ def generate_adversarial_question(
         pattern_used=parsed["pattern_used"],
     )
     db.add(adversarial_question)
+    db.commit()
+    db.refresh(adversarial_question)
+    return adversarial_question
+
+
+def regenerate_adversarial_question(
+    db: Session,
+    adv_question_id: int,
+    strategy_id: int,
+) -> AdversarialQuestion:
+    adversarial_question = (
+        db.query(AdversarialQuestion)
+        .filter(
+            AdversarialQuestion.adv_question_id == adv_question_id
+        )
+        .first()
+    )
+    if adversarial_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Adversarial question not found",
+        )
+
+    if adversarial_question.validation_status != "draft":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft questions can be regenerated",
+        )
+
+    source_question = (
+        db.query(QuestionBank)
+        .filter(
+            QuestionBank.question_bank_id
+            == adversarial_question.source_question_id
+        )
+        .first()
+    )
+    if source_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source question not found",
+        )
+
+    strategy = (
+        db.query(AdversarialStrategy)
+        .filter(AdversarialStrategy.strategy_id == strategy_id)
+        .first()
+    )
+    if strategy is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Adversarial strategy not found",
+        )
+
+    parsed = _call_gemini_and_parse(strategy, source_question)
+
+    adversarial_question.content = parsed["weaponised_question"]
+    adversarial_question.correct_answer = parsed["correct_answer"]
+    adversarial_question.predicted_wrong_answer = (
+        parsed["predicted_wrong_answer"]
+    )
+    adversarial_question.trap_mechanism = parsed["trap_mechanism"]
+    adversarial_question.pattern_used = parsed["pattern_used"]
+    adversarial_question.strategy_id = strategy_id
+    adversarial_question.llm = _GEMINI_MODEL
+    adversarial_question.generated_at = datetime.now(timezone.utc)
+
     db.commit()
     db.refresh(adversarial_question)
     return adversarial_question
