@@ -9,8 +9,10 @@ import QuestionTable from "@/components/admin/ui/cards/question-table";
 import LegacyQuestionModal from "./legacy-question-modal";
 import CreateQuestionContainer from "@/components/admin/ui/question-builder/create-question-container";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
-import { Plus } from "lucide-react";
+import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
+import PageHelpDrawer from "@/components/admin/ui/help/page-help-drawer";
+import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content";
 
   function buildQuestionData(question: QuestionPayload) {
     switch (question.type) {
@@ -76,7 +78,9 @@ export default function ViewQuestionsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
+  const helpConfig = PAGE_HELP_CONTENT["/question-bank"];
 
   useEffect(() => {
     let mounted = true;
@@ -334,7 +338,18 @@ export default function ViewQuestionsPage() {
                 <span className="hidden sm:inline">New Question</span>
                 <span className="sm:hidden">New</span>
               </button>
+
+              <button type="button" onClick={()=>setIsHelpOpen(true)} className="flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+                <HelpCircle size={18}/>
+                <span>Help</span>
+              </button>
             </div>
+
+            <PageHelpDrawer
+              open={isHelpOpen}
+              onClose={()=>setIsHelpOpen(false)}
+              config={helpConfig}
+            />
 
             <QuestionFilters
               searchTerm={searchTerm}
