@@ -5,10 +5,9 @@ Revises: 0e9432ede817
 Create Date: 2026-07-22 00:00:00.000000
 
 NOTE: This migration documents a schema change that was already
-applied directly to the Supabase production database. It's a
-record of that change, not something to be executed against the
-live database. Please do not run `alembic upgrade head` against
-Supabase!!
+applied directly to the Supabase prod database.
+Please do not run `alembic upgrade head` against
+Supabase
 """
 from typing import Sequence, Union
 

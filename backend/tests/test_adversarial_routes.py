@@ -107,6 +107,7 @@ def test_generate_adversarial_201_on_success(mock_generate):
         predicted_wrong_answer="13",
         trap_mechanism="Irrelevant context distracts the model.",
         pattern_used="SYMBOL_REDEFINITION",
+        validation_status="draft",
     )
 
     app.dependency_overrides[get_db] = _db_override
@@ -130,6 +131,7 @@ def test_generate_adversarial_201_on_success(mock_generate):
         == "Irrelevant context distracts the model."
     )
     assert body["pattern_used"] == "SYMBOL_REDEFINITION"
+    assert body["validation_status"] == "draft"
     mock_generate.assert_called_once()
     call_args = mock_generate.call_args[0]
     assert call_args[1] == 1
@@ -182,6 +184,7 @@ def test_get_adversarial_questions_200_with_list(mock_get):
             predicted_wrong_answer=None,
             trap_mechanism=None,
             pattern_used=None,
+            validation_status="validated",
         )
     ]
 
@@ -244,6 +247,7 @@ def test_get_all_adversarial_questions_200_with_list(mock_get):
             predicted_wrong_answer=None,
             trap_mechanism=None,
             pattern_used=None,
+            validation_status="validated",
         )
     ]
 
