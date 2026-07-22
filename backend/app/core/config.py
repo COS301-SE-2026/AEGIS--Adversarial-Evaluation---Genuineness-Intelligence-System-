@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-1.5-flash"
 
     # Piston sandbox configuration
-    piston_base_url: str = "https://emkc.org/api/v2/piston"
+    piston_base_url: str = "http://localhost:2000"
     piston_request_timeout_seconds: int = 30
 
 

@@ -295,14 +295,23 @@ def test_execute_code_questions_results(monkeypatch):
     mock_qb = MagicMock()
     mock_qb.type = QuestionType.CODING
     mock_qb.question_bank_id = 10
+    mock_qb.question_metadata = {
+        "function_name": "calculate_total",
+        "function_signature": "def calculate_total(price, quantity, discount)",
+        "parameters": [
+            {"name": "price", "type": "int"},
+            {"name": "quantity", "type": "int"},
+            {"name": "discount", "type": "int"},
+        ],
+    }
     test_case = CodingTestCase()
     test_case.test_case_id = 1
-    test_case.input_data = "1"
-    test_case.expected_output = "1"
+    test_case.input_data = "(1000, 2, 10)"
+    test_case.expected_output = "1990"
     test_case.description = "case 1"
     test_case.is_hidden = False
     mock_piston_client = MagicMock()
-    mock_piston_client.execute.return_value = {"run": {"stdout": "1\n"}}
+    mock_piston_client.execute.return_value = {"run": {"stdout": "1990\n", "stderr": ""}}
     monkeypatch.setattr(
         "app.services.assessment.get_test_cases_by_question_id",
         lambda db, question_id: [test_case],
@@ -310,7 +319,12 @@ def test_execute_code_questions_results(monkeypatch):
     result = execute_code_questions(
         mock_db,
         mock_qb,
-        candidate_code="print(1)",
+        candidate_code=(
+            "def calculate_total(price, quantity, discount):\n"
+            "    subtotal = price * quantity\n"
+            "    total = subtotal - discount\n"
+            "    return total\n"
+        ),
         piston_client=mock_piston_client,
     )
     assert result["Test Cases"] == 1
@@ -318,12 +332,85 @@ def test_execute_code_questions_results(monkeypatch):
     assert result["Failed"] == 0
     assert result["Results"][0]["test_case_id"] == 1
     assert result["Results"][0]["passed"] is True
+    mock_piston_client.execute.assert_called_once()
+    called_source = mock_piston_client.execute.call_args.kwargs["source_code"]
+    assert "result = calculate_total(1000, 2, 10)" in called_source
+    assert "print(result)" in called_source
+
+
+def test_execute_code_questions_uses_function_signature_name_missing(monkeypatch):
+    mock_db = MagicMock()
+    mock_qb = MagicMock()
+    mock_qb.type = QuestionType.CODING
+    mock_qb.question_bank_id = 10
+    mock_qb.question_metadata = {
+        "function_signature": "def fibonacci(n)",
+        "parameters": [{"name": "n", "type": "int"}],
+    }
+    test_case = CodingTestCase()
+    test_case.test_case_id = 3
+    test_case.input_data = "(7)"
+    test_case.expected_output = "13"
+    test_case.description = "case 3"
+    test_case.is_hidden = False
+    mock_piston_client = MagicMock()
+    mock_piston_client.execute.return_value = {"run": {"stdout": "13\n", "stderr": ""}}
+    monkeypatch.setattr(
+        "app.services.assessment.get_test_cases_by_question_id",
+        lambda db, question_id: [test_case],
+    )
+    execute_code_questions(
+        mock_db,
+        mock_qb,
+        candidate_code=(
+            "def fibonacci(n):\n"
+            "    if n <= 1:\n"
+            "        return n\n"
+            "    return fibonacci(n - 1) + fibonacci(n - 2)\n"
+        ),
+        piston_client=mock_piston_client,
+    )
+    called_source = mock_piston_client.execute.call_args.kwargs["source_code"]
+    assert "result = fibonacci(7)" in called_source
+
+
+def test_execute_code_questions_rejects_parameter_mismatch(monkeypatch):
+    mock_db = MagicMock()
+    mock_qb = MagicMock()
+    mock_qb.type = QuestionType.CODING
+    mock_qb.question_bank_id = 10
+    mock_qb.question_metadata = {
+        "function_name": "calculate_total",
+        "parameters": [{"name": "price"}, {"name": "quantity"}, {"name": "discount"}],
+    }
+    test_case = CodingTestCase()
+    test_case.test_case_id = 4
+    test_case.input_data = "(1000, 2)"
+    test_case.expected_output = "0"
+    test_case.description = "case 4"
+    test_case.is_hidden = False
+
+    monkeypatch.setattr(
+        "app.services.assessment.get_test_cases_by_question_id",
+        lambda db, question_id: [test_case],
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        execute_code_questions(
+            mock_db,
+            mock_qb,
+            candidate_code="def calculate_total(price, quantity, discount):\n    return 0\n",
+            piston_client=MagicMock(),
+        )
+    assert exc_info.value.status_code == 400
+
 
 def test_execute_code_questions_with_piston_error(monkeypatch):
     mock_db = MagicMock()
     mock_qb = MagicMock()
     mock_qb.type = QuestionType.CODING
     mock_qb.question_bank_id = 10
+    mock_qb.question_metadata = {"function_name": "calculate_total"}
 
     test_case = CodingTestCase()
     test_case.test_case_id = 1
@@ -341,7 +428,10 @@ def test_execute_code_questions_with_piston_error(monkeypatch):
     result = execute_code_questions(
         mock_db,
         mock_qb,
-        candidate_code="print(1)",
+        candidate_code=(
+            "def calculate_total(price, quantity, discount):\n"
+            "    return price * quantity - discount\n"
+        ),
         piston_client=mock_piston_client,
     )
     assert result["Test Cases"] == 1
