@@ -65,7 +65,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
       questionId: 3,
       questionTitle: "Array Method Completion ",
       questionContent: "\n\nconst numbers = [1, 2, 3, 4];\nconst doubled = numbers.___A___(x => x * 2);\nconst total = doubled.___B___((a, b) => a + b, 0);\n// total = 20",
-      type: 'fill-in-blank',
+      type: 'fill-in-the-blank',
       options: ["map", "reduce"],
       correctAnswer: "map, reduce",
       tags: ["javascript", "arrays", "functional-programming"],
@@ -196,7 +196,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
       questionId: 12,
       questionTitle: "CSS Box Model",
       questionContent: "Complete the CSS:\n\n.box {\n  {1}: 10px;\n  {2}: 0;\n}",
-      type: 'fill-in-blank',
+      type: 'fill-in-the-blank',
       options: ["padding", "margin"],
       correctAnswer: "padding, margin",
       tags: ["css", "box-model", "properties"],
@@ -327,7 +327,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
       questionId: 21,
       questionTitle: "CORS Explanation",
       questionContent: "CORS stands for {1} {2}.",
-      type: 'fill-in-blank',
+      type: 'fill-in-the-blank',
       options: [
         "Cross-Origin",
         "Resource Sharing"

@@ -334,6 +334,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                      <TestAnswerCard
                         question={currentQuestion}
                         value={answersByQuestionId[currentQuestion.questionId] ?? ""}
+                        candidateAssessId={candidateAssessId}
                         onChange={(value) => {
                            setAnswersByQuestionId((prev) => ({
                               ...prev,
