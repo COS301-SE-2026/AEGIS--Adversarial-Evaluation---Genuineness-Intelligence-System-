@@ -55,6 +55,9 @@ class AdversarialQuestionResponse(BaseModel):
     pattern_used: Optional[str] = Field(
         None, description="Adversarial pattern used"
     )
+    validation_status: str = Field(
+        ..., description="Validation status of the question"
+    )
 
     class Config:
         from_attributes = True
