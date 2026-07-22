@@ -12,6 +12,7 @@ from app.services.adversarial_service import (
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
+    get_all_draft_adversarial_questions,
     get_all_strategies,
     verify_assessment_exists,
 )
@@ -41,6 +42,11 @@ def _mock_db(question_result=None, strategy_result=None):
         return mock_query
 
     mock_db.query.side_effect = query_side_effect
+
+    def refresh_side_effect(obj):
+        obj.validation_status = "draft"
+
+    mock_db.refresh.side_effect = refresh_side_effect
     return mock_db
 
 
@@ -174,6 +180,7 @@ def test_generate_adversarial_question_success():
     )
     assert result.trap_mechanism == VALID_RESPONSE["trap_mechanism"]
     assert result.pattern_used == VALID_RESPONSE["pattern_used"]
+    assert result.validation_status == "draft"
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
@@ -191,11 +198,32 @@ def test_get_all_strategies_returns_list():
 
 
 def test_get_all_adversarial_questions_returns_list():
-    questions = [MagicMock(), MagicMock()]
+    questions = [
+        MagicMock(validation_status="validated"),
+        MagicMock(validation_status="validated"),
+    ]
     mock_db = MagicMock()
-    mock_db.query.return_value.all.return_value = questions
+    mock_db.query.return_value.filter.return_value.all.return_value = (
+        questions
+    )
 
     result = get_all_adversarial_questions(mock_db)
+
+    mock_db.query.assert_called_once_with(AdversarialQuestion)
+    assert result == questions
+
+
+def test_get_all_draft_adversarial_questions_returns_list():
+    questions = [
+        MagicMock(validation_status="draft"),
+        MagicMock(validation_status="draft"),
+    ]
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.all.return_value = (
+        questions
+    )
+
+    result = get_all_draft_adversarial_questions(mock_db)
 
     mock_db.query.assert_called_once_with(AdversarialQuestion)
     assert result == questions

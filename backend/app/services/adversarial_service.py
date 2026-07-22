@@ -178,7 +178,15 @@ def get_all_strategies(db: Session) -> list:
 
 
 def get_all_adversarial_questions(db: Session) -> list:
-    return db.query(AdversarialQuestion).all()
+    return db.query(AdversarialQuestion).filter(
+        AdversarialQuestion.validation_status == "validated"
+    ).all()
+
+
+def get_all_draft_adversarial_questions(db: Session) -> list:
+    return db.query(AdversarialQuestion).filter(
+        AdversarialQuestion.validation_status == "draft"
+    ).all()
 
 
 def verify_assessment_exists(db: Session, assessment_id: int) -> Assessment:
