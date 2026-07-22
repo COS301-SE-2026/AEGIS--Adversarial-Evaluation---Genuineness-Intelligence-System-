@@ -15,6 +15,7 @@ from app.services.adversarial_service import (
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
     get_all_strategies,
+    regenerate_adversarial_question,
 )
 
 router = APIRouter(
@@ -90,3 +91,27 @@ async def get_all_adversarial_questions_route(
     current_user: dict = Depends(get_current_user),
 ):
     return get_all_adversarial_questions(db)
+
+
+@adversarial_questions_router.patch(
+    "/adversarial-questions/{adv_question_id}/regenerate",
+    response_model=AdversarialQuestionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Regenerate a draft adversarial question",
+)
+async def regenerate_adversarial_question_route(
+    adv_question_id: int,
+    payload: GenerateAdversarialRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can regenerate adversarial questions.",
+        )
+    return regenerate_adversarial_question(
+        db,
+        adv_question_id,
+        payload.strategy_id,
+    )
