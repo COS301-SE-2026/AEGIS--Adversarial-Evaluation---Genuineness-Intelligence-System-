@@ -23,9 +23,15 @@ interface GeneratedAdversarialQuestion {
     generated_at: string;
 }
 
+// still need to swap in the real shape/endpoint once the validation route exists on the backend.
+interface ValidationResult {
+    source_answer: string;
+    adversarial_answer: string;
+}
+
 interface AdversarialQuestionModalProps {
     isOpen: boolean;
-    mode: "create" | "edit"
+    mode: "create" | "edit";
     question_id?: number | null;
     questions: QuestionBank[];
     categories: QuestionCategory[];
@@ -43,7 +49,9 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
     const [generated, setGenerated] = useState<GeneratedAdversarialQuestion | null>(null);
     const [generateError, setGenerateError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-
+    const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+const [validationError, setValidationError] = useState<string | null>(null);
+const [isValidating, setIsValidating] = useState(false);
     const selectedSource = questions.find(q => q.question_bank_id === sourceQuestionId);
 
     useEffect(() => {
@@ -71,11 +79,19 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
         return () => { isMounted = false; };
     }, []);
 
+    const resetGenerationState = () => {
+    setGenerated(null);
+    setGenerateError(null);
+    setValidationResult(null);
+    setValidationError(null);
+};
+
     const handleGenerate = async () => {
         if(!sourceQuestionId || !strategyId) return;
 
         setIsGenerating(true);
         setGenerateError(null);
+        setValidationResult(null); 
         try{
             const response = await apiPost<GeneratedAdversarialQuestion>(
                 `/api/v1/questions/${sourceQuestionId}/generate-adversarial`,
@@ -127,7 +143,8 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
             <label className="block text-sm font-medium mb-2">Source Question</label>
             <select 
               value={sourceQuestionId || ""} 
-              onChange={(e) => setSourceQuestionId(Number(e.target.value))}
+              onChange={(e) => {setSourceQuestionId(Number(e.target.value));
+                resetGenerationState(); }}
               className="w-full p-3 border border-default-border rounded bg-secondary-surface text-white-smoke"
             >
               <option value="">Select a source question...</option>
@@ -144,7 +161,8 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
             <label className="block text-sm font-medium mb-2">Adversarial Technique</label>
             <select
               value={strategyId ?? ""}
-              onChange={(e) => setStrategyId(e.target.value ? Number(e.target.value) : null)}
+              onChange={(e) => { setStrategyId(e.target.value ? Number(e.target.value) : null);
+              resetGenerationState(); }}
               disabled={strategiesLoading}
               className="w-full p-3 border border-default-border rounded bg-secondary-surface text-white-smoke"
             >
