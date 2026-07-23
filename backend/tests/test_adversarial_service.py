@@ -14,6 +14,7 @@ from app.services.adversarial_service import (
     get_all_adversarial_questions,
     get_all_draft_adversarial_questions,
     get_all_strategies,
+    regenerate_adversarial_question,
     verify_assessment_exists,
 )
 
@@ -184,6 +185,149 @@ def test_generate_adversarial_question_success():
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
+
+
+def _mock_adv_question(validation_status="draft"):
+    adv_question = MagicMock()
+    adv_question.adv_question_id = 5
+    adv_question.source_question_id = 1
+    adv_question.validation_status = validation_status
+    return adv_question
+
+
+def _mock_db_for_regenerate(
+    adv_question_result=None,
+    question_result=None,
+    strategy_result=None,
+):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_query = MagicMock()
+        if model is AdversarialQuestion:
+            mock_query.filter.return_value.first.return_value = (
+                adv_question_result
+            )
+        elif model is QuestionBank:
+            mock_query.filter.return_value.first.return_value = (
+                question_result
+            )
+        elif model is AdversarialStrategy:
+            mock_query.filter.return_value.first.return_value = (
+                strategy_result
+            )
+        return mock_query
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_regenerate_adversarial_question_404_when_not_found():
+    mock_db = _mock_db_for_regenerate(adv_question_result=None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=999,
+            strategy_id=2,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Adversarial question not found"
+
+
+def test_regenerate_adversarial_question_400_when_not_draft():
+    adv_question = _mock_adv_question(validation_status="validated")
+    mock_db = _mock_db_for_regenerate(adv_question_result=adv_question)
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=2,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert (
+        exc_info.value.detail
+        == "Only draft questions can be regenerated"
+    )
+
+
+def test_regenerate_adversarial_question_404_when_source_missing():
+    adv_question = _mock_adv_question()
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=None,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=2,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Source question not found"
+
+
+def test_regenerate_adversarial_question_404_when_strategy_missing():
+    adv_question = _mock_adv_question()
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=_mock_question(),
+        strategy_result=None,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=999,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Adversarial strategy not found"
+
+
+def test_regenerate_adversarial_question_success():
+    adv_question = _mock_adv_question()
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text=json.dumps(VALID_RESPONSE),
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ) as mock_get_client:
+        result = regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=2,
+        )
+
+    mock_get_client.assert_called_once()
+    assert result is adv_question
+    assert result.content == VALID_RESPONSE["weaponised_question"]
+    assert result.correct_answer == VALID_RESPONSE["correct_answer"]
+    assert (
+        result.predicted_wrong_answer
+        == VALID_RESPONSE["predicted_wrong_answer"]
+    )
+    assert result.trap_mechanism == VALID_RESPONSE["trap_mechanism"]
+    assert result.pattern_used == VALID_RESPONSE["pattern_used"]
+    assert result.strategy_id == 2
+    assert result.llm == "gemini-3.1-flash-lite"
+    assert result.validation_status == "draft"
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(adv_question)
 
 
 def test_get_all_strategies_returns_list():
