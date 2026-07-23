@@ -124,18 +124,30 @@ const [isValidating, setIsValidating] = useState(false);
     setIsValidating(false);
 };
 
-    const handleSubmit = () => {
-        if (!generated) return;
-        const payload: QuestionPayload = {
-            title: selectedSource?.title || "New Adversarial Question",
-            category_id: selectedSource?.category_id || categories[0]?.category_id || 0,
-            difficulty: selectedSource?.difficulty || "Medium",
-            adv_question_id: generated.adv_question_id,
-        };
+    const handleDeploy = () => {
+    if (!generated || !validationResult) return;
 
-        onSubmit(payload);
-        onClose();
+    const payload: QuestionPayload = {
+        title: selectedSource?.title ?? "New Adversarial Question",
+        content: generated.content,
+        category_id: selectedSource?.category_id ?? categories[0]?.category_id ?? 0,
+        difficulty: selectedSource?.difficulty ?? "Medium",
+        type: selectedSource?.type ?? "TEXT",
+        maximum_score: selectedSource?.maximum_score ?? 10,
+        tags: Array.isArray(selectedSource?.tags)
+            ? selectedSource.tags
+            : selectedSource?.tags
+            ? [selectedSource.tags]
+            : [],
+        correct_answer: validationResult.adversarial_answer,
+        source_question_id: sourceQuestionId ?? undefined,
+        technique: strategies.find((s) => s.strategy_id === strategyId)?.strategy_name,
+        adv_question_id: generated.adv_question_id,
     };
+
+    onSubmit(payload);
+    onClose();
+};
 
     if(!isOpen) return null;
     
@@ -293,6 +305,18 @@ const [isValidating, setIsValidating] = useState(false);
     </div>
 </div>
 
+{/* Deploy button */}
+<div className="flex justify-end">
+    <button
+        type="button"
+        onClick={handleDeploy}
+        disabled={!validationResult || isSaving}
+        className="px-6 py-2 bg-system-red text-white rounded hover:bg-red-600 disabled:opacity-50"
+    >
+        {isSaving ? "DEPLOYING..." : "DEPLOY QUESTION"}
+    </button>
+</div>
+
 {validationError && <p className="text-xs text-system-red">{validationError}</p>}
 
 {selectedSource && (
@@ -303,18 +327,7 @@ const [isValidating, setIsValidating] = useState(false);
 
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-tertiary-surface flex justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-2 border border-default-border rounded">Cancel</button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!generated || isSaving}
-            className="px-6 py-2 bg-system-red text-white rounded disabled:opacity-50"
-          >
-            SAVE ADVERSARIAL QUESTION
-          </button>
-        </div>
+        
       </div>
     </div>
   
