@@ -7,12 +7,18 @@ from fastapi import HTTPException
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
-from app.models.question_bank import QuestionBank
+from app.models.coding_test_cases import CodingTestCase
+from app.models.question_bank import QuestionBank, QuestionType
+from app.schema.adversarial import TestCaseResult
 from app.services.adversarial_service import (
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
+    get_all_draft_adversarial_questions,
     get_all_strategies,
+    regenerate_adversarial_question,
+    save_adversarial_question,
+    validate_adversarial_question,
     verify_assessment_exists,
 )
 
@@ -41,6 +47,11 @@ def _mock_db(question_result=None, strategy_result=None):
         return mock_query
 
     mock_db.query.side_effect = query_side_effect
+
+    def refresh_side_effect(obj):
+        obj.validation_status = "draft"
+
+    mock_db.refresh.side_effect = refresh_side_effect
     return mock_db
 
 
@@ -174,9 +185,153 @@ def test_generate_adversarial_question_success():
     )
     assert result.trap_mechanism == VALID_RESPONSE["trap_mechanism"]
     assert result.pattern_used == VALID_RESPONSE["pattern_used"]
+    assert result.validation_status == "draft"
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
+
+
+def _mock_adv_question(validation_status="draft"):
+    adv_question = MagicMock()
+    adv_question.adv_question_id = 5
+    adv_question.source_question_id = 1
+    adv_question.validation_status = validation_status
+    return adv_question
+
+
+def _mock_db_for_regenerate(
+    adv_question_result=None,
+    question_result=None,
+    strategy_result=None,
+):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_query = MagicMock()
+        if model is AdversarialQuestion:
+            mock_query.filter.return_value.first.return_value = (
+                adv_question_result
+            )
+        elif model is QuestionBank:
+            mock_query.filter.return_value.first.return_value = (
+                question_result
+            )
+        elif model is AdversarialStrategy:
+            mock_query.filter.return_value.first.return_value = (
+                strategy_result
+            )
+        return mock_query
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_regenerate_adversarial_question_404_when_not_found():
+    mock_db = _mock_db_for_regenerate(adv_question_result=None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=999,
+            strategy_id=2,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Adversarial question not found"
+
+
+def test_regenerate_adversarial_question_400_when_not_draft():
+    adv_question = _mock_adv_question(validation_status="validated")
+    mock_db = _mock_db_for_regenerate(adv_question_result=adv_question)
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=2,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert (
+        exc_info.value.detail
+        == "Only draft questions can be regenerated"
+    )
+
+
+def test_regenerate_adversarial_question_404_when_source_missing():
+    adv_question = _mock_adv_question()
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=None,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=2,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Source question not found"
+
+
+def test_regenerate_adversarial_question_404_when_strategy_missing():
+    adv_question = _mock_adv_question()
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=_mock_question(),
+        strategy_result=None,
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=999,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Adversarial strategy not found"
+
+
+def test_regenerate_adversarial_question_success():
+    adv_question = _mock_adv_question()
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text=json.dumps(VALID_RESPONSE),
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ) as mock_get_client:
+        result = regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=2,
+        )
+
+    mock_get_client.assert_called_once()
+    assert result is adv_question
+    assert result.content == VALID_RESPONSE["weaponised_question"]
+    assert result.correct_answer == VALID_RESPONSE["correct_answer"]
+    assert (
+        result.predicted_wrong_answer
+        == VALID_RESPONSE["predicted_wrong_answer"]
+    )
+    assert result.trap_mechanism == VALID_RESPONSE["trap_mechanism"]
+    assert result.pattern_used == VALID_RESPONSE["pattern_used"]
+    assert result.strategy_id == 2
+    assert result.llm == "gemini-3.1-flash-lite"
+    assert result.validation_status == "draft"
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(adv_question)
 
 
 def test_get_all_strategies_returns_list():
@@ -191,11 +346,32 @@ def test_get_all_strategies_returns_list():
 
 
 def test_get_all_adversarial_questions_returns_list():
-    questions = [MagicMock(), MagicMock()]
+    questions = [
+        MagicMock(validation_status="validated"),
+        MagicMock(validation_status="validated"),
+    ]
     mock_db = MagicMock()
-    mock_db.query.return_value.all.return_value = questions
+    mock_db.query.return_value.filter.return_value.all.return_value = (
+        questions
+    )
 
     result = get_all_adversarial_questions(mock_db)
+
+    mock_db.query.assert_called_once_with(AdversarialQuestion)
+    assert result == questions
+
+
+def test_get_all_draft_adversarial_questions_returns_list():
+    questions = [
+        MagicMock(validation_status="draft"),
+        MagicMock(validation_status="draft"),
+    ]
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.all.return_value = (
+        questions
+    )
+
+    result = get_all_draft_adversarial_questions(mock_db)
 
     mock_db.query.assert_called_once_with(AdversarialQuestion)
     assert result == questions
@@ -288,3 +464,306 @@ def test_get_adversarial_questions_returns_list():
     )
 
     assert result == questions
+
+
+def _mock_adv_question_full(
+    validation_status="draft",
+    correct_answer="8",
+    predicted_wrong_answer="13",
+):
+    adv_question = MagicMock()
+    adv_question.adv_question_id = 5
+    adv_question.source_question_id = 1
+    adv_question.content = "What does f(6) return?"
+    adv_question.validation_status = validation_status
+    adv_question.correct_answer = correct_answer
+    adv_question.predicted_wrong_answer = predicted_wrong_answer
+    return adv_question
+
+
+def _mock_source_question(question_type=QuestionType.MULTIPLE_CHOICE):
+    question = MagicMock()
+    question.question_bank_id = 1
+    question.type = question_type
+    return question
+
+
+def _mock_db_for_validate(
+    adv_question_result=None,
+    question_result=None,
+    test_cases_result=None,
+):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_query = MagicMock()
+        if model is AdversarialQuestion:
+            mock_query.filter.return_value.first.return_value = (
+                adv_question_result
+            )
+        elif model is QuestionBank:
+            mock_query.filter.return_value.first.return_value = (
+                question_result
+            )
+        elif model is CodingTestCase:
+            mock_query.filter.return_value.all.return_value = (
+                test_cases_result or []
+            )
+        return mock_query
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_validate_adversarial_question_404_when_not_found():
+    mock_db = _mock_db_for_validate(adv_question_result=None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_adversarial_question(mock_db, adv_question_id=999)
+
+    assert exc_info.value.status_code == 404
+    assert (
+        exc_info.value.detail == "Adversarial question not found"
+    )
+
+
+def test_validate_adversarial_question_400_when_not_draft():
+    adv_question = _mock_adv_question_full(
+        validation_status="validated"
+    )
+    mock_db = _mock_db_for_validate(adv_question_result=adv_question)
+
+    with pytest.raises(HTTPException) as exc_info:
+        validate_adversarial_question(mock_db, adv_question_id=5)
+
+    assert exc_info.value.status_code == 400
+    assert (
+        exc_info.value.detail
+        == "Only draft questions can be validated"
+    )
+
+
+def test_validate_adversarial_question_success_mcq():
+    adv_question = _mock_adv_question_full()
+    source_question = _mock_source_question(
+        QuestionType.MULTIPLE_CHOICE
+    )
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="I think the answer is 8",
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    assert result.adv_question_id == 5
+    assert result.weaponised_question == "What does f(6) return?"
+    assert result.correct_answer == "8"
+    assert result.predicted_wrong_answer == "13"
+    assert result.gemini_response == "I think the answer is 8"
+    assert result.question_type == "MULTIPLE_CHOICE"
+    assert result.test_case_results is None
+    assert result.piston_note is None
+    assert result.gemini_took_bait is False
+
+
+def test_validate_adversarial_question_gemini_took_bait_true():
+    adv_question = _mock_adv_question_full()
+    source_question = _mock_source_question(
+        QuestionType.MULTIPLE_CHOICE
+    )
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="The answer is 13.",
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    assert result.gemini_took_bait is True
+
+
+def test_validate_adversarial_question_gemini_took_bait_false():
+    adv_question = _mock_adv_question_full()
+    source_question = _mock_source_question(
+        QuestionType.MULTIPLE_CHOICE
+    )
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="The answer is 8.",
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    assert result.gemini_took_bait is False
+
+
+def test_validate_adversarial_question_coding_no_piston():
+    adv_question = _mock_adv_question_full(
+        correct_answer="print(8)",
+        predicted_wrong_answer="print(13)",
+    )
+    source_question = _mock_source_question(QuestionType.CODING)
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="print(8)",
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ), patch(
+        "app.services.adversarial_service.settings.piston_enabled",
+        False,
+    ):
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    assert result.test_case_results is None
+    assert result.piston_note == (
+        "Piston not configured — code execution skipped"
+    )
+
+
+def test_validate_adversarial_question_coding_with_piston():
+    adv_question = _mock_adv_question_full(
+        correct_answer="print(8)",
+        predicted_wrong_answer="print(13)",
+    )
+    source_question = _mock_source_question(QuestionType.CODING)
+    test_case = MagicMock()
+    test_case.test_case_id = 1
+    test_case.input_data = ""
+    test_case.expected_output = "8"
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+        test_cases_result=[test_case],
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="print(8)",
+    )
+
+    mock_piston_instance = MagicMock()
+    mock_piston_instance.execute.return_value = {
+        "run": {"stdout": "8\n"},
+    }
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ), patch(
+        "app.services.adversarial_service.settings.piston_enabled",
+        True,
+    ), patch(
+        "app.services.adversarial_service.PistonClient",
+        return_value=mock_piston_instance,
+    ) as mock_piston_class:
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    mock_piston_class.assert_called_once()
+    assert mock_piston_instance.execute.call_count == 2
+    assert result.piston_note is None
+
+    expected = TestCaseResult(
+        test_case_id=1,
+        input_data="",
+        expected_output="8",
+        actual_output="8\n",
+        passed=True,
+    )
+    assert (
+        result.test_case_results.correct_answer_results == [expected]
+    )
+    assert result.test_case_results.gemini_results == [expected]
+
+
+def _mock_db_for_save(adv_question_result=None):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_query = MagicMock()
+        if model is AdversarialQuestion:
+            mock_query.filter.return_value.first.return_value = (
+                adv_question_result
+            )
+        return mock_query
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_save_adversarial_question_404_when_not_found():
+    mock_db = _mock_db_for_save(adv_question_result=None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        save_adversarial_question(mock_db, adv_question_id=999)
+
+    assert exc_info.value.status_code == 404
+    assert (
+        exc_info.value.detail == "Adversarial question not found"
+    )
+
+
+def test_save_adversarial_question_400_when_already_validated():
+    adv_question = _mock_adv_question_full(
+        validation_status="validated"
+    )
+    mock_db = _mock_db_for_save(adv_question_result=adv_question)
+
+    with pytest.raises(HTTPException) as exc_info:
+        save_adversarial_question(mock_db, adv_question_id=5)
+
+    assert exc_info.value.status_code == 400
+    assert (
+        exc_info.value.detail
+        == "Adversarial question is already validated"
+    )
+
+
+def test_save_adversarial_question_success():
+    adv_question = _mock_adv_question_full(validation_status="draft")
+    mock_db = _mock_db_for_save(adv_question_result=adv_question)
+
+    result = save_adversarial_question(mock_db, adv_question_id=5)
+
+    assert result is adv_question
+    assert result.validation_status == "validated"
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(adv_question)

@@ -55,6 +55,62 @@ class AdversarialQuestionResponse(BaseModel):
     pattern_used: Optional[str] = Field(
         None, description="Adversarial pattern used"
     )
+    validation_status: str = Field(
+        ..., description="Validation status of the question"
+    )
 
     class Config:
         from_attributes = True
+
+
+class TestCaseResult(BaseModel):
+    test_case_id: int = Field(..., description="Test case ID")
+    input_data: str = Field(..., description="Test case input")
+    expected_output: str = Field(
+        ..., description="Expected test case output"
+    )
+    actual_output: Optional[str] = Field(
+        None, description="Actual output produced"
+    )
+    passed: bool = Field(
+        ..., description="Whether the output matched expected"
+    )
+
+
+class CodeExecutionComparison(BaseModel):
+    correct_answer_results: list[TestCaseResult] = Field(
+        ..., description="Test results for the correct answer"
+    )
+    gemini_results: list[TestCaseResult] = Field(
+        ..., description="Test results for Gemini's response"
+    )
+
+
+class ValidationResult(BaseModel):
+    adv_question_id: int = Field(
+        ..., description="Unique adversarial question ID"
+    )
+    weaponised_question: str = Field(
+        ..., description="The weaponised question sent to Gemini"
+    )
+    correct_answer: str = Field(
+        ..., description="Stored correct answer"
+    )
+    predicted_wrong_answer: str = Field(
+        ..., description="Stored predicted wrong answer"
+    )
+    gemini_response: str = Field(
+        ..., description="Gemini's raw response text"
+    )
+    gemini_took_bait: bool = Field(
+        ..., description="Whether Gemini's response took the bait"
+    )
+    question_type: str = Field(
+        ..., description="Type of the source question"
+    )
+    test_case_results: Optional[CodeExecutionComparison] = Field(
+        None, description="Code execution comparison, if applicable"
+    )
+    piston_note: Optional[str] = Field(
+        None, description="Note if Piston execution was skipped"
+    )

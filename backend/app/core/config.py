@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     # Piston sandbox configuration
     piston_base_url: str = "http://localhost:2000"
     piston_request_timeout_seconds: int = 30
+    piston_enabled: bool = False
 
 
 # Single shared instance imported by the rest of the app
