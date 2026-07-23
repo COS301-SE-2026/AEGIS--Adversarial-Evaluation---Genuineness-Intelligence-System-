@@ -6,12 +6,20 @@ from fastapi import HTTPException, status
 from google.genai import types
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.gemini import get_gemini_client
+from app.core.piston import PistonClient, PistonError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
+from app.models.coding_test_cases import CodingTestCase
 from app.models.question_bank import QuestionBank
+from app.schema.adversarial import (
+    CodeExecutionComparison,
+    TestCaseResult,
+    ValidationResult,
+)
 
 _WEAPONISER_DIR = Path(__file__).parent.parent / "core" / "weaponiser"
 _SYSTEM_PROMPT_PATH = _WEAPONISER_DIR / "weaponiser_system_prompt.md"
@@ -247,6 +255,139 @@ def regenerate_adversarial_question(
     db.commit()
     db.refresh(adversarial_question)
     return adversarial_question
+
+
+def _run_test_cases(
+    piston_client: PistonClient,
+    code: str,
+    test_cases: list[CodingTestCase],
+) -> list[TestCaseResult]:
+    results = []
+    for test_case in test_cases:
+        try:
+            execution = piston_client.execute(
+                "python",
+                code,
+                stdin=test_case.input_data,
+            )
+            stdout = execution.get("run", {}).get("stdout", "")
+            actual_output = stdout
+            passed = (
+                stdout.strip() == test_case.expected_output.strip()
+            )
+        except PistonError as exc:
+            actual_output = str(exc)
+            passed = False
+        results.append(
+            TestCaseResult(
+                test_case_id=test_case.test_case_id,
+                input_data=test_case.input_data,
+                expected_output=test_case.expected_output,
+                actual_output=actual_output,
+                passed=passed,
+            )
+        )
+    return results
+
+
+def validate_adversarial_question(
+    db: Session,
+    adv_question_id: int,
+) -> ValidationResult:
+    adversarial_question = (
+        db.query(AdversarialQuestion)
+        .filter(
+            AdversarialQuestion.adv_question_id == adv_question_id
+        )
+        .first()
+    )
+    if adversarial_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Adversarial question not found",
+        )
+
+    if adversarial_question.validation_status != "draft":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft questions can be validated",
+        )
+
+    source_question = (
+        db.query(QuestionBank)
+        .filter(
+            QuestionBank.question_bank_id
+            == adversarial_question.source_question_id
+        )
+        .first()
+    )
+    if source_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Source question not found",
+        )
+
+    client = get_gemini_client()
+    response = client.models.generate_content(
+        model=_GEMINI_MODEL,
+        contents=adversarial_question.content,
+        config=types.GenerateContentConfig(temperature=0.0),
+    )
+    gemini_response = response.text or ""
+
+    predicted_wrong_answer = (
+        adversarial_question.predicted_wrong_answer or ""
+    )
+    gemini_took_bait = (
+        predicted_wrong_answer.lower() in gemini_response.lower()
+    )
+
+    question_type = source_question.type.value
+
+    test_case_results = None
+    piston_note = None
+
+    if question_type == "CODING":
+        if settings.piston_enabled:
+            test_cases = (
+                db.query(CodingTestCase)
+                .filter(
+                    CodingTestCase.question_id
+                    == adversarial_question.source_question_id
+                )
+                .all()
+            )
+            piston_client = PistonClient()
+            correct_answer_results = _run_test_cases(
+                piston_client,
+                adversarial_question.correct_answer or "",
+                test_cases,
+            )
+            gemini_results = _run_test_cases(
+                piston_client,
+                gemini_response,
+                test_cases,
+            )
+            test_case_results = CodeExecutionComparison(
+                correct_answer_results=correct_answer_results,
+                gemini_results=gemini_results,
+            )
+        else:
+            piston_note = (
+                "Piston not configured — code execution skipped"
+            )
+
+    return ValidationResult(
+        adv_question_id=adversarial_question.adv_question_id,
+        weaponised_question=adversarial_question.content,
+        correct_answer=adversarial_question.correct_answer or "",
+        predicted_wrong_answer=predicted_wrong_answer,
+        gemini_response=gemini_response,
+        gemini_took_bait=gemini_took_bait,
+        question_type=question_type,
+        test_case_results=test_case_results,
+        piston_note=piston_note,
+    )
 
 
 def get_all_strategies(db: Session) -> list:
