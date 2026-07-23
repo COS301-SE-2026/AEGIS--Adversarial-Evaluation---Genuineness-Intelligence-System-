@@ -38,14 +38,14 @@ def _normalize_mcq_payload(
     if not isinstance(raw_options, dict):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="MCQ questions require question_metadata.options as an object.",
+            detail="MCQ questions require question_metadata.options",
         )
 
     expected_labels = ["A", "B", "C", "D"]
     if set(raw_options.keys()) != set(expected_labels):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="MCQ questions must contain exactly four options labeled A, B, C, and D.",
+            detail="MCQ must contain four options labeled A,B,C,and D.",
         )
 
     normalized_options: dict[str, str] = {}
@@ -75,7 +75,7 @@ def _normalize_mcq_payload(
     if normalized_answer not in normalized_options:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="MCQ correct_answer.answer must match one of A, B, C, or D.",
+            detail="MCQ correct_answer.answer must match one of A,B,C,or D.",
         )
 
     return normalized_options, {"answer": normalized_answer}
@@ -198,7 +198,10 @@ def update_question(
         question.type = question_type
 
     if question_type == QuestionType.MULTIPLE_CHOICE:
-        if payload.question_metadata is not None or payload.correct_answer is not None:
+        if (
+            payload.question_metadata is not None
+            or payload.correct_answer is not None
+        ):
             normalized_options, normalized_answer = _normalize_mcq_payload(
                 payload.question_metadata,
                 payload.correct_answer,

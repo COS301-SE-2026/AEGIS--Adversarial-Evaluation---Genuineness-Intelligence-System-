@@ -1,8 +1,10 @@
-from typing import Any, List, Optional, Literal
+from typing import Any, List, Optional
 from pydantic import BaseModel, Field
+
 
 class MCQQuestionMetadata(BaseModel):
     options: dict[str, str]
+
 
 class QuestionResponse(BaseModel):
     question_bank_id: int = Field(
@@ -18,7 +20,7 @@ class QuestionResponse(BaseModel):
         ..., description="Full content/body of the question",
     )
     type: str = Field(
-        ..., description="Question type, e.g. 'mcq', 'fill-in-the-blank', 'coding'",
+        ..., description="Question type, e.g. 'mcq', 'fillblank', 'coding'",
     )
     maximum_score: float = Field(
         ..., description="Maximum achievable score for this question",
