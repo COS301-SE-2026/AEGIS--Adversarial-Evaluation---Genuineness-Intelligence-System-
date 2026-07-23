@@ -335,6 +335,100 @@ def test_get_all_adversarial_questions_401_when_no_jwt():
     assert response.status_code == 401
 
 
+VALIDATE_URL = "/api/v1/adversarial-questions/5/validate"
+
+
+def test_validate_adversarial_401_when_no_jwt():
+    app.dependency_overrides[get_db] = _db_override
+    response = client.post(VALIDATE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+
+
+@patch("app.api.routes.adversarial.validate_adversarial_question")
+def test_validate_adversarial_403_when_not_recruiter(mock_validate):
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.post(VALIDATE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    mock_validate.assert_not_called()
+
+
+@patch("app.api.routes.adversarial.validate_adversarial_question")
+def test_validate_adversarial_404_when_not_found(mock_validate):
+    mock_validate.side_effect = HTTPException(
+        status_code=404, detail="Adversarial question not found"
+    )
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.post(VALIDATE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+@patch("app.api.routes.adversarial.validate_adversarial_question")
+def test_validate_adversarial_400_when_not_draft(mock_validate):
+    mock_validate.side_effect = HTTPException(
+        status_code=400,
+        detail="Only draft questions can be validated",
+    )
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.post(VALIDATE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+
+
+@patch("app.api.routes.adversarial.validate_adversarial_question")
+def test_validate_adversarial_200_on_success(mock_validate):
+    mock_validate.return_value = MagicMock(
+        adv_question_id=5,
+        weaponised_question="What does f(6) return?",
+        correct_answer="8",
+        predicted_wrong_answer="13",
+        gemini_response="The answer is 8.",
+        gemini_took_bait=False,
+        question_type="MULTIPLE_CHOICE",
+        test_case_results=None,
+        piston_note=None,
+    )
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.post(VALIDATE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["adv_question_id"] == 5
+    assert body["weaponised_question"] == "What does f(6) return?"
+    assert body["correct_answer"] == "8"
+    assert body["predicted_wrong_answer"] == "13"
+    assert body["gemini_response"] == "The answer is 8."
+    assert body["gemini_took_bait"] is False
+    assert body["question_type"] == "MULTIPLE_CHOICE"
+    assert body["test_case_results"] is None
+    assert body["piston_note"] is None
+    mock_validate.assert_called_once()
+    call_args = mock_validate.call_args[0]
+    assert call_args[1] == 5
+
+
 @patch("app.api.routes.adversarial.get_all_adversarial_questions")
 def test_get_all_adversarial_questions_200_with_list(mock_get):
     mock_get.return_value = [
