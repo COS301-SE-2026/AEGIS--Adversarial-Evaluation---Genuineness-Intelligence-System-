@@ -9,6 +9,7 @@ from app.schema.adversarial import (
     AdversarialQuestionResponse,
     GenerateAdversarialRequest,
     StrategyResponse,
+    ValidationResult,
 )
 from app.services.adversarial_service import (
     generate_adversarial_question,
@@ -16,6 +17,7 @@ from app.services.adversarial_service import (
     get_all_adversarial_questions,
     get_all_strategies,
     regenerate_adversarial_question,
+    validate_adversarial_question,
 )
 
 router = APIRouter(
@@ -115,3 +117,25 @@ async def regenerate_adversarial_question_route(
         adv_question_id,
         payload.strategy_id,
     )
+
+
+@adversarial_questions_router.post(
+    "/adversarial-questions/{adv_question_id}/validate",
+    response_model=ValidationResult,
+    status_code=status.HTTP_200_OK,
+    summary="Validate a draft adversarial question against Gemini",
+)
+async def validate_adversarial_question_route(
+    adv_question_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Only recruiters can validate "
+                "adversarial questions."
+            ),
+        )
+    return validate_adversarial_question(db, adv_question_id)
