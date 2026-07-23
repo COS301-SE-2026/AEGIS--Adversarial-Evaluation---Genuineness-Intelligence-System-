@@ -17,6 +17,7 @@ from app.services.adversarial_service import (
     get_all_adversarial_questions,
     get_all_strategies,
     regenerate_adversarial_question,
+    save_adversarial_question,
     validate_adversarial_question,
 )
 
@@ -139,3 +140,25 @@ async def validate_adversarial_question_route(
             ),
         )
     return validate_adversarial_question(db, adv_question_id)
+
+
+@adversarial_questions_router.post(
+    "/adversarial-questions/{adv_question_id}/save",
+    response_model=AdversarialQuestionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Mark a draft adversarial question as validated",
+)
+async def save_adversarial_question_route(
+    adv_question_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Only recruiters can save "
+                "adversarial questions."
+            ),
+        )
+    return save_adversarial_question(db, adv_question_id)
