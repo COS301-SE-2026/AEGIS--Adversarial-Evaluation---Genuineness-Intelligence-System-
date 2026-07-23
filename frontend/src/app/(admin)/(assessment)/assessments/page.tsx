@@ -10,6 +10,9 @@ import CreateAssessmentPanel from "../../../../components/admin/ui/cards/create-
 import type { AssessmentStatus } from "../../types/assessment";
 import { isAuthenticated, getRole, getAuthHeaders } from "@/lib/auth";
 import { apiGet } from "@/lib/apiClient";
+import PageHelpDrawer from "@/components/admin/ui/help/page-help-drawer";
+import { HelpCircle } from "lucide-react";
+import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content";
 
 type FilterValue = AssessmentStatus | "all";
 
@@ -30,6 +33,8 @@ export default function AssessmentsPage() {
   const [assessments, setAssessments] = useState<ApiAssessment[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const helpConfig = PAGE_HELP_CONTENT["/assessments"];
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -100,13 +105,27 @@ export default function AssessmentsPage() {
                 {"// manage, deploy, and monitor adversarial assessment sets"}
               </p>
             </div>
-            {/*Create Assessment button*/}
-            <button
-            onClick={() => setPanelOpen(true)}
-            className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-staatliches tracking-wider">
-              <span>+ New Assessment</span>
-            </button>
+
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={()=>setIsHelpOpen(true)} className="flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+                <HelpCircle size={18}/>
+                <span>Help</span>
+              </button>
+
+              {/*Create Assessment button*/}
+              <button
+              onClick={() => setPanelOpen(true)}
+              className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-staatliches tracking-wider">
+                <span>+ New Assessment</span>
+              </button>              
+            </div>
           </div>
+
+          <PageHelpDrawer
+            open={isHelpOpen}
+            onClose={()=>setIsHelpOpen(false)}
+            config={helpConfig}
+          />
 
           <AssessmentFilterBar
             filter={filter}
