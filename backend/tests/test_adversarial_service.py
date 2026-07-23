@@ -17,6 +17,7 @@ from app.services.adversarial_service import (
     get_all_draft_adversarial_questions,
     get_all_strategies,
     regenerate_adversarial_question,
+    save_adversarial_question,
     validate_adversarial_question,
     verify_assessment_exists,
 )
@@ -711,3 +712,58 @@ def test_validate_adversarial_question_coding_with_piston():
         result.test_case_results.correct_answer_results == [expected]
     )
     assert result.test_case_results.gemini_results == [expected]
+
+
+def _mock_db_for_save(adv_question_result=None):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_query = MagicMock()
+        if model is AdversarialQuestion:
+            mock_query.filter.return_value.first.return_value = (
+                adv_question_result
+            )
+        return mock_query
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_save_adversarial_question_404_when_not_found():
+    mock_db = _mock_db_for_save(adv_question_result=None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        save_adversarial_question(mock_db, adv_question_id=999)
+
+    assert exc_info.value.status_code == 404
+    assert (
+        exc_info.value.detail == "Adversarial question not found"
+    )
+
+
+def test_save_adversarial_question_400_when_already_validated():
+    adv_question = _mock_adv_question_full(
+        validation_status="validated"
+    )
+    mock_db = _mock_db_for_save(adv_question_result=adv_question)
+
+    with pytest.raises(HTTPException) as exc_info:
+        save_adversarial_question(mock_db, adv_question_id=5)
+
+    assert exc_info.value.status_code == 400
+    assert (
+        exc_info.value.detail
+        == "Adversarial question is already validated"
+    )
+
+
+def test_save_adversarial_question_success():
+    adv_question = _mock_adv_question_full(validation_status="draft")
+    mock_db = _mock_db_for_save(adv_question_result=adv_question)
+
+    result = save_adversarial_question(mock_db, adv_question_id=5)
+
+    assert result is adv_question
+    assert result.validation_status == "validated"
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(adv_question)
