@@ -11,22 +11,29 @@ def test_create_source_question_success():
     mock_category = MagicMock()
     mock_db.query.return_value.filter.return_value.first.return_value = mock_category #this is how we chained the SQLAlchemy in our service function
     payload = QuestionCreation(
-        title="Python Basics",
-        content="What is Python?",
+        title="SQL Join Blank",
+        content=(
+            "Complete the SQL query.\n\n"
+            "SELECT DISTINCT u.email\n"
+            "FROM users u\n"
+            "[A] candidate_assessments ca ON u.user_id = ca.candidate_id;"
+        ),
         type="TEXT",
-        maximum_score=10,
-        correct_answer=None,
-        question_metadata={},
-        tags=["python"],
+        maximum_score=5,
+        correct_answer={"answer": {"A": "INNER JOIN"}},
+        question_metadata={"blanks": ["A"]},
+        tags=["sql"],
         category_id=1,
         difficulty="Easy",
     )
     question = create_source_question(mock_db, payload)
-    assert question.title == "Python Basics"
-    assert question.content == "What is Python?"
+    assert question.title == "SQL Join Blank"
+    assert question.content.startswith("Complete the SQL query.")
     assert question.type.value == "FILL_IN_THE_BLANK"
-    assert question.maximum_score == 10
-    assert question.tags == ["python"]
+    assert question.question_metadata == {"blanks": ["A"]}
+    assert question.correct_answer == {"answer": {"A": "INNER JOIN"}}
+    assert question.maximum_score == 5
+    assert question.tags == ["sql"]
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
@@ -68,6 +75,37 @@ def test_create_source_question_mcq_success():
     }
     assert question.correct_answer == {"answer": "C"}
     assert question.tags == ["algorithms"]
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
+
+
+def test_create_source_question_fill_in_blank_success():
+    mock_db = MagicMock()
+    mock_category = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_category
+    payload = QuestionCreation(
+        title="SQL Join Blank",
+        content=(
+            "Complete the SQL query.\n\n"
+            "SELECT DISTINCT u.email\n"
+            "FROM users u\n"
+            "[A] candidate_assessments ca ON u.user_id = ca.candidate_id;"
+        ),
+        type="TEXT",
+        maximum_score=5,
+        correct_answer={"answer": {"A": "INNER JOIN"}},
+        question_metadata={"blanks": ["A"]},
+        tags=["sql"],
+        category_id=1,
+        difficulty="Easy",
+    )
+    question = create_source_question(mock_db, payload)
+    assert question.title == "SQL Join Blank"
+    assert question.type.value == "FILL_IN_THE_BLANK"
+    assert question.question_metadata == {"blanks": ["A"]}
+    assert question.correct_answer == {"answer": {"A": "INNER JOIN"}}
+    assert question.tags == ["sql"]
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
@@ -136,7 +174,7 @@ def test_update_question_success():
     mock_question.question_bank_id = 1
     mock_question.title = "Old title"
     mock_question.content = "Old content"
-    mock_question.type.value = "TEXT"
+    mock_question.type.value = "FILL_IN_THE_BLANK"
     mock_question.maximum_score = 5
     mock_question.tags = ["old"]
     mock_category = MagicMock()
@@ -147,20 +185,28 @@ def test_update_question_success():
     mock_db.query.side_effect = [question_query, category_query]
     payload = QuestionUpdate(
         title="New title",
-        content="New content",
+        content=(
+            "Complete the SQL query.\n\n"
+            "SELECT DISTINCT u.email\n"
+            "FROM users u\n"
+            "[A] candidate_assessments ca ON u.user_id = ca.candidate_id;"
+        ),
         type="TEXT",
-        maximum_score=10,
-        correct_answer=None,
-        question_metadata={},
-        tags=["python"],
+        maximum_score=7,
+        correct_answer={"answer": {"A": "INNER JOIN"}},
+        question_metadata={"blanks": ["A"]},
+        tags=["sql"],
         category_id=1,
         difficulty="Easy",
     )
     question = update_question(mock_db, 1, payload)
     assert question.title == "New title"
-    assert question.content == "New content"
-    assert question.maximum_score == 10
-    assert question.tags == ["python"]
+    assert question.content.startswith("Complete the SQL query.")
+    assert question.type.value == "FILL_IN_THE_BLANK"
+    assert question.question_metadata == {"blanks": ["A"]}
+    assert question.correct_answer == {"answer": {"A": "INNER JOIN"}}
+    assert question.maximum_score == 7
+    assert question.tags == ["sql"]
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
@@ -213,6 +259,49 @@ def test_update_question_mcq_success():
     assert question.correct_answer == {"answer": "B"}
     assert question.maximum_score == 10
     assert question.tags == ["python"]
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
+
+
+def test_update_question_fill_in_blank_success():
+    mock_db = MagicMock()
+    mock_question = MagicMock()
+    mock_question.question_bank_id = 1
+    mock_question.title = "Old title"
+    mock_question.content = "Old content"
+    mock_question.type.value = "FILL_IN_THE_BLANK"
+    mock_question.maximum_score = 5
+    mock_question.tags = ["old"]
+    mock_category = MagicMock()
+    question_query = MagicMock()
+    category_query = MagicMock()
+    question_query.filter.return_value.first.return_value = mock_question
+    category_query.filter.return_value.first.return_value = mock_category
+    mock_db.query.side_effect = [question_query, category_query]
+    payload = QuestionUpdate(
+        title="New blank title",
+        content=(
+            "Complete the SQL query.\n\n"
+            "SELECT DISTINCT u.email\n"
+            "FROM users u\n"
+            "[A] candidate_assessments ca ON u.user_id = ca.candidate_id;"
+        ),
+        type="TEXT",
+        maximum_score=7,
+        correct_answer={"answer": {"A": "INNER JOIN"}},
+        question_metadata={"blanks": ["A"]},
+        tags=["sql"],
+        category_id=1,
+        difficulty="Easy",
+    )
+    question = update_question(mock_db, 1, payload)
+    assert question.title == "New blank title"
+    assert question.content.startswith("Complete the SQL query.")
+    assert question.type.value == "FILL_IN_THE_BLANK"
+    assert question.question_metadata == {"blanks": ["A"]}
+    assert question.correct_answer == {"answer": {"A": "INNER JOIN"}}
+    assert question.maximum_score == 7
+    assert question.tags == ["sql"]
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
