@@ -81,6 +81,72 @@ def _normalize_mcq_payload(
     return normalized_options, {"answer": normalized_answer}
 
 
+def _normalize_fill_in_blank_payload(
+    metadata: dict | None,
+    correct_answer: object,
+) -> tuple[dict[str, list[str]], dict[str, dict[str, str]]]:
+    if not isinstance(metadata, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Fill-in-the-blank questions require question_metadata.blanks.",
+        )
+
+    raw_blanks = metadata.get("blanks")
+    if not isinstance(raw_blanks, list) or not raw_blanks:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Fill-in-the-blank questions require at least one blank label.",
+        )
+
+    normalized_blanks: list[str] = []
+    for blank in raw_blanks:
+        if not isinstance(blank, str) or not blank.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Fill-in-the-blank blank labels must be non-empty strings.",
+            )
+
+        normalized_blank = blank.strip().upper()
+        if normalized_blank in normalized_blanks:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Fill-in-the-blank blank labels must be unique.",
+            )
+
+        normalized_blanks.append(normalized_blank)
+
+    if not isinstance(correct_answer, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Fill-in-the-blank questions require correct_answer.answer.",
+        )
+
+    raw_answers = correct_answer.get("answer")
+    if not isinstance(raw_answers, dict):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Fill-in-the-blank correct_answer.answer must be an object.",
+        )
+
+    normalized_answers: dict[str, str] = {}
+    for label in normalized_blanks:
+        answer_value = raw_answers.get(label)
+        if not isinstance(answer_value, str) or not answer_value.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Fill-in-the-blank answer for {label} must be a non-empty string.",
+            )
+        normalized_answers[label] = answer_value.strip()
+
+    if {str(key).strip().upper() for key in raw_answers.keys()} != set(normalized_blanks):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Fill-in-the-blank answers must match the configured blank labels.",
+        )
+
+    return {"blanks": normalized_blanks}, {"answer": normalized_answers}
+
+
 def create_source_question(
     db: Session,
     payload: QuestionCreation,
@@ -106,6 +172,13 @@ def create_source_question(
             payload.correct_answer,
         )
         question_metadata = {"options": normalized_options}
+        correct_answer = normalized_answer
+    elif question_type == QuestionType.FILL_IN_THE_BLANK:
+        normalized_metadata, normalized_answer = _normalize_fill_in_blank_payload(
+            payload.question_metadata,
+            payload.correct_answer,
+        )
+        question_metadata = normalized_metadata
         correct_answer = normalized_answer
 
     question = QuestionBank(
@@ -197,25 +270,51 @@ def update_question(
         question_type = convert_question_type(payload.type)
         question.type = question_type
 
+    normalized_question_metadata = None
+    normalized_correct_answer = None
+
     if question_type == QuestionType.MULTIPLE_CHOICE:
         if (
             payload.question_metadata is not None
             or payload.correct_answer is not None
         ):
-            normalized_options, normalized_answer = _normalize_mcq_payload(
+            (
+                normalized_question_metadata,
+                normalized_correct_answer,
+            ) = _normalize_mcq_payload(
                 payload.question_metadata,
                 payload.correct_answer,
             )
-            question.question_metadata = {"options": normalized_options}
-            question.correct_answer = normalized_answer
+
+    if question_type == QuestionType.FILL_IN_THE_BLANK:
+        if (
+            payload.question_metadata is not None
+            or payload.correct_answer is not None
+        ):
+            (
+                normalized_question_metadata,
+                normalized_correct_answer,
+            ) = _normalize_fill_in_blank_payload(
+                payload.question_metadata,
+                payload.correct_answer,
+            )
 
     if payload.maximum_score is not None:
         question.maximum_score = payload.maximum_score
 
-    if payload.correct_answer is not None:
+    if normalized_correct_answer is not None:
+        question.correct_answer = normalized_correct_answer
+    elif payload.correct_answer is not None:
         question.correct_answer = payload.correct_answer
 
-    if payload.question_metadata is not None:
+    if normalized_question_metadata is not None:
+        if question_type == QuestionType.MULTIPLE_CHOICE:
+            question.question_metadata = {
+                "options": normalized_question_metadata,
+            }
+        else:
+            question.question_metadata = normalized_question_metadata
+    elif payload.question_metadata is not None:
         question.question_metadata = payload.question_metadata
 
     if payload.tags is not None:
