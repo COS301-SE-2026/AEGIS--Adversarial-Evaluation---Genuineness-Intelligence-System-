@@ -88,14 +88,20 @@ def _normalize_fill_in_blank_payload(
     if not isinstance(metadata, dict):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Fill-in-the-blank questions require question_metadata.blanks.",
+            detail=(
+                "Fill-in-the-blank questions"
+                " require question_metadata.blanks."
+            )
         )
 
     raw_blanks = metadata.get("blanks")
     if not isinstance(raw_blanks, list) or not raw_blanks:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Fill-in-the-blank questions require at least one blank label.",
+            detail=(
+                "Fill-in-the-blank questions "
+                "require at least one blank label."
+            )
         )
 
     normalized_blanks: list[str] = []
@@ -103,7 +109,10 @@ def _normalize_fill_in_blank_payload(
         if not isinstance(blank, str) or not blank.strip():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Fill-in-the-blank blank labels must be non-empty strings.",
+                detail=(
+                    "Fill-in-the-blank blank labels "
+                    "must be non-empty strings."
+                )
             )
 
         normalized_blank = blank.strip().upper()
@@ -118,14 +127,20 @@ def _normalize_fill_in_blank_payload(
     if not isinstance(correct_answer, dict):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Fill-in-the-blank questions require correct_answer.answer.",
+            detail=(
+                "Fill-in-the-blank questions"
+                " require correct_answer.answer."
+            )
         )
 
     raw_answers = correct_answer.get("answer")
     if not isinstance(raw_answers, dict):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Fill-in-the-blank correct_answer.answer must be an object.",
+            detail=(
+                "Fill-in-the-blank correct_answer.answer"
+                " must be an object.",
+            )
         )
 
     normalized_answers: dict[str, str] = {}
@@ -134,14 +149,21 @@ def _normalize_fill_in_blank_payload(
         if not isinstance(answer_value, str) or not answer_value.strip():
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Fill-in-the-blank answer for {label} must be a non-empty string.",
+                detail=(
+                    f"Fill-in-the-blank answer for {label} "
+                    "must be a non-empty string.",
+                )
             )
         normalized_answers[label] = answer_value.strip()
 
-    if {str(key).strip().upper() for key in raw_answers.keys()} != set(normalized_blanks):
+    answer_keys = {str(k).strip().upper() for k in raw_answers}
+    if answer_keys != set(normalized_blanks):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Fill-in-the-blank answers must match the configured blank labels.",
+            detail=(
+                "Fill-in-the-blank answers must "
+                "match the configured blank labels.",
+            )
         )
 
     return {"blanks": normalized_blanks}, {"answer": normalized_answers}
@@ -174,9 +196,10 @@ def create_source_question(
         question_metadata = {"options": normalized_options}
         correct_answer = normalized_answer
     elif question_type == QuestionType.FILL_IN_THE_BLANK:
-        normalized_metadata, normalized_answer = _normalize_fill_in_blank_payload(
-            payload.question_metadata,
-            payload.correct_answer,
+        normalized_metadata, normalized_answer = (
+            _normalize_fill_in_blank_payload(
+                payload.question_metadata,
+                payload.correct_answer,)
         )
         question_metadata = normalized_metadata
         correct_answer = normalized_answer
