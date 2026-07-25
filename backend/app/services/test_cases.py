@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from app.models.adversarial_question import AdversarialQuestion
 from app.models.coding_test_cases import CodingTestCase
-from app.models.question_bank import QuestionBank
+from app.models.question_bank import QuestionBank, QuestionType
 from app.schema.test_cases import CodingTestCaseCreate, CodingTestCaseUpdate
 
 
@@ -10,14 +9,7 @@ def get_test_cases_by_question_id(
     db: Session,
     question_id: int
 ) -> list[CodingTestCase]:
-    question = (
-        db.query(QuestionBank)
-        .filter(QuestionBank.question_bank_id == question_id)
-        .first())
-    if question is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Test Case Not Found as Question not found")
+    question = get_source_question(db, question_id)
     return (
         db.query(CodingTestCase)
         .filter(CodingTestCase.question_id == question_id)
@@ -25,21 +17,26 @@ def get_test_cases_by_question_id(
         .all())
 
 
-def get_adversarial_question(
+def get_source_question(
     db: Session,
-    adv_question_id: int,
-) -> AdversarialQuestion:
-    adversarial_question = (
-        db.query(AdversarialQuestion)
-        .filter(AdversarialQuestion.adv_question_id == adv_question_id)
+    question_id: int,
+) -> QuestionBank:
+    question = (
+        db.query(QuestionBank)
+        .filter(QuestionBank.question_bank_id == question_id)
         .first()
     )
-    if adversarial_question is None:
+    if question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail="Source question not found",
         )
-    return adversarial_question
+    if question.type != QuestionType.CODING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Test cases can only be managed for coding source questions.",
+        )
+    return question
 
 
 def get_test_case(
@@ -61,17 +58,12 @@ def get_test_case(
 
 def create_test_case(
         db: Session,
-        adv_question_id: int,
+        question_id: int,
         payload: CodingTestCaseCreate
 ) -> CodingTestCase:
-    adv_question = (
-        get_adversarial_question(
-            db,
-            adv_question_id
-        )
-    )
+    get_source_question(db, question_id)
     new_test_case = CodingTestCase(
-        question_id=adv_question.source_question_id,
+        question_id=question_id,
         description=payload.description,
         input_data=payload.input_data,
         expected_output=payload.expected_output,
@@ -86,20 +78,17 @@ def create_test_case(
 def delete_test_case(
         db: Session,
         test_case_id: int,
-        adversarial_question_id: int
+        question_id: int
 ) -> None:
-    adv_question = get_adversarial_question(
-        db,
-        adversarial_question_id
-    )
+    get_source_question(db, question_id)
     test_case = get_test_case(
         db,
         test_case_id
     )
-    if test_case.question_id != adv_question.source_question_id:
+    if test_case.question_id != question_id:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Test case not linked to this adversarial question"
+            detail="Test case not linked to this source question"
         )
     db.delete(test_case)
     db.commit()
@@ -107,23 +96,18 @@ def delete_test_case(
 
 def update_test_case(
         db: Session,
-        adversarial_question_id: int,
+        question_id: int,
         test_case_id: int,
         payload: CodingTestCaseUpdate
 ) -> CodingTestCase:
-    adv_question = (
-        get_adversarial_question(
-            db,
-            adversarial_question_id
-        )
-    )
+    get_source_question(db, question_id)
     test_case = (
         get_test_case(db, test_case_id)
     )
-    if test_case.question_id != adv_question.source_question_id:
+    if test_case.question_id != question_id:
         raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Test case is not linked to that adv question"
+                detail="Test case is not linked to that source question"
         )
     if payload.description is not None:
         test_case.description = payload.description
