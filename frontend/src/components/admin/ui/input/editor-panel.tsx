@@ -4,13 +4,13 @@ import Editor from "@monaco-editor/react"
 import { Code2 } from "lucide-react"
 
 
-interface EditorPanelProps {
+export interface EditorPanelProps {
     correctAnswer: string,
     starterSkeleton: string,
     setCorrectAnswer: (value: string) => void
 }
 
-function normalizeStarterCode(
+export function normalizeStarterCode(
     starterCode: string,
     starterSkeleton: string,
 ): string {
