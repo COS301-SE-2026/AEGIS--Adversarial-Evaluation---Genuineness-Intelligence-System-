@@ -1,5 +1,3 @@
-import MCQOptionCard from "@/components/admin/ui/question-builder/mcq-option-card";
-
 export type QuestionType = "CODING" | "MCQ" | "COMPREHENSION" | "FILL_BLANKS";
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
@@ -60,10 +58,7 @@ export const defaultQuestionState: QuestionBuilderState = {
     maximum_score: 10,
     tags: [],
     starterCode: "",
-    options: [
-        createDefaultMCQQuestion(true),
-        createDefaultMCQQuestion(false),
-    ],
+    options: Array.from({length: 4}, (_,index) => createDefaultMCQQuestion(index === 0)),
     rubric: "",
     expectedKeywords: [],
     blanks: [],
