@@ -293,16 +293,20 @@ const [isRegenerating, setIsRegenerating] = useState(false);
 
   <button
     type="button"
-    onClick={handleGenerate}
-    disabled={!generated || isGenerating}
-    className="flex-1 py-3 border border-default-border text-white-smoke rounded hover:bg-tertiary-surface disabled:opacity-50"
+    onClick={handleRegenerate}
+    disabled={!generated || !strategyId || isRegenerating || isGenerating}
+    className="flex-1 py-3 border border-default-border text-white-smoke rounded flex items-center justify-center gap-2 hover:bg-tertiary-surface disabled:opacity-50"
   >
-    REGENERATE
+    {isRegenerating && <RefreshCw className="animate-spin" size={16} />}
+    {isRegenerating ? "REGENERATING..." : "REGENERATE"}
   </button>
 </div>
 
 {generateError && (
   <p className="text-xs text-system-red">{generateError}</p>
+)}
+{regenerateError && (
+  <p className="text-xs text-system-red">{regenerateError}</p>
 )}
 
 {/* Row 1: Original Source Question / Adversarial Question*/}

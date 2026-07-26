@@ -1,11 +1,12 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import AdversarialQuestionModal from "../adversarial-question-modal";
-import { apiGet, apiPost } from "../../../../../lib/apiClient";
+import { apiGet, apiPatch, apiPost } from "../../../../../lib/apiClient";
 
 jest.mock("../../../../../lib/apiClient", () => ({
   apiGet: jest.fn(),
   apiPost: jest.fn(),
+  apiPatch: jest.fn(),
 }));
 
 jest.mock("../../../../../lib/auth", () => ({
@@ -14,6 +15,7 @@ jest.mock("../../../../../lib/auth", () => ({
 
 const mockedApiGet = apiGet as jest.Mock;
 const mockedApiPost = apiPost as jest.Mock;
+const mockedApiPatch = apiPatch as jest.Mock;
 
 const questions = [
   {
@@ -67,6 +69,15 @@ const validateResponse = {
   question_type: "CODING",
   test_case_results: null,
   piston_note: "Piston not configured — code execution skipped",
+};
+
+const regeneratedQuestion = {
+  adv_question_id: 42,
+  source_question_id: 1,
+  content: "Second, regenerated adversarial version of the question.",
+  strategy_id: 5,
+  llm: "gemini-3.1-flash-lite",
+  generated_at: "2026-01-02T00:00:00Z",
 };
 
 async function reachGeneratedState(onClose = jest.fn(), onSubmit = jest.fn()) {
@@ -225,5 +236,83 @@ describe("AdversarialQuestionModal — Validate", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(validateResponse.correct_answer)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /deploy question/i })).toBeDisabled();
+  });
+});
+
+describe("AdversarialQuestionModal — Regenerate", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedApiGet.mockResolvedValue(strategies);
+  });
+
+  it("calls PATCH /adversarial-questions/{adv_question_id}/regenerate with the strategy_id, not a new POST to generate-adversarial", async () => {
+    const user = await reachGeneratedState();
+    mockedApiPost.mockClear();
+
+    mockedApiPatch.mockResolvedValueOnce(regeneratedQuestion);
+    await user.click(screen.getByRole("button", { name: /^regenerate$/i }));
+
+    await waitFor(() =>
+      expect(mockedApiPatch).toHaveBeenCalledWith(
+        "/api/v1/adversarial-questions/42/regenerate",
+        { strategy_id: 5 },
+        { headers: { Authorization: "Bearer test-token" } }
+      )
+    );
+    expect(mockedApiPost).not.toHaveBeenCalled();
+  });
+
+  it("updates the displayed content while the next Validate call still targets the same adv_question_id", async () => {
+    const user = await reachGeneratedState();
+
+    mockedApiPatch.mockResolvedValueOnce(regeneratedQuestion);
+    await user.click(screen.getByRole("button", { name: /^regenerate$/i }));
+
+    expect(await screen.findByText(regeneratedQuestion.content)).toBeInTheDocument();
+    expect(screen.queryByText(generatedQuestion.content)).not.toBeInTheDocument();
+
+    mockedApiPost.mockResolvedValueOnce(validateResponse);
+    await user.click(screen.getByRole("button", { name: /^validate$/i }));
+
+    await waitFor(() =>
+      expect(mockedApiPost).toHaveBeenCalledWith(
+        "/api/v1/adversarial-questions/42/validate",
+        undefined,
+        { headers: { Authorization: "Bearer test-token" } }
+      )
+    );
+  });
+
+  it("clears validationResult after a successful regenerate", async () => {
+    const user = await reachDeployableState();
+
+    expect(screen.getByText(validateResponse.correct_answer)).toBeInTheDocument();
+
+    mockedApiPatch.mockResolvedValueOnce(regeneratedQuestion);
+    await user.click(screen.getByRole("button", { name: /^regenerate$/i }));
+
+    await waitFor(() =>
+      expect(screen.queryByText(validateResponse.correct_answer)).not.toBeInTheDocument()
+    );
+    expect(screen.queryByText(validateResponse.gemini_response)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /deploy question/i })).toBeDisabled();
+  });
+
+  it("shows an inline error and keeps the current content when regenerate fails", async () => {
+    const user = await reachGeneratedState();
+
+    mockedApiPatch.mockRejectedValueOnce(
+      new Error("Only draft questions can be regenerated")
+    );
+    await user.click(screen.getByRole("button", { name: /^regenerate$/i }));
+
+    expect(
+      await screen.findByText("Only draft questions can be regenerated")
+    ).toBeInTheDocument();
+    expect(screen.getByText(generatedQuestion.content)).toBeInTheDocument();
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /^regenerate$/i })).not.toBeDisabled()
+    );
   });
 });
