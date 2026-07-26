@@ -1,0 +1,1 @@
+export const BASE_URL = "https://aegis-adversarial-evaluation-genuineness.onrender.com"
