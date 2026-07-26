@@ -4,7 +4,15 @@ import pytest
 from fastapi import HTTPException
 
 from app.schema.question import QuestionCreation, QuestionUpdate
-from app.services.question_management import create_source_question, get_all_questions, get_filtered_questions, update_question
+from app.services.assessment import execute_reference_implementation
+from app.services.question_management import (
+    _normalize_fill_in_blank_payload,
+    _normalize_mcq_payload,
+    create_source_question,
+    get_all_questions,
+    get_filtered_questions,
+    update_question,
+)
 
 
 SQL_JOIN_CONTENT = (
@@ -107,6 +115,28 @@ def test_create_source_question_fill_in_blank_success():
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
+
+def test_normalize_mcq_payload_rejects():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload(None, {"answer": "A"})
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ questions require question_metadata.options."
+
+
+def test_execute_reference_implementation_rejects_missing_function_name():
+    with pytest.raises(HTTPException) as exc_info:
+        execute_reference_implementation(
+            question_metadata={"function_signature": "def (nums, target)"},
+            implementation="def solve():\n    pass\n",
+            input_data="[]",
+            piston_client=MagicMock(),
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Coding questions require a valid function_name or function_signature."
+    )
+
+
 def test_get_all_questions_success():
     mock_db = MagicMock()
     mock_question = MagicMock()
@@ -122,6 +152,13 @@ def test_get_all_questions_success():
     assert questions[0].title == "Python Basics"
     assert questions[0].type.value == "TEXT"
     mock_db.query.return_value.order_by.assert_called_once()
+
+def test_normalize_mcq_payload_rejects():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload({}, {"answer": "A"})
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ questions require question_metadata.options"
+
 
 def test_get_filtered_questions_by_tags_success():
     mock_db = MagicMock()
@@ -143,6 +180,19 @@ def test_get_filtered_questions_by_tags_success():
     assert questions[0].title == "Python Basics"
     mock_db.query.return_value.filter.assert_called_once()
 
+def test_execute_reference_implementation_rejects_empty_implementation():
+    with pytest.raises(HTTPException) as exc_info:
+        execute_reference_implementation(
+            question_metadata={"function_name": "two_sum"},
+            implementation="   ",
+            input_data="[]",
+            piston_client=MagicMock(),
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Coding questions require a reference implementation."
+
+
 def test_get_filtered_questions_by_all_filters_success():
     mock_db = MagicMock()
     mock_question = MagicMock()
@@ -163,6 +213,14 @@ def test_get_filtered_questions_by_all_filters_success():
     assert len(questions) == 1
     assert questions[0].title == "Python Basics"
 
+
+def test_normalize_fill_in_blank_payload_rejects_answer_object():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload({"blanks": ["A"]}, {"answer": "JOIN"})
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Fill-in-the-blank correct_answer.answer must be an object.",
+    )
 
 
 def test_update_question_success():
@@ -207,6 +265,12 @@ def test_update_question_success():
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
+def test_normalize_fill_in_blank_payload_rejects_missing_metadata():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload(None, {"answer": {"A": "JOIN"}})
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Fill-in-the-blank questions require question_metadata.blanks."
+    
 
 def test_update_question_mcq_success():
     mock_db = MagicMock()
@@ -259,6 +323,12 @@ def test_update_question_mcq_success():
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
+def test_normalize_mcq_payload_rejects_invalid_answer_container():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload({"options": {"A": "One", "B": "Two", "C": "Three", "D": "Four"}}, "A")
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ questions require correct_answer.answer."
+
 
 def test_update_question_fill_in_blank_success():
     mock_db = MagicMock()
@@ -301,6 +371,15 @@ def test_update_question_fill_in_blank_success():
     assert question.tags == ["sql"]
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
+
+def test_normalize_fill_in_blank_payload_rejects_mismatched_labels():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload({"blanks": ["A"]}, {"answer": {"A": "JOIN", "B": "EXTRA"}})
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Fill-in-the-blank answers must match the configured blank labels.",
+    )
+
 
 def test_update_question_raises_404_when_question_not_found():
     mock_db = MagicMock()
