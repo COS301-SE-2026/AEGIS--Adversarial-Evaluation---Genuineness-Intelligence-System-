@@ -154,14 +154,23 @@ const [isDeploying, setIsDeploying] = useState(false);
     setIsValidating(true);
     setValidationError(null);
 
-    // hardcoded for frontend - backend validation route isn't up yet.
-    // Swap this block for a real apiPost call once route exists.
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    setValidationResult({
-        source_answer: "This is a placeholder answer to the original source question.",
-        adversarial_answer: "This is a placeholder answer Gemini gave to the adversarial question.",
-    });
-    setIsValidating(false);
+    try {
+        const response = await apiPost<ValidateApiResponse>(
+            `/api/v1/adversarial-questions/${generated.adv_question_id}/validate`,
+            undefined,
+            { headers: getAuthHeaders() }
+        );
+        setValidationResult({
+            source_answer: response.correct_answer,
+            adversarial_answer: response.gemini_response,
+        });
+    } catch (err) {
+        setValidationError(
+            err instanceof Error ? err.message : "Failed to validate adversarial question."
+        );
+    } finally {
+        setIsValidating(false);
+    }
 };
 
     const handleDeploy = async () => {
