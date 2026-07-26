@@ -23,9 +23,15 @@ interface GeneratedAdversarialQuestion {
     generated_at: string;
 }
 
+// still need to swap in the real shape/endpoint once the validation route exists on the backend.
+interface ValidationResult {
+    source_answer: string;
+    adversarial_answer: string;
+}
+
 interface AdversarialQuestionModalProps {
     isOpen: boolean;
-    mode: "create" | "edit"
+    mode: "create" | "edit";
     question_id?: number | null;
     questions: QuestionBank[];
     categories: QuestionCategory[];
@@ -43,7 +49,9 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
     const [generated, setGenerated] = useState<GeneratedAdversarialQuestion | null>(null);
     const [generateError, setGenerateError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-
+    const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+const [validationError, setValidationError] = useState<string | null>(null);
+const [isValidating, setIsValidating] = useState(false);
     const selectedSource = questions.find(q => q.question_bank_id === sourceQuestionId);
 
     useEffect(() => {
@@ -71,11 +79,19 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
         return () => { isMounted = false; };
     }, []);
 
+    const resetGenerationState = () => {
+    setGenerated(null);
+    setGenerateError(null);
+    setValidationResult(null);
+    setValidationError(null);
+};
+
     const handleGenerate = async () => {
         if(!sourceQuestionId || !strategyId) return;
 
         setIsGenerating(true);
         setGenerateError(null);
+        setValidationResult(null); 
         try{
             const response = await apiPost<GeneratedAdversarialQuestion>(
                 `/api/v1/questions/${sourceQuestionId}/generate-adversarial`,
@@ -92,18 +108,46 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
         }
     };
 
-    const handleSubmit = () => {
-        if (!generated) return;
-        const payload: QuestionPayload = {
-            title: selectedSource?.title || "New Adversarial Question",
-            category_id: selectedSource?.category_id || categories[0]?.category_id || 0,
-            difficulty: selectedSource?.difficulty || "Medium",
-            adv_question_id: generated.adv_question_id,
-        };
+    const handleValidate = async () => {
+    if (!generated) return;
 
-        onSubmit(payload);
-        onClose();
+    setIsValidating(true);
+    setValidationError(null);
+
+    // hardcoded for frontend - backend validation route isn't up yet.
+    // Swap this block for a real apiPost call once route exists.
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    setValidationResult({
+        source_answer: "This is a placeholder answer to the original source question.",
+        adversarial_answer: "This is a placeholder answer Gemini gave to the adversarial question.",
+    });
+    setIsValidating(false);
+};
+
+    const handleDeploy = () => {
+    if (!generated || !validationResult) return;
+
+    const payload: QuestionPayload = {
+        title: selectedSource?.title ?? "New Adversarial Question",
+        content: generated.content,
+        category_id: selectedSource?.category_id ?? categories[0]?.category_id ?? 0,
+        difficulty: selectedSource?.difficulty ?? "Medium",
+        type: selectedSource?.type ?? "TEXT",
+        maximum_score: selectedSource?.maximum_score ?? 10,
+        tags: Array.isArray(selectedSource?.tags)
+            ? selectedSource.tags
+            : selectedSource?.tags
+            ? [selectedSource.tags]
+            : [],
+        correct_answer: validationResult.adversarial_answer,
+        source_question_id: sourceQuestionId ?? undefined,
+        technique: strategies.find((s) => s.strategy_id === strategyId)?.strategy_name,
+        adv_question_id: generated.adv_question_id,
     };
+
+    onSubmit(payload);
+    onClose();
+};
 
     if(!isOpen) return null;
     
@@ -127,7 +171,8 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
             <label className="block text-sm font-medium mb-2">Source Question</label>
             <select 
               value={sourceQuestionId || ""} 
-              onChange={(e) => setSourceQuestionId(Number(e.target.value))}
+              onChange={(e) => {setSourceQuestionId(Number(e.target.value));
+                resetGenerationState(); }}
               className="w-full p-3 border border-default-border rounded bg-secondary-surface text-white-smoke"
             >
               <option value="">Select a source question...</option>
@@ -144,7 +189,8 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
             <label className="block text-sm font-medium mb-2">Adversarial Technique</label>
             <select
               value={strategyId ?? ""}
-              onChange={(e) => setStrategyId(e.target.value ? Number(e.target.value) : null)}
+              onChange={(e) => { setStrategyId(e.target.value ? Number(e.target.value) : null);
+              resetGenerationState(); }}
               disabled={strategiesLoading}
               className="w-full p-3 border border-default-border rounded bg-secondary-surface text-white-smoke"
             >
@@ -188,28 +234,90 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
   <p className="text-xs text-system-red">{generateError}</p>
 )}
 
-{/* Always Visible Preview Box */}
-<div className="border border-tertiary-surface rounded p-5 bg-secondary-surface min-h-50">
-  <h3 className="font-staatliches text-lg mb-3 flex items-center gap-2">
-    Generated Question Preview
-    {generated && <span className="text-status-success text-sm">✓ Ready</span>}
-  </h3>
+{/* Row 1: Original Source Question / Adversarial Question*/}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Original Source Question</h3>
+        {selectedSource ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {selectedSource.content}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Select source question
+            </div>
+        )}
+    </div>
 
-  {generated ? (
-    <div>
-      <div className="font-medium text-white-smoke mb-3">
-        {selectedSource?.title || "Generated Question"}
-      </div>
-      <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed border-l-2 border-system-red pl-4">
-        {generated.content}
-      </div>
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Adversarial Question</h3>
+        {generated?.content ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {generated.content}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Generated adversarial question will appear here
+            </div>
+        )}
     </div>
-  ) : (
-    <div className="text-white-smoke/40 italic text-center py-12">
-      AI generated question will appear here..
-    </div>
-  )}
 </div>
+
+{/* Validate button */}
+<div className="flex justify-end">
+    <button
+        type="button"
+        onClick={handleValidate}
+        disabled={!generated || isValidating}
+        className="px-6 py-2 bg-system-red text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center gap-2"
+    >
+        {isValidating && <RefreshCw className="animate-spin" size={16} />}
+        {isValidating ? "VALIDATING..." : "VALIDATE"}
+    </button>
+</div>
+
+{/* Row 2: Answer to Source Question / Gemini Response  */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Answer to Source Question</h3>
+        {validationResult?.source_answer ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {validationResult.source_answer}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Validation results will appear here
+            </div>
+        )}
+    </div>
+
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Gemini Response to Adversarial Question</h3>
+        {validationResult?.adversarial_answer ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {validationResult.adversarial_answer}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Validation results will appear here
+            </div>
+        )}
+    </div>
+</div>
+
+{/* Deploy button */}
+<div className="flex justify-end">
+    <button
+        type="button"
+        onClick={handleDeploy}
+        disabled={!validationResult || isSaving}
+        className="px-6 py-2 bg-system-red text-white rounded hover:bg-red-600 disabled:opacity-50"
+    >
+        {isSaving ? "DEPLOYING..." : "DEPLOY QUESTION"}
+    </button>
+</div>
+
+{validationError && <p className="text-xs text-system-red">{validationError}</p>}
 
 {selectedSource && (
   <div className="text-xs text-white-smoke/60 mt-2">
@@ -219,18 +327,7 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
 
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-tertiary-surface flex justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-2 border border-default-border rounded">Cancel</button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!generated || isSaving}
-            className="px-6 py-2 bg-system-red text-white rounded disabled:opacity-50"
-          >
-            SAVE ADVERSARIAL QUESTION
-          </button>
-        </div>
+        
       </div>
     </div>
   

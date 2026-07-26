@@ -61,10 +61,7 @@ export const defaultQuestionState: QuestionBuilderState = {
     functionSignature: "",
     starterCode: `def solve(nums, target):
     # Add the function body here.`,
-    options: [
-        createDefaultMCQQuestion(true),
-        createDefaultMCQQuestion(false),
-    ],
+    options: Array.from({length: 4}, (_,index) => createDefaultMCQQuestion(index === 0)),
     rubric: "",
     expectedKeywords: [],
     blanks: [],
