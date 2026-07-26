@@ -34,7 +34,7 @@ function mapCandidateAssessment(session: CandidateAssessmentApi): AssessmentCard
         title: session.assessment.title,
         description: session.assessment.description ?? "No description provided.",
         durationMins: session.assessment.duration_mins,
-        status: 'READY TO START',
+        status: session.status === "STARTED" ? "Ready to start." : session.status,
         startTime: session.start_time ?? null,
         endTime: session.end_time ?? null,
     };
