@@ -1,4 +1,4 @@
-import { MCQOption, TestCase, QuestionType } from "./question-builder"
+import { MCQOption, TestCase } from "./question-builder"
 
 export interface QuestionBank {
     question_bank_id: number,

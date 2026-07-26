@@ -159,7 +159,7 @@ export default function CodingBuilder({question, update}: CodingBuilderProps) {
                             </span>
                         </div>
                         <p className="text-xs text-default-border">
-                            Enter only the function name and parameters. The 'def' keyword and colon are fixed.
+                            Enter only the function name and parameters. The &apos;def&apos; keyword and colon are fixed.
                         </p>
                     </div>
                 </div>

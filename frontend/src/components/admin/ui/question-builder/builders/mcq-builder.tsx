@@ -1,7 +1,7 @@
 "use client"
 
 import { Plus } from "lucide-react";
-import { MCQOption, QuestionBuilderState } from "@/app/(admin)/types/question-builder";
+import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 import MCQOptionCard from "../mcq-option-card";
 
 type MCQBuilderProps = Readonly <{
@@ -15,18 +15,6 @@ type MCQBuilderProps = Readonly <{
 export default function MCQBuilder({question, update}: MCQBuilderProps) {
     const setCorrectAnswer = (selectedId: string) => {
         update("options", question.options.map((option) => ({...option, isCorrect: option.id === selectedId})));
-    };
-    
-    const updateOption = (updated: MCQOption) => {
-        if(updated.isCorrect) {
-            setCorrectAnswer(updated.id);
-            return;
-        }
-
-        update("options", question.options.map((option) => 
-                option.id === updated.id ? updated : option
-            )
-        );
     };
 
     return (
@@ -68,7 +56,16 @@ export default function MCQBuilder({question, update}: MCQBuilderProps) {
                         index={index}
                         disabled={question.options.length <= 2}
                         onDelete={() => update("options", question.options.filter((o) => o.id !== option.id))}
-                        onChange={updateOption}
+                        onChange={(updated) => {
+                            if (updated.isCorrect) {
+                                setCorrectAnswer(updated.id);
+                                return;
+                            }
+
+                            update("options", question.options.map((currentOption) => 
+                                currentOption.id === updated.id ? updated : currentOption
+                            ));
+                        }}
                     />
                 ))}
             </div>

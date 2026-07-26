@@ -6,27 +6,39 @@ from fastapi import HTTPException
 from app.schema.question import QuestionCreation, QuestionUpdate
 from app.services.question_management import create_source_question, get_all_questions, get_filtered_questions, update_question
 
-def test_create_source_question_success():
+
+SQL_JOIN_CONTENT = (
+    "Complete the SQL query.\n\n"
+    "SELECT DISTINCT u.email\n"
+    "FROM users u\n"
+    "[A] candidate_assessments ca ON u.user_id = ca.candidate_id;"
+)
+
+
+def _mock_create_question_db():
     mock_db = MagicMock()
     mock_category = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = mock_category #this is how we chained the SQLAlchemy in our service function
-    payload = QuestionCreation(
-        title="SQL Join Blank",
-        content=(
-            "Complete the SQL query.\n\n"
-            "SELECT DISTINCT u.email\n"
-            "FROM users u\n"
-            "[A] candidate_assessments ca ON u.user_id = ca.candidate_id;"
-        ),
-        type="TEXT",
-        maximum_score=5,
-        correct_answer={"answer": {"A": "INNER JOIN"}},
-        question_metadata={"blanks": ["A"]},
-        tags=["sql"],
-        category_id=1,
-        difficulty="Easy",
-    )
-    question = create_source_question(mock_db, payload)
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_category
+    return mock_db
+
+
+def _build_sql_join_payload(**overrides) -> QuestionCreation:
+    payload_data = {
+        "title": "SQL Join Blank",
+        "content": SQL_JOIN_CONTENT,
+        "type": "TEXT",
+        "maximum_score": 5,
+        "correct_answer": {"answer": {"A": "INNER JOIN"}},
+        "question_metadata": {"blanks": ["A"]},
+        "tags": ["sql"],
+        "category_id": 1,
+        "difficulty": "Easy",
+    }
+    payload_data.update(overrides)
+    return QuestionCreation(**payload_data)
+
+
+def _assert_sql_join_question(question):
     assert question.title == "SQL Join Blank"
     assert question.content.startswith("Complete the SQL query.")
     assert question.type.value == "FILL_IN_THE_BLANK"
@@ -34,6 +46,12 @@ def test_create_source_question_success():
     assert question.correct_answer == {"answer": {"A": "INNER JOIN"}}
     assert question.maximum_score == 5
     assert question.tags == ["sql"]
+
+def test_create_source_question_success():
+    mock_db = _mock_create_question_db()
+    payload = _build_sql_join_payload()
+    question = create_source_question(mock_db, payload)
+    _assert_sql_join_question(question)
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
@@ -81,31 +99,10 @@ def test_create_source_question_mcq_success():
 
 
 def test_create_source_question_fill_in_blank_success():
-    mock_db = MagicMock()
-    mock_category = MagicMock()
-    mock_db.query.return_value.filter.return_value.first.return_value = mock_category
-    payload = QuestionCreation(
-        title="SQL Join Blank",
-        content=(
-            "Complete the SQL query.\n\n"
-            "SELECT DISTINCT u.email\n"
-            "FROM users u\n"
-            "[A] candidate_assessments ca ON u.user_id = ca.candidate_id;"
-        ),
-        type="TEXT",
-        maximum_score=5,
-        correct_answer={"answer": {"A": "INNER JOIN"}},
-        question_metadata={"blanks": ["A"]},
-        tags=["sql"],
-        category_id=1,
-        difficulty="Easy",
-    )
+    mock_db = _mock_create_question_db()
+    payload = _build_sql_join_payload()
     question = create_source_question(mock_db, payload)
-    assert question.title == "SQL Join Blank"
-    assert question.type.value == "FILL_IN_THE_BLANK"
-    assert question.question_metadata == {"blanks": ["A"]}
-    assert question.correct_answer == {"answer": {"A": "INNER JOIN"}}
-    assert question.tags == ["sql"]
+    _assert_sql_join_question(question)
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
