@@ -70,3 +70,27 @@ class QuestionUpdate(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CodingReferenceExecutionRequest(BaseModel):
+    question_metadata: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Coding question metadata including function_name and signature",
+    )
+    implementation: str = Field(
+        ..., min_length=1, description="Reference implementation to execute"
+    )
+    input_data: Optional[str] = Field(
+        default=None,
+        description="Python-literal input to pass to the function",
+    )
+    language: str = Field(default="python")
+    version: Optional[str] = Field(default=None)
+
+
+class CodingReferenceExecutionResponse(BaseModel):
+    source_code: str
+    stdout: str
+    stderr: str
+    compiled: bool
+    error_message: Optional[str] = None
