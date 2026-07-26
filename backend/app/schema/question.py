@@ -75,7 +75,7 @@ class QuestionUpdate(BaseModel):
 class CodingReferenceExecutionRequest(BaseModel):
     question_metadata: Optional[dict[str, Any]] = Field(
         default=None,
-        description="Coding question metadata including function_name and signature",
+        description="Coding question metadata including function_signature",
     )
     implementation: str = Field(
         ..., min_length=1, description="Reference implementation to execute"

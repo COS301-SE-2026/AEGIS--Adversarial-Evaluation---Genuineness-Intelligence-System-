@@ -9,7 +9,6 @@ def get_test_cases_by_question_id(
     db: Session,
     question_id: int
 ) -> list[CodingTestCase]:
-    question = get_source_question(db, question_id)
     return (
         db.query(CodingTestCase)
         .filter(CodingTestCase.question_id == question_id)
@@ -34,7 +33,7 @@ def get_source_question(
     if question.type != QuestionType.CODING:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Test cases can only be managed for coding source questions.",
+            detail="Test cases only managed with coding source questions.",
         )
     return question
 

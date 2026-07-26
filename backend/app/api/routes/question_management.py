@@ -4,6 +4,8 @@ from typing import Optional
 from app.core.security import get_current_user
 from app.database.database import get_db
 from app.schema.question import (
+    CodingReferenceExecutionRequest,
+    CodingReferenceExecutionResponse,
     QuestionCreation,
     QuestionResponse,
     QuestionUpdate
@@ -14,6 +16,7 @@ from app.services.question_management import (
     get_filtered_questions,
     update_question
 )
+from app.services.assessment import execute_reference_implementation
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
@@ -120,6 +123,29 @@ async def filter_questions(
     )
 
     return [build_question_response(q) for q in questions]
+
+
+@router.post(
+    "/source/execute",
+    response_model=CodingReferenceExecutionResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def execute_source_question_reference(
+    payload: CodingReferenceExecutionRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can run source question code.",
+        )
+    return execute_reference_implementation(
+        question_metadata=payload.question_metadata,
+        implementation=payload.implementation,
+        input_data=payload.input_data,
+        language=payload.language,
+        version=payload.version,
+    )
 
 
 @router.patch(
