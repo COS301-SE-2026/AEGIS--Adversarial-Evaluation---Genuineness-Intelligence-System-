@@ -86,6 +86,11 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
     }, [question]);
 
     function handleSave() {
+        const codingMetadata = question.type === "CODING"
+            ? {
+                function_signature: question.functionSignature.trim(),
+            }
+            : undefined;
         
         const payload: QuestionPayload = {
             
@@ -96,7 +101,9 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
             maximum_score: question.maximum_score,
             tags: question.tags,
             type: question.type,
-            correct_answer: "",
+            correct_answer: question.type === "CODING" ? question.starterCode : "",
+            question_metadata: codingMetadata,
+            testCases: question.type === "CODING" ? question.testCases : undefined,
             source_question_id: -1,
             technique: "",
         };
