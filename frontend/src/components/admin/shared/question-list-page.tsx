@@ -300,6 +300,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
           <div className="p-4 py-6 sm:p-6 lg:px-8 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button
+                title={config.newButtonLabel.toLowerCase().includes("adverserial") ? "Use AI to weaponise a source question." : config.newButtonLabel}
                 type="button"
                 onClick={() => setIsCreateOpen(true)}
                 className="inline-flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base whitespace-nowrap duration-300 cursor-pointer"
@@ -310,7 +311,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
               </button>
 
               {config.helpConfig && (
-                <button type="button" onClick={()=>setIsHelpOpen(true)} className="inline-flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+                <button title="Open the help guide." type="button" onClick={()=>setIsHelpOpen(true)} className="inline-flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
                   <HelpCircle size={18}/>
                   <span>Help</span>
                 </button>
