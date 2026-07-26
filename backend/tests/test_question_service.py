@@ -95,17 +95,22 @@ def test_delete_question_blocked_by_test_cases():
     mock_test_cases = [MagicMock()]
     mock_db = _mock_delete_db(question=mock_question, adversarial=[], test_cases=mock_test_cases)
 
-    with pytest.raises(HTTPException) as exc:
-        delete_source_question(mock_db, question_id=1)
+    delete_source_question(mock_db, question_id=1)
 
-    assert exc.value.status_code == status.HTTP_400_BAD_REQUEST
+    mock_db.delete.assert_any_call(mock_test_cases[0])
+    mock_db.delete.assert_any_call(mock_question)
+    assert mock_db.delete.call_count == 2
+    mock_db.commit.assert_called_once()
 
 
 def test_delete_question_success():
     mock_question = MagicMock()
-    mock_db = _mock_delete_db(question=mock_question, adversarial=[], test_cases=[])
+    mock_test_case = MagicMock()
+    mock_db = _mock_delete_db(question=mock_question, adversarial=[], test_cases=[mock_test_case])
 
     delete_source_question(mock_db, question_id=1)
 
-    mock_db.delete.assert_called_once_with(mock_question)
+    mock_db.delete.assert_any_call(mock_test_case)
+    mock_db.delete.assert_any_call(mock_question)
+    assert mock_db.delete.call_count == 2
     mock_db.commit.assert_called_once()

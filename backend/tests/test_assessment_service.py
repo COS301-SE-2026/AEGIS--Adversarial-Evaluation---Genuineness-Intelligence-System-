@@ -22,6 +22,7 @@ from app.services.assessment import (
     create_candidate_assessment,
     execute_code_questions,
     execute_candidate_code,
+    execute_reference_implementation,
     extract_piston_stdout,
     get_all_assessments,
     get_assessment_by_id,
@@ -439,6 +440,56 @@ def test_execute_code_questions_with_piston_error(monkeypatch):
     assert result["Failed"] == 1
     assert result["Results"][0]["passed"] is False
     assert result["Results"][0]["error_message"] == "boom"
+
+
+def test_execute_reference_implementation_returns_stdout():
+    mock_piston_client = MagicMock()
+    mock_piston_client.execute.return_value = {
+        "run": {"stdout": "[0, 1]\n", "stderr": ""}
+    }
+    result = execute_reference_implementation(
+        question_metadata={
+            "function_name": "two_sum",
+            "function_signature": "def two_sum(nums, target)",
+        },
+        implementation=(
+            "def two_sum(nums, target):\n"
+            "    seen = {}\n"
+            "    for i, num in enumerate(nums):\n"
+            "        complement = target - num\n"
+            "        if complement in seen:\n"
+            "            return sorted([seen[complement], i])\n"
+            "        seen[num] = i\n"
+        ),
+        input_data="([2, 7, 11, 15], 9)",
+        piston_client=mock_piston_client,
+    )
+    assert result["compiled"] is True
+    assert result["stdout"] == "[0, 1]\n"
+    assert result["stderr"] == ""
+    assert result["error_message"] is None
+    assert "result = two_sum([2, 7, 11, 15], 9)" in result["source_code"]
+    mock_piston_client.execute.assert_called_once()
+
+
+def test_execute_reference_implementation_returns_error_message():
+    mock_piston_client = MagicMock()
+    mock_piston_client.execute.return_value = {
+        "run": {"stdout": "", "stderr": "NameError: two_sum is not defined\n"}
+    }
+    result = execute_reference_implementation(
+        question_metadata={
+            "function_name": "two_sum",
+            "function_signature": "def two_sum(nums, target)",
+        },
+        implementation="def two_sum(nums, target):\n    return []\n",
+        input_data="([2, 7, 11, 15], 9)",
+        piston_client=mock_piston_client,
+    )
+    assert result["compiled"] is False
+    assert result["stdout"] == ""
+    assert result["stderr"] == "NameError: two_sum is not defined\n"
+    assert result["error_message"] == "NameError: two_sum is not defined\n"
 
 def test_execute_candidate_code_success_new_response(monkeypatch):
     mock_db = MagicMock()
