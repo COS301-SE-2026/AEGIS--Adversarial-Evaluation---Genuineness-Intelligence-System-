@@ -25,9 +25,9 @@ export default function QuestionTable({
     onDelete,
 }: QuestionTableProps) {
     const difficultyStyle = (difficulty: string) => {
-        switch (difficulty) {
-            case "Easy":  return "bg-status-success/20 text-status-success";
-            case "Medium": return "bg-status-warning/20 text-status-warning";
+        switch (difficulty.toLowerCase()) {
+            case "easy":  return "bg-status-success/20 text-status-success";
+            case "medium": return "bg-status-warning/20 text-status-warning";
             default: return "bg-system-red/20 text-system-red";
         }
     };
