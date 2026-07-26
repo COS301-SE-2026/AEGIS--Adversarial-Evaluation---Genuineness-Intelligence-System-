@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, RefreshCw, Sparkles } from "lucide-react";
 import { QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
-import { apiGet, apiPost } from "@/lib/apiClient";
+import { apiGet, apiPatch, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 
 
@@ -92,6 +92,8 @@ const [validationError, setValidationError] = useState<string | null>(null);
 const [isValidating, setIsValidating] = useState(false);
 const [deployError, setDeployError] = useState<string | null>(null);
 const [isDeploying, setIsDeploying] = useState(false);
+const [regenerateError, setRegenerateError] = useState<string | null>(null);
+const [isRegenerating, setIsRegenerating] = useState(false);
     const selectedSource = questions.find(q => q.question_bank_id === sourceQuestionId);
 
     useEffect(() => {
@@ -145,6 +147,29 @@ const [isDeploying, setIsDeploying] = useState(false);
             );
         } finally {
             setIsGenerating(false);
+        }
+    };
+
+    const handleRegenerate = async () => {
+        if (!generated || !strategyId) return;
+
+        setIsRegenerating(true);
+        setRegenerateError(null);
+        try {
+            const response = await apiPatch<GeneratedAdversarialQuestion>(
+                `/api/v1/adversarial-questions/${generated.adv_question_id}/regenerate`,
+                { strategy_id: strategyId },
+                { headers: getAuthHeaders() }
+            );
+            setGenerated(response);
+            setValidationResult(null);
+            setValidationError(null);
+        } catch (err) {
+            setRegenerateError(
+                err instanceof Error ? err.message : "Failed to regenerate adversarial question."
+            );
+        } finally {
+            setIsRegenerating(false);
         }
     };
 
