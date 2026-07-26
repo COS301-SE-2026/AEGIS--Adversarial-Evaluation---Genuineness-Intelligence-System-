@@ -107,13 +107,14 @@ export default function AssessmentsPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <button type="button" onClick={()=>setIsHelpOpen(true)} className="flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+              <button title="Open the help guide" type="button" onClick={()=>setIsHelpOpen(true)} className="flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
                 <HelpCircle size={18}/>
                 <span>Help</span>
               </button>
 
               {/*Create Assessment button*/}
               <button
+              title="Create a new assessment."
               onClick={() => setPanelOpen(true)}
               className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-staatliches tracking-wider">
                 <span>+ New Assessment</span>
@@ -147,7 +148,7 @@ export default function AssessmentsPage() {
               </div>
             </div>
           ) : filtered.length > 0 ? (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(310px,1fr))] gap-3.5">
+            <div title="Assign assessments to candidates" className="grid grid-cols-[repeat(auto-fill,minmax(310px,1fr))] gap-3.5">
               {filtered.map((a) => (
                 <AssessmentCard key={a.assessment_id} assessment={a} />
               ))}
