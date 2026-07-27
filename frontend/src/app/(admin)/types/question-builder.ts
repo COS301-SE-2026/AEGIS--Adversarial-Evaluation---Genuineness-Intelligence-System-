@@ -48,6 +48,10 @@ export const createDefaultMCQQuestion = (isCorrect = false): MCQOption => ({
     text: "",
     isCorrect,
 })
+// Mock template used to pre-populate a brand new Fill-in-the-Blank question
+export const FILL_BLANKS_PLACEHOLDER_TEMPLATE = `Complete the SQL query.
+
+SELECT * FROM users [A] age > 18 [B] status = 'active';`;
 
 export const defaultQuestionState: QuestionBuilderState = {
     type: "CODING",
