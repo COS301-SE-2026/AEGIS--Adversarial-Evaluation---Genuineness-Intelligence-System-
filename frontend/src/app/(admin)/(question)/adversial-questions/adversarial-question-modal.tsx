@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, RefreshCw, Sparkles } from "lucide-react";
 import { QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
-import { apiGet, apiPost } from "@/lib/apiClient";
+import { apiGet, apiPatch, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 
 
@@ -23,10 +23,48 @@ interface GeneratedAdversarialQuestion {
     generated_at: string;
 }
 
-// still need to swap in the real shape/endpoint once the validation route exists on the backend.
 interface ValidationResult {
     source_answer: string;
     adversarial_answer: string;
+}
+
+interface TestCaseResult {
+    test_case_id: number;
+    input_data: string;
+    expected_output: string;
+    actual_output: string | null;
+    passed: boolean;
+}
+
+interface CodeExecutionComparison {
+    correct_answer_results: TestCaseResult[];
+    gemini_results: TestCaseResult[];
+}
+
+interface ValidateApiResponse {
+    adv_question_id: number;
+    weaponised_question: string;
+    correct_answer: string;
+    predicted_wrong_answer: string;
+    gemini_response: string;
+    gemini_took_bait: boolean;
+    question_type: string;
+    test_case_results: CodeExecutionComparison | null;
+    piston_note: string | null;
+}
+
+interface SavedAdversarialQuestion {
+    adv_question_id: number;
+    source_question_id: number;
+    content: string;
+    strategy_id: number;
+    llm: string | null;
+    generated_at: string;
+    correct_answer: string | null;
+    predicted_wrong_answer: string | null;
+    trap_mechanism: string | null;
+    pattern_used: string | null;
+    validation_status: string;
 }
 
 interface AdversarialQuestionModalProps {
@@ -40,7 +78,7 @@ interface AdversarialQuestionModalProps {
     isSaving?: boolean;
 }
 
-export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, onSubmit, isSaving = false, mode, question_id}: AdversarialQuestionModalProps) {
+export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, mode, question_id}: AdversarialQuestionModalProps) {
     const [sourceQuestionId, setSourceQuestionId] = useState<number | null>(null);
     const [strategyId, setStrategyId] = useState<number | null>(null);
     const [strategies, setStrategies] = useState<AdversarialStrategy[]>([]);
@@ -52,6 +90,10 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
 const [validationError, setValidationError] = useState<string | null>(null);
 const [isValidating, setIsValidating] = useState(false);
+const [deployError, setDeployError] = useState<string | null>(null);
+const [isDeploying, setIsDeploying] = useState(false);
+const [regenerateError, setRegenerateError] = useState<string | null>(null);
+const [isRegenerating, setIsRegenerating] = useState(false);
     const selectedSource = questions.find(q => q.question_bank_id === sourceQuestionId);
 
     useEffect(() => {
@@ -108,45 +150,74 @@ const [isValidating, setIsValidating] = useState(false);
         }
     };
 
+    const handleRegenerate = async () => {
+        if (!generated || !strategyId) return;
+
+        setIsRegenerating(true);
+        setRegenerateError(null);
+        try {
+            const response = await apiPatch<GeneratedAdversarialQuestion>(
+                `/api/v1/adversarial-questions/${generated.adv_question_id}/regenerate`,
+                { strategy_id: strategyId },
+                { headers: getAuthHeaders() }
+            );
+            setGenerated(response);
+            setValidationResult(null);
+            setValidationError(null);
+        } catch (err) {
+            setRegenerateError(
+                err instanceof Error ? err.message : "Failed to regenerate adversarial question."
+            );
+        } finally {
+            setIsRegenerating(false);
+        }
+    };
+
     const handleValidate = async () => {
     if (!generated) return;
 
     setIsValidating(true);
     setValidationError(null);
 
-    // hardcoded for frontend - backend validation route isn't up yet.
-    // Swap this block for a real apiPost call once route exists.
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    setValidationResult({
-        source_answer: "This is a placeholder answer to the original source question.",
-        adversarial_answer: "This is a placeholder answer Gemini gave to the adversarial question.",
-    });
-    setIsValidating(false);
+    try {
+        const response = await apiPost<ValidateApiResponse>(
+            `/api/v1/adversarial-questions/${generated.adv_question_id}/validate`,
+            undefined,
+            { headers: getAuthHeaders() }
+        );
+        setValidationResult({
+            source_answer: response.correct_answer,
+            adversarial_answer: response.gemini_response,
+        });
+    } catch (err) {
+        setValidationError(
+            err instanceof Error ? err.message : "Failed to validate adversarial question."
+        );
+    } finally {
+        setIsValidating(false);
+    }
 };
 
-    const handleDeploy = () => {
+    const handleDeploy = async () => {
     if (!generated || !validationResult) return;
 
-    const payload: QuestionPayload = {
-        title: selectedSource?.title ?? "New Adversarial Question",
-        content: generated.content,
-        category_id: selectedSource?.category_id ?? categories[0]?.category_id ?? 0,
-        difficulty: selectedSource?.difficulty ?? "Medium",
-        type: selectedSource?.type ?? "TEXT",
-        maximum_score: selectedSource?.maximum_score ?? 10,
-        tags: Array.isArray(selectedSource?.tags)
-            ? selectedSource.tags
-            : selectedSource?.tags
-            ? [selectedSource.tags]
-            : [],
-        correct_answer: validationResult.adversarial_answer,
-        source_question_id: sourceQuestionId ?? undefined,
-        technique: strategies.find((s) => s.strategy_id === strategyId)?.strategy_name,
-        adv_question_id: generated.adv_question_id,
-    };
+    setIsDeploying(true);
+    setDeployError(null);
 
-    onSubmit(payload);
-    onClose();
+    try {
+        await apiPost<SavedAdversarialQuestion>(
+            `/api/v1/adversarial-questions/${generated.adv_question_id}/save`,
+            undefined,
+            { headers: getAuthHeaders() }
+        );
+        onClose();
+    } catch (err) {
+        setDeployError(
+            err instanceof Error ? err.message : "Failed to save adversarial question."
+        );
+    } finally {
+        setIsDeploying(false);
+    }
 };
 
     if(!isOpen) return null;
@@ -222,16 +293,20 @@ const [isValidating, setIsValidating] = useState(false);
 
   <button
     type="button"
-    onClick={handleGenerate}
-    disabled={!generated || isGenerating}
-    className="flex-1 py-3 border border-default-border text-white-smoke rounded hover:bg-tertiary-surface disabled:opacity-50"
+    onClick={handleRegenerate}
+    disabled={!generated || !strategyId || isRegenerating || isGenerating}
+    className="flex-1 py-3 border border-default-border text-white-smoke rounded flex items-center justify-center gap-2 hover:bg-tertiary-surface disabled:opacity-50"
   >
-    REGENERATE
+    {isRegenerating && <RefreshCw className="animate-spin" size={16} />}
+    {isRegenerating ? "REGENERATING..." : "REGENERATE"}
   </button>
 </div>
 
 {generateError && (
   <p className="text-xs text-system-red">{generateError}</p>
+)}
+{regenerateError && (
+  <p className="text-xs text-system-red">{regenerateError}</p>
 )}
 
 {/* Row 1: Original Source Question / Adversarial Question*/}
@@ -310,14 +385,15 @@ const [isValidating, setIsValidating] = useState(false);
     <button
         type="button"
         onClick={handleDeploy}
-        disabled={!validationResult || isSaving}
+        disabled={!validationResult || isDeploying}
         className="px-6 py-2 bg-system-red text-white rounded hover:bg-red-600 disabled:opacity-50"
     >
-        {isSaving ? "DEPLOYING..." : "DEPLOY QUESTION"}
+        {isDeploying ? "DEPLOYING..." : "DEPLOY QUESTION"}
     </button>
 </div>
 
 {validationError && <p className="text-xs text-system-red">{validationError}</p>}
+{deployError && <p className="text-xs text-system-red">{deployError}</p>}
 
 {selectedSource && (
   <div className="text-xs text-white-smoke/60 mt-2">
