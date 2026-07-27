@@ -21,6 +21,7 @@ export default function UniversalFields({
 }: UniversalFieldsProps) {
     
     const difficulties = ["Easy", "Medium", "Hard"] as const;
+    const isFillBlanks = question.type === "FILL_BLANKS";
 
     return (
         <div className="space-y-6 bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
@@ -43,7 +44,7 @@ export default function UniversalFields({
                     className="w-full px-4 py-2 bg-background border border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors"
                 />
             </div>
-
+            {!isFillBlanks && (
             <div className="flex-1 flex flex-col bg-secondary-surface rounded-lg ">
                 <label
                     htmlFor="question-description"
@@ -59,7 +60,7 @@ export default function UniversalFields({
                     className="w-full flex-1 min-h-30 p-4 bg-background border border-default-border rounded text-default-text text:sm focus:outline-none focus:border-system-red transition-colors resize-y"
                 />
             </div>
-
+            )}
             <div className="space-y-2">
                 <label 
                     htmlFor="question-category"

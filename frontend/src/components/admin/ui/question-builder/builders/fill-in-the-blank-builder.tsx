@@ -1,75 +1,276 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
+import { useEffect, useMemo, useRef } from "react";
+import { Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { FillBlank, FILL_BLANKS_PLACEHOLDER_TEMPLATE, QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
-type FillBlanksBuilderProps = Readonly <{
+// Matches a well-formed marker like "[A]"
+const MARKER_TOKEN_REGEX = /\[[^\]]*\]|\[|\]/g;
+const VALID_MARKER_REGEX = /^\[[A-Z]\]$/;
+const MAX_BLANKS = 26; // A - Z
+
+interface TemplateAnalysis {
+    validLetters: string[]; // unique, in order of first appearance
+    malformedTokens: string[];
+    duplicates: string[];
+}
+
+function analyzeTemplate(content: string): TemplateAnalysis {
+    const tokens = content.match(MARKER_TOKEN_REGEX) ?? [];
+    const validLetters: string[] = [];
+    const malformedTokens: string[] = [];
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+
+    for (const token of tokens) {
+        if (VALID_MARKER_REGEX.test(token)) {
+            const letter = token.slice(1, -1);
+            if (seen.has(letter)) {
+                duplicates.add(letter);
+            } else {
+                seen.add(letter);
+                validLetters.push(letter);
+            }
+        } else {
+            malformedTokens.push(token);
+        }
+    }
+    return { validLetters, malformedTokens, duplicates: Array.from(duplicates) };
+}
+
+ // Helper to find the next letter based on existing blanks
+    function nextLetterFor(existingLetters: string[]): string | null {
+    const maxCode = existingLetters.reduce(
+        (max, letter) => Math.max(max, letter.charCodeAt(0)),
+        "A".charCodeAt(0) - 1
+    );
+    const nextCode = maxCode + 1;
+    if (nextCode > "Z".charCodeAt(0)) return null;
+    return String.fromCharCode(nextCode);
+}
+
+type FillBlanksBuilderProps = Readonly<{
     question: QuestionBuilderState;
     update<K extends keyof QuestionBuilderState>(
         key: K,
         value: QuestionBuilderState[K]
-    ) : void;
-}>
+    ): void;
+}>;
 
-export default function FillBlanksBuilder({question, update}: FillBlanksBuilderProps) {
-    
-    const updateBlank = (id: string, value: string) => {
-       update("blanks", question.blanks.map(blank => blank.id === id ? {...blank, answer: value} : blank))
+export default function FillBlanksBuilder({ question, update }: FillBlanksBuilderProps) {
+    const updateBlankAnswer = (id: string, value: string) => {
+        update(
+            "blanks",
+            question.blanks.map((blank) =>
+                blank.id === id ? { ...blank, answer: value } : blank
+            )
+        );
     };
+
+        const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+        const analysis = useMemo(() => analyzeTemplate(question.content), [question.content]);
+        
+        const canInsertMore = analysis.validLetters.length < MAX_BLANKS;
+        const hasMalformed = analysis.malformedTokens.length > 0 || analysis.duplicates.length > 0;
+
+        const loadPlaceholder = () => {
+    update("content", FILL_BLANKS_PLACEHOLDER_TEMPLATE);
+};
+       
+const detectedKey = analysis.validLetters.join(",");
+
+// Deliberately re-run only when the detected letters change to avoid a sync loop.
+// eslint-disable-next-line react-hooks/exhaustive-deps
+useEffect(() => {
+    const nextBlanks: FillBlank[] = analysis.validLetters.map((letter) => {
+        const existing = question.blanks.find((blank) => blank.id === letter);
+        return { id: letter, answer: existing?.answer ?? "" };
+    });
+
+    const isSame =
+        nextBlanks.length === question.blanks.length &&
+        nextBlanks.every((blank, index) => blank.id === question.blanks[index]?.id);
+
+    if (!isSame) {
+        update("blanks", nextBlanks);
+    }
+}, [detectedKey]);
+
+
+       
+
+
+        
 
     const removeBlank = (id: string) => {
-        update("blanks", question.blanks.filter(blank => blank.id !== id ));
-    };
+    update("content", question.content.split(`[${id}]`).join(""));
+    update(
+        "blanks",
+        question.blanks.filter((blank) => blank.id !== id)
+    );
+};
+
+    
+const insertBlank = () => {
+    const letter = nextLetterFor(analysis.validLetters);
+    if (!letter) return;
+
+    const marker = `[${letter}]`;
+    const textarea = textareaRef.current;
+
+    if (textarea) {
+        const start = textarea.selectionStart ?? question.content.length;
+        const end = textarea.selectionEnd ?? question.content.length;
+        const newContent = `${question.content.slice(0, start)}${marker}${question.content.slice(end)}`;
+        update("content", newContent);
+
+        requestAnimationFrame(() => {
+            textarea.focus();
+            const cursor = start + marker.length;
+            textarea.setSelectionRange(cursor, cursor);
+        });
+    } else {
+        const spacer = question.content && !question.content.endsWith(" ") ? " " : "";
+        update("content", `${question.content}${spacer}${marker}`);
+    }
+};
 
     return (
         <div className="space-y-6">
-            
-            <div className="flex items-center justify-between">
-                
+            <div className="flex items-start justify-between gap-4">
                 <div>
-                    <h2 className="text-xl tracking-widest">
-                        Accepted Answers
-                    </h2>
+                    <h2 className="text-xl tracking-widest">Description / Template</h2>
                     <p className="text-sm text-default-border">
-                        Add one acceptable answer for each blank space.
+                        Write the question text, then use the Insert Blank button below to drop numbered gaps
+                        like <span className="text-system-red">[A]</span> where candidates must fill in an
+                        answer.
                     </p>
                 </div>
-
                 <button
-                    type="button"
-                    onClick={() => update("blanks", [ ...question.blanks, {id: crypto.randomUUID(), answer:"",} ])}
-                    className="flex items-center gap-2 rounded bg-system-red px-4 py-2 font-staatliches tracking-widest"
-                >
-                    <Plus size={16}/>
-                    <span>Add Blank</span>
-                </button>
+    type="button"
+    onClick={loadPlaceholder}
+    className="shrink-0 text-xs uppercase tracking-wider text-default-border underline hover:text-system-red cursor-pointer"
+>
+    Load example
+</button>
+            </div>
+
+            <div className="rounded-lg border border-tertiary-surface bg-secondary-surface p-4 space-y-3">
+                <textarea
+                    ref={textareaRef}
+                    value={question.content}
+                    onChange={(event) => update("content", event.target.value)}
+                    placeholder={"e.g. SELECT * FROM users [A] age > 18 [B] status = 'active';"}
+                    className="w-full min-h-40 p-4 bg-background border border-default-border rounded text-default-text text-sm font-mono focus:outline-none focus:border-system-red transition-colors resize-y"
+                />
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={insertBlank}
+                        disabled={!canInsertMore}
+                        title={canInsertMore ? undefined : "Maximum of 26 blanks (A-Z) reached"}
+                        className="flex items-center gap-2 rounded bg-system-red px-4 py-2 font-staatliches tracking-widest text-sm cursor-pointer hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100">
+                        <Plus size={16} />
+                        <span>Insert Blank</span>
+                    </button>
+
+                            {hasMalformed && (
+            <div className="flex items-start gap-2 rounded border border-status-warning/40 bg-status-warning/10 px-3 py-2 text-xs text-status-warning">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                    {analysis.malformedTokens.length > 0 && (
+                        <p>
+                            Malformed marker{analysis.malformedTokens.length > 1 ? "s" : ""} found:{" "}
+                            {analysis.malformedTokens.map((token, i) => (
+                                <code key={`${token}-${i}`} className="mx-0.5 px-1 rounded bg-background">
+                                    {token || "empty bracket"}
+                                </code>
+                            ))}
+                            . Blanks must look exactly like{" "}
+                            <code className="px-1 rounded bg-background">[A]</code>.
+                        </p>
+                    )}
+                    {analysis.duplicates.length > 0 && (
+                        <p>
+                            Duplicate blank letter{analysis.duplicates.length > 1 ? "s" : ""}:{" "}
+                            {analysis.duplicates.map((letter) => (
+                                <code key={letter} className="mx-0.5 px-1 rounded bg-background">
+                                    [{letter}]
+                                </code>
+                            ))}
+                            . Each letter should only be used once.
+                        </p>
+                    )}
+                </div>
+            </div>
+        )}
+
+        {!hasMalformed && analysis.validLetters.length > 0 && (
+            <div className="flex items-center gap-2 text-xs text-status-success">
+                <CheckCircle2 size={14} />
+                <span>
+                    Template looks good — {analysis.validLetters.length} blank
+                    {analysis.validLetters.length > 1 ? "s" : ""} detected.
+                </span>
+            </div>
+        )}
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs uppercase tracking-wider text-default-border">
+                            Detected Blanks:
+                        </span>
+                        {analysis.validLetters.length === 0 ? (
+                            <span className="text-xs text-default-border/70">None yet</span>
+                        ) : (
+                            analysis.validLetters.map((letter) => (
+                                <span
+                                    key={letter}
+                                    className="px-2 py-0.5 rounded border border-status-success/40 bg-status-success/10 text-status-success text-xs font-staatliches tracking-wider"
+                                >
+                                    [{letter}]
+                                </span>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-4">
-                {question.blanks.map((blank, index) => (
-                    <div
-                        key={index}
-                        className="flex items-center gap-4 rounded-lg border border-tertiary-surface bg-secondary-surface p-4"
-                    >
-                        <input
-                            value={blank.id}
-                            onChange={(element) => updateBlank(blank.id, element.target.value)}
-                            placeholder={`Blank ${index + 1}`}
-                            className="flex-1 rounded border border-default-border bg-background px-4 py-2 focus:border-system-red focus:outline-none"
-                        />
+    <h3 className="text-sm uppercase tracking-wider text-default-border">Accepted Answers</h3>
 
-                        <button
-                            type="button"
-                            onClick={() => removeBlank(blank.id)}
-                            className="text-default-border hover:bg-system-red"
-                        >
-                            <Trash2 size={18}/>
-                        </button>
+    {question.blanks.length === 0 ? (
+        <p className="text-sm text-default-border/70 italic">
+            No blanks yet — click Insert Blank above to add one.
+        </p>
+    ) : (
+        question.blanks.map((blank) => (
+            <div
+                key={blank.id}
+                className="flex items-center gap-4 rounded-lg border border-tertiary-surface bg-secondary-surface p-4"
+            >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-system-red/40 bg-system-red/10 text-system-red font-staatliches text-sm">
+                    {blank.id}
+                </span>
 
-                    </div>
-                ))}
+                <input
+                    value={blank.answer}
+                    onChange={(element) => updateBlankAnswer(blank.id, element.target.value)}
+                    placeholder={`Accepted answer for [${blank.id}]`}
+                    className="flex-1 rounded border border-default-border bg-background px-4 py-2 focus:border-system-red focus:outline-none"
+                />
+
+                <button
+                    type="button"
+                    onClick={() => removeBlank(blank.id)}
+                    className="text-default-border hover:text-system-red transition-colors cursor-pointer"
+                >
+                    <Trash2 size={18} />
+                </button>
             </div>
-
+        ))
+    )}
+</div>
         </div>
-    )
+    );
 }
