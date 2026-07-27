@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { defaultQuestionState, QuestionBuilderState, QuestionType } from "@/app/(admin)/types/question-builder";
+import { defaultQuestionState, FILL_BLANKS_PLACEHOLDER_TEMPLATE, QuestionBuilderState, QuestionType } from "@/app/(admin)/types/question-builder";
 import { QuestionCategory, QuestionPayload } from "@/app/(admin)/types/questions";
 
 import QuestionTypeModal from "./question-type-modal";
@@ -36,7 +36,11 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
 
     function handleSelectedType(type: QuestionType) {
         setSelectedType(type);
-        setQuestion({...defaultQuestionState, type});
+        setQuestion({
+    ...defaultQuestionState,
+    type,
+    content: type === "FILL_BLANKS" ? FILL_BLANKS_PLACEHOLDER_TEMPLATE : defaultQuestionState.content,
+        });
     }
 
     const handleClose = () => {
