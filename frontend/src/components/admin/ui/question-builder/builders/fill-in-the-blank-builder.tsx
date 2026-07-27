@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { FILL_BLANKS_PLACEHOLDER_TEMPLATE, QuestionBuilderState } from "@/app/(admin)/types/question-builder";
+import { FillBlank, FILL_BLANKS_PLACEHOLDER_TEMPLATE, QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
 // Matches a well-formed marker like "[A]"
 const MARKER_TOKEN_REGEX = /\[[^\]]*\]|\[|\]/g;
 const VALID_MARKER_REGEX = /^\[[A-Z]\]$/;
+const MAX_BLANKS = 26; // A - Z
 
 interface TemplateAnalysis {
     validLetters: string[]; // unique, in order of first appearance
@@ -37,6 +38,17 @@ function analyzeTemplate(content: string): TemplateAnalysis {
     return { validLetters, malformedTokens, duplicates: Array.from(duplicates) };
 }
 
+ // Helper to find the next letter based on existing blanks
+    function nextLetterFor(existingLetters: string[]): string | null {
+    const maxCode = existingLetters.reduce(
+        (max, letter) => Math.max(max, letter.charCodeAt(0)),
+        "A".charCodeAt(0) - 1
+    );
+    const nextCode = maxCode + 1;
+    if (nextCode > "Z".charCodeAt(0)) return null;
+    return String.fromCharCode(nextCode);
+}
+
 type FillBlanksBuilderProps = Readonly<{
     question: QuestionBuilderState;
     update<K extends keyof QuestionBuilderState>(
@@ -57,7 +69,7 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
 
         const textareaRef = useRef<HTMLTextAreaElement | null>(null);
         const analysis = useMemo(() => analyzeTemplate(question.content), [question.content]);
-        const MAX_BLANKS = 26; // A - Z
+        
         const canInsertMore = analysis.validLetters.length < MAX_BLANKS;
         const hasMalformed = analysis.malformedTokens.length > 0 || analysis.duplicates.length > 0;
 
@@ -67,9 +79,10 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
        
 const detectedKey = analysis.validLetters.join(",");
 
-
+// Deliberately re-run only when the detected letters change to avoid a sync loop.
+// eslint-disable-next-line react-hooks/exhaustive-deps
 useEffect(() => {
-    const nextBlanks = analysis.validLetters.map((letter) => {
+    const nextBlanks: FillBlank[] = analysis.validLetters.map((letter) => {
         const existing = question.blanks.find((blank) => blank.id === letter);
         return { id: letter, answer: existing?.answer ?? "" };
     });
@@ -81,31 +94,25 @@ useEffect(() => {
     if (!isSame) {
         update("blanks", nextBlanks);
     }
-    
 }, [detectedKey]);
 
 
-        // Helper to find the next letter based on existing blanks
-        const nextLetter = (existingLetters: string[]): string | null => {
-    const maxCode = existingLetters.reduce(
-        (max, letter) => Math.max(max, letter.charCodeAt(0)),
-        "A".charCodeAt(0) - 1
-    );
-    const nextCode = maxCode + 1;
-    if (nextCode > "Z".charCodeAt(0)) return null;
-    return String.fromCharCode(nextCode);
-};
+       
 
 
         
 
     const removeBlank = (id: string) => {
-        update("content", question.content.split(`[${id}]`).join("")); //useEffect will automatically remove it
-    };
+    update("content", question.content.split(`[${id}]`).join(""));
+    update(
+        "blanks",
+        question.blanks.filter((blank) => blank.id !== id)
+    );
+};
 
     
 const insertBlank = () => {
-    const letter = nextLetter(analysis.validLetters);
+    const letter = nextLetterFor(analysis.validLetters);
     if (!letter) return;
 
     const marker = `[${letter}]`;
@@ -134,8 +141,9 @@ const insertBlank = () => {
                 <div>
                     <h2 className="text-xl tracking-widest">Description / Template</h2>
                     <p className="text-sm text-default-border">
-                        Write the question text, then use "Insert Blank" to drop numbered gaps like{" "}
-                        <span className="text-system-red">[A]</span> where candidates must fill in an answer.
+                        Write the question text, then use the Insert Blank button below to drop numbered gaps
+                        like <span className="text-system-red">[A]</span> where candidates must fill in an
+                        answer.
                     </p>
                 </div>
                 <button
@@ -233,7 +241,7 @@ const insertBlank = () => {
 
     {question.blanks.length === 0 ? (
         <p className="text-sm text-default-border/70 italic">
-            No blanks yet — click "Insert Blank" above to add one.
+            No blanks yet — click Insert Blank above to add one.
         </p>
     ) : (
         question.blanks.map((blank) => (
