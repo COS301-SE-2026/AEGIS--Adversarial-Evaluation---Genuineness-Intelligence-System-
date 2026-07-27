@@ -116,11 +116,28 @@ def test_create_source_question_fill_in_blank_success():
     mock_db.refresh.assert_called_once()
 
 
-def test_normalize_mcq_payload_rejects():
+def test_normalize_mcq_payload_rejects_missing_metadata():
     with pytest.raises(HTTPException) as exc_info:
         _normalize_mcq_payload(None, {"answer": "A"})
     assert exc_info.value.status_code == 422
     assert exc_info.value.detail == "MCQ questions require question_metadata.options."
+
+
+def test_normalize_mcq_payload_rejects_missing_options_map():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload({}, {"answer": "A"})
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ questions require question_metadata.options"
+
+def test_normalize_mcq_payload_rejects_blank_option_value():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload(
+            {"options": {"A": "One", "B": "", "C": "Three", "D": "Four"}},
+            {"answer": "A"},
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ option B must be a non-empty string."
+
 
 
 def test_execute_reference_implementation_rejects_missing_function_name():
@@ -135,6 +152,25 @@ def test_execute_reference_implementation_rejects_missing_function_name():
     assert exc_info.value.detail == (
         "Coding questions require a valid function_name or function_signature."
     )
+
+def test_normalize_mcq_payload_rejects_non_string_answer_key():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload(
+            {"options": {"A": "One", "B": "Two", "C": "Three", "D": "Four"}},
+            {"answer": 2},
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ correct_answer.answer must be a string."
+
+
+def test_normalize_mcq_payload_rejects_unknown_answer_key():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload(
+            {"options": {"A": "One", "B": "Two", "C": "Three", "D": "Four"}},
+            {"answer": "E"},
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ correct_answer.answer must match one of A,B,C,or D."
 
 
 def test_get_all_questions_success():
@@ -193,6 +229,17 @@ def test_execute_reference_implementation_rejects_empty_implementation():
     assert exc_info.value.detail == "Coding questions require a reference implementation."
 
 
+
+def test_normalize_mcq_payload_rejects_invalid_option_labels():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_mcq_payload(
+            {"options": {"A": "One", "B": "Two", "C": "Three"}},
+            {"answer": "A"},
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "MCQ must contain four options labeled A,B,C,and D."
+
+    
 def test_get_filtered_questions_by_all_filters_success():
     mock_db = MagicMock()
     mock_question = MagicMock()
@@ -220,6 +267,16 @@ def test_normalize_fill_in_blank_payload_rejects_answer_object():
     assert exc_info.value.status_code == 422
     assert exc_info.value.detail == (
         "Fill-in-the-blank correct_answer.answer must be an object.",
+    )
+
+
+def test_normalize_fill_in_blank_payload_rejects_missing_blank_answer():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload({"blanks": ["A"]}, {"answer": {"A": ""}})
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Fill-in-the-blank answer for A must be a non-empty string.",
     )
 
 
@@ -270,6 +327,38 @@ def test_normalize_fill_in_blank_payload_rejects_missing_metadata():
         _normalize_fill_in_blank_payload(None, {"answer": {"A": "JOIN"}})
     assert exc_info.value.status_code == 422
     assert exc_info.value.detail == "Fill-in-the-blank questions require question_metadata.blanks."
+
+
+def test_normalize_fill_in_blank_payload_rejects_empty_blanks_list():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload({"blanks": []}, {"answer": {"A": "JOIN"}})
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Fill-in-the-blank questions require at least one blank label."
+
+
+def test_normalize_fill_in_blank_payload_rejects_non_string_blank_label():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload({"blanks": [1]}, {"answer": {"A": "JOIN"}})
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Fill-in-the-blank blank labels must be non-empty strings."
+
+
+def test_normalize_fill_in_blank_payload_rejects_duplicate_blank_labels():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload({"blanks": ["A", "a"]}, {"answer": {"A": "JOIN"}})
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Fill-in-the-blank blank labels must be unique."
+
+
+def test_normalize_fill_in_blank_payload_rejects_missing_answer_object():
+    with pytest.raises(HTTPException) as exc_info:
+        _normalize_fill_in_blank_payload({"blanks": ["A"]}, None)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == "Fill-in-the-blank questions require correct_answer.answer."
     
 
 def test_update_question_mcq_success():
