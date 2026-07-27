@@ -85,6 +85,33 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
         }
     }, [question]);
 
+    // The generic payload only carries the universal fields (title, category, difficulty, etc). Each question type also needs its own shape mapped in.
+    function buildTypeSpecificPayload(question: QuestionBuilderState): Partial<QuestionPayload> {
+    switch (question.type) {
+        case "CODING":
+            return {
+                starterCode: question.starterCode,
+                testCases: question.testCases,
+            };
+        case "MCQ":
+            return {
+                options: question.options,
+            };
+        case "COMPREHENSION":
+            return {
+                rubric: question.rubric,
+                expectedKeywords: question.expectedKeywords,
+            };
+        case "FILL_BLANKS":
+            return {
+                // preserves appearance order (A, B, C, ...) so it lines up with the [A][B][C] markers on the backend.
+                blanks: question.blanks.map((blank) => blank.answer),
+            };
+        default:
+            return {};
+    }
+}
+
     function handleSave() {
         
         const payload: QuestionPayload = {
@@ -99,6 +126,7 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
             correct_answer: "",
             source_question_id: -1,
             technique: "",
+            ...buildTypeSpecificPayload(question), 
         };
 
         onSubmit(payload);
