@@ -46,7 +46,7 @@ type FillBlanksBuilderProps = Readonly<{
 }>;
 
 export default function FillBlanksBuilder({ question, update }: FillBlanksBuilderProps) {
-    const updateBlank = (id: string, value: string) => {
+    const updateBlankAnswer = (id: string, value: string) => {
         update(
             "blanks",
             question.blanks.map((blank) =>
@@ -100,10 +100,7 @@ useEffect(() => {
         
 
     const removeBlank = (id: string) => {
-        update(
-            "blanks",
-            question.blanks.filter((blank) => blank.id !== id)
-        );
+        update("content", question.content.split(`[${id}]`).join("")); //useEffect will automatically remove it
     };
 
     
@@ -215,15 +212,15 @@ const insertBlank = () => {
                         <span className="text-xs uppercase tracking-wider text-default-border">
                             Detected Blanks:
                         </span>
-                        {question.blanks.length === 0 ? (
+                        {analysis.validLetters.length === 0 ? (
                             <span className="text-xs text-default-border/70">None yet</span>
                         ) : (
-                            question.blanks.map((blank) => (
+                            analysis.validLetters.map((letter) => (
                                 <span
-                                    key={blank.id}
+                                    key={letter}
                                     className="px-2 py-0.5 rounded border border-status-success/40 bg-status-success/10 text-status-success text-xs font-staatliches tracking-wider"
                                 >
-                                    [{blank.id.slice(0, 1)}]
+                                    [{letter}]
                                 </span>
                             ))
                         )}
@@ -232,40 +229,40 @@ const insertBlank = () => {
             </div>
 
             <div className="space-y-4">
-                <h3 className="text-sm uppercase tracking-wider text-default-border">Accepted Answers</h3>
+    <h3 className="text-sm uppercase tracking-wider text-default-border">Accepted Answers</h3>
 
-                {question.blanks.length === 0 ? (
-                    <p className="text-sm text-default-border/70 italic">
-                        No blanks yet — click "Insert Blank" above to add one.
-                    </p>
-                ) : (
-                    question.blanks.map((blank) => (
-                        <div
-                            key={blank.id}
-                            className="flex items-center gap-4 rounded-lg border border-tertiary-surface bg-secondary-surface p-4"
-                        >
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-system-red/40 bg-system-red/10 text-system-red font-staatliches text-sm">
-                                {blank.id.slice(0, 1).toUpperCase()}
-                            </span>
+    {question.blanks.length === 0 ? (
+        <p className="text-sm text-default-border/70 italic">
+            No blanks yet — click "Insert Blank" above to add one.
+        </p>
+    ) : (
+        question.blanks.map((blank) => (
+            <div
+                key={blank.id}
+                className="flex items-center gap-4 rounded-lg border border-tertiary-surface bg-secondary-surface p-4"
+            >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-system-red/40 bg-system-red/10 text-system-red font-staatliches text-sm">
+                    {blank.id}
+                </span>
 
-                            <input
-                                value={blank.answer}
-                                onChange={(element) => updateBlank(blank.id, element.target.value)}
-                                placeholder={`Accepted answer for [${blank.id.slice(0, 1).toUpperCase()}]`}
-                                className="flex-1 rounded border border-default-border bg-background px-4 py-2 focus:border-system-red focus:outline-none"
-                            />
+                <input
+                    value={blank.answer}
+                    onChange={(element) => updateBlankAnswer(blank.id, element.target.value)}
+                    placeholder={`Accepted answer for [${blank.id}]`}
+                    className="flex-1 rounded border border-default-border bg-background px-4 py-2 focus:border-system-red focus:outline-none"
+                />
 
-                            <button
-                                type="button"
-                                onClick={() => removeBlank(blank.id)}
-                                className="text-default-border hover:text-system-red transition-colors cursor-pointer"
-                            >
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
-                    ))
-                )}
+                <button
+                    type="button"
+                    onClick={() => removeBlank(blank.id)}
+                    className="text-default-border hover:text-system-red transition-colors cursor-pointer"
+                >
+                    <Trash2 size={18} />
+                </button>
             </div>
+        ))
+    )}
+</div>
         </div>
     );
 }
