@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
+import { FILL_BLANKS_PLACEHOLDER_TEMPLATE, QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
 // Matches a well-formed marker like "[A]"
 const MARKER_TOKEN_REGEX = /\[[^\]]*\]|\[|\]/g;
@@ -57,7 +57,14 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
 
         const textareaRef = useRef<HTMLTextAreaElement | null>(null);
         const analysis = useMemo(() => analyzeTemplate(question.content), [question.content]);
+        const MAX_BLANKS = 26; // A - Z
+        const canInsertMore = analysis.validLetters.length < MAX_BLANKS;
         const hasMalformed = analysis.malformedTokens.length > 0 || analysis.duplicates.length > 0;
+
+        const loadPlaceholder = () => {
+    update("content", FILL_BLANKS_PLACEHOLDER_TEMPLATE);
+};
+       
 const detectedKey = analysis.validLetters.join(",");
 
 
@@ -134,7 +141,13 @@ const insertBlank = () => {
                         <span className="text-system-red">[A]</span> where candidates must fill in an answer.
                     </p>
                 </div>
-                {/* Load Example button */}
+                <button
+    type="button"
+    onClick={loadPlaceholder}
+    className="shrink-0 text-xs uppercase tracking-wider text-default-border underline hover:text-system-red cursor-pointer"
+>
+    Load example
+</button>
             </div>
 
             <div className="rounded-lg border border-tertiary-surface bg-secondary-surface p-4 space-y-3">
@@ -150,8 +163,9 @@ const insertBlank = () => {
                     <button
                         type="button"
                         onClick={insertBlank}
-                        className="flex items-center gap-2 rounded bg-system-red px-4 py-2 font-staatliches tracking-widest text-sm cursor-pointer hover:brightness-110 transition-all"
-                    >
+                        disabled={!canInsertMore}
+                        title={canInsertMore ? undefined : "Maximum of 26 blanks (A-Z) reached"}
+                        className="flex items-center gap-2 rounded bg-system-red px-4 py-2 font-staatliches tracking-widest text-sm cursor-pointer hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100">
                         <Plus size={16} />
                         <span>Insert Blank</span>
                     </button>
