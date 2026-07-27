@@ -27,9 +27,13 @@ export function AssessmentCard({
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     async function handleStart() {
-        if (isStarting || accessToken) {
-            if (!accessToken) setStartError("Missing access token");
-        };
+        if (isStarting) return;
+        
+        if(!accessToken) {
+            setStartError("Missing access token");
+            return;
+        }
+
         try {
             setIsStarting(true);
             setStartError(null);
@@ -79,7 +83,12 @@ export function AssessmentCard({
                 </div>
             </div>
             <div className="mt-auto">
-                <StartAssessmentButton onClick={handleStart} disabled={isStarting} isStarting={isStarting}/>
+                <StartAssessmentButton 
+                    onClick={() => setIsModalOpen(true)} 
+                    disabled={isStarting} 
+                    isStarting={isStarting}
+                
+                />
                 {startError && (
                     <p className="mt-2 text-sm text-system-red">{startError}</p>
                 )}
