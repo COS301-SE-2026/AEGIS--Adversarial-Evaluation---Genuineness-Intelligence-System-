@@ -1,8 +1,41 @@
 "use client";
-import { useRef } from "react";
 
+import { useEffect, useMemo, useRef } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
+
+// Matches a well-formed marker like "[A]"
+const MARKER_TOKEN_REGEX = /\[[^\]]*\]|\[|\]/g;
+const VALID_MARKER_REGEX = /^\[[A-Z]\]$/;
+
+interface TemplateAnalysis {
+    validLetters: string[]; // unique, in order of first appearance
+    malformedTokens: string[];
+    duplicates: string[];
+}
+
+function analyzeTemplate(content: string): TemplateAnalysis {
+    const tokens = content.match(MARKER_TOKEN_REGEX) ?? [];
+    const validLetters: string[] = [];
+    const malformedTokens: string[] = [];
+    const seen = new Set<string>();
+    const duplicates = new Set<string>();
+
+    for (const token of tokens) {
+        if (VALID_MARKER_REGEX.test(token)) {
+            const letter = token.slice(1, -1);
+            if (seen.has(letter)) {
+                duplicates.add(letter);
+            } else {
+                seen.add(letter);
+                validLetters.push(letter);
+            }
+        } else {
+            malformedTokens.push(token);
+        }
+    }
+    return { validLetters, malformedTokens, duplicates: Array.from(duplicates) };
+}
 
 type FillBlanksBuilderProps = Readonly<{
     question: QuestionBuilderState;
@@ -23,17 +56,40 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
     };
 
         const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+        const analysis = useMemo(() => analyzeTemplate(question.content), [question.content]);
+const detectedKey = analysis.validLetters.join(",");
+
+
+useEffect(() => {
+    const nextBlanks = analysis.validLetters.map((letter) => {
+        const existing = question.blanks.find((blank) => blank.id === letter);
+        return { id: letter, answer: existing?.answer ?? "" };
+    });
+
+    const isSame =
+        nextBlanks.length === question.blanks.length &&
+        nextBlanks.every((blank, index) => blank.id === question.blanks[index]?.id);
+
+    if (!isSame) {
+        update("blanks", nextBlanks);
+    }
+    
+}, [detectedKey]);
+
 
         // Helper to find the next letter based on existing blanks
-        const nextLetter = (existingBlanks: { id: string }[]): string | null => {
-            const maxCode = existingBlanks.reduce(
-                (max, b) => Math.max(max, b.id.charCodeAt(0)),
-                "A".charCodeAt(0) - 1
-            );
-        const nextCode = maxCode + 1;
-        if (nextCode > "Z".charCodeAt(0)) return null;
-        return String.fromCharCode(nextCode);
-        };
+        const nextLetter = (existingLetters: string[]): string | null => {
+    const maxCode = existingLetters.reduce(
+        (max, letter) => Math.max(max, letter.charCodeAt(0)),
+        "A".charCodeAt(0) - 1
+    );
+    const nextCode = maxCode + 1;
+    if (nextCode > "Z".charCodeAt(0)) return null;
+    return String.fromCharCode(nextCode);
+};
+
+
+        
 
     const removeBlank = (id: string) => {
         update(
@@ -43,8 +99,8 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
     };
 
     
-    const insertBlank = () => {
-    const letter = nextLetter(question.blanks);
+const insertBlank = () => {
+    const letter = nextLetter(analysis.validLetters);
     if (!letter) return;
 
     const marker = `[${letter}]`;
@@ -56,19 +112,14 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
         const newContent = `${question.content.slice(0, start)}${marker}${question.content.slice(end)}`;
         update("content", newContent);
 
-        // Also add the blank to the list
-        update("blanks", [...question.blanks, { id: letter, answer: "" }]);
-
         requestAnimationFrame(() => {
             textarea.focus();
             const cursor = start + marker.length;
             textarea.setSelectionRange(cursor, cursor);
         });
     } else {
-        // Fallback if ref is lost
         const spacer = question.content && !question.content.endsWith(" ") ? " " : "";
         update("content", `${question.content}${spacer}${marker}`);
-        update("blanks", [...question.blanks, { id: letter, answer: "" }]);
     }
 };
 
