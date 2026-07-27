@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 
 // Matches a well-formed marker like "[A]"
@@ -57,6 +57,7 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
 
         const textareaRef = useRef<HTMLTextAreaElement | null>(null);
         const analysis = useMemo(() => analyzeTemplate(question.content), [question.content]);
+        const hasMalformed = analysis.malformedTokens.length > 0 || analysis.duplicates.length > 0;
 const detectedKey = analysis.validLetters.join(",");
 
 
@@ -154,6 +155,47 @@ const insertBlank = () => {
                         <Plus size={16} />
                         <span>Insert Blank</span>
                     </button>
+
+                            {hasMalformed && (
+            <div className="flex items-start gap-2 rounded border border-status-warning/40 bg-status-warning/10 px-3 py-2 text-xs text-status-warning">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                    {analysis.malformedTokens.length > 0 && (
+                        <p>
+                            Malformed marker{analysis.malformedTokens.length > 1 ? "s" : ""} found:{" "}
+                            {analysis.malformedTokens.map((token, i) => (
+                                <code key={`${token}-${i}`} className="mx-0.5 px-1 rounded bg-background">
+                                    {token || "empty bracket"}
+                                </code>
+                            ))}
+                            . Blanks must look exactly like{" "}
+                            <code className="px-1 rounded bg-background">[A]</code>.
+                        </p>
+                    )}
+                    {analysis.duplicates.length > 0 && (
+                        <p>
+                            Duplicate blank letter{analysis.duplicates.length > 1 ? "s" : ""}:{" "}
+                            {analysis.duplicates.map((letter) => (
+                                <code key={letter} className="mx-0.5 px-1 rounded bg-background">
+                                    [{letter}]
+                                </code>
+                            ))}
+                            . Each letter should only be used once.
+                        </p>
+                    )}
+                </div>
+            </div>
+        )}
+
+        {!hasMalformed && analysis.validLetters.length > 0 && (
+            <div className="flex items-center gap-2 text-xs text-status-success">
+                <CheckCircle2 size={14} />
+                <span>
+                    Template looks good — {analysis.validLetters.length} blank
+                    {analysis.validLetters.length > 1 ? "s" : ""} detected.
+                </span>
+            </div>
+        )}
 
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs uppercase tracking-wider text-default-border">
