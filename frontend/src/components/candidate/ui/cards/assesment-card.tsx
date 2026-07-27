@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image"; 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { AssessmentCardProps } from "./assessment-card.types"; //icons class 
 import { StartAssessmentButton } from "@/components/candidate/ui/buttons/start-assessment-button";
 import { apiPost } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { AssessmentPreviewModal } from "../modals/assessment-preview-modal";
 
 function formatStatus(status: string): string {
     return status.replace(/_/g, " ").toUpperCase();
@@ -23,11 +24,16 @@ export function AssessmentCard({
     const router = useRouter();
     const [isStarting, setIsStarting] = useState(false);
     const [startError, setStartError] = useState<string|null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     async function handleStart() {
-        if (isStarting || accessToken) {
-            if (!accessToken) setStartError("Missing access token");
-        };
+        if (isStarting) return;
+        
+        if(!accessToken) {
+            setStartError("Missing access token");
+            return;
+        }
+
         try {
             setIsStarting(true);
             setStartError(null);
@@ -77,12 +83,24 @@ export function AssessmentCard({
                 </div>
             </div>
             <div className="mt-auto">
-                <StartAssessmentButton onClick={handleStart} disabled={isStarting} isStarting={isStarting}/>
+                <StartAssessmentButton 
+                    onClick={() => setIsModalOpen(true)} 
+                    disabled={isStarting} 
+                    isStarting={isStarting}
+                
+                />
                 {startError && (
                     <p className="mt-2 text-sm text-system-red">{startError}</p>
                 )}
             </div>
-
+            
+            {isModalOpen && (
+                <AssessmentPreviewModal
+                    assessment={{title, description, durationMins}}
+                    onClose={()=> setIsModalOpen(false)}
+                    onStart={handleStart}
+                />
+            )}
         </div>
-    );
-}
+    )
+}   
