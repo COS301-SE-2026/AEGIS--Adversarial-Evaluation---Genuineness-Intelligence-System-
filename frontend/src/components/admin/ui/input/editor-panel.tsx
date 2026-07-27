@@ -1,63 +1,54 @@
 "use client"
 
-import { useState } from "react"
-import { Play, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react"
 import Editor from "@monaco-editor/react"
+import { Code2 } from "lucide-react"
 
 
-interface EditorPanelProps {
+export interface EditorPanelProps {
     correctAnswer: string,
+    starterSkeleton: string,
     setCorrectAnswer: (value: string) => void
 }
 
-type ValidationStatus = "idle" | "testing" | "passed" | "failed"
+export function normalizeStarterCode(
+    starterCode: string,
+    starterSkeleton: string,
+): string {
+    const skeletonLines = starterSkeleton.trimEnd().split("\n");
+    const signatureLine = skeletonLines[0] ?? "def solve():";
+    const codeLines = starterCode.split("\n");
 
-export default function EditorPanel ({correctAnswer, setCorrectAnswer}: EditorPanelProps) {
-    
-    const [testStatus, setTestStatus] = useState<ValidationStatus>("idle");
-    const [consoleOutput, setConsoleOutput] = useState<string>("");
-    const [language, setLanguage] = useState<string>("python");
-
-    const handleSandboxExecution = () => {
-        if(!correctAnswer.trim()) {
-            setTestStatus("failed");
-            setConsoleOutput("Solution canvas cannot be vacant.")
-            return;
-        }
-
-        setTestStatus("testing");
-        setConsoleOutput("Running compiler suite aganinst test cases....")
-
-        setTimeout(() => {
-        //set up actual api for this
-        //mock api is below
-        if(correctAnswer.includes("def") || correctAnswer.includes("function")) {
-            setTestStatus("passed");
-            setConsoleOutput("Question is safe to deploy.");
-        }
-        else {
-            setTestStatus("failed");
-            setConsoleOutput("Question is unsafe to deploy.");
-        }
-        }, 1600);
+    if (codeLines.length === 0) {
+        return starterSkeleton;
     }
+    const signaturePattern = /^(?:async\s+)?def\s+.*:\s*$/;
+    let bodyStartIndex = 0;
+    while (
+        bodyStartIndex < codeLines.length &&
+        (codeLines[bodyStartIndex]?.trim() === "" || signaturePattern.test(codeLines[bodyStartIndex].trim()))
+    ) {
+        bodyStartIndex += 1;
+    }
+    const bodyLines = codeLines.slice(bodyStartIndex);
+    return [signatureLine, ...bodyLines].join("\n");
+}
+
+export default function EditorPanel ({correctAnswer, starterSkeleton, setCorrectAnswer}: EditorPanelProps) {
+    const language = "python";
 
     return (
         <div className="space-y-6 h-full flex flex-col">
 
             <div className="flex-1 flex flex-col bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
                 <div className="flex justify-between items-center border-b border-tertiary-surface">
-                    <h2 className="text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2">
+                    <h2 className="flex items-center gap-2 text-xl text-default-text tracking-wider border-b border-tertiary-surface pb-2">
+                        <Code2 size={18} />
                         Solution Architecture
                     </h2>
 
-                    <select
-                        value={language}
-                        onChange={(event) => setLanguage(event.target.value)}
-                        className="font-jetbrains-mono text-[12px] bg-background border-default-border/45 text-status-info px-2 py-1 rounded uppercase focus:border-system-red cursor-pointer shadow-sm"
-                    >
-                        <option value="python">Python</option> {/*in future add a prop with all possible coding languages supported */}
-                    </select>
+                    <span className="font-jetbrains-mono text-[12px] bg-background border border-default-border/45 text-status-info px-2 py-1 rounded uppercase shadow-sm">
+                        Python
+                    </span>
                 </div>
 
                 <div className="w-full flex-1 min-h-60 rounded border border-default-border overflow-hidden bg-tertiary-surface mt-4">
@@ -66,7 +57,7 @@ export default function EditorPanel ({correctAnswer, setCorrectAnswer}: EditorPa
                         theme="vs-dark"
                         language={language}
                         value={correctAnswer}
-                        onChange={(newValue) => setCorrectAnswer(newValue || "")}
+                        onChange={(newValue) => setCorrectAnswer(normalizeStarterCode(newValue || "", starterSkeleton))}
                         options={{
                             minimap: {enabled:false},
                             fontSize: 13,
@@ -88,52 +79,9 @@ export default function EditorPanel ({correctAnswer, setCorrectAnswer}: EditorPa
                         }}
                     />
                 </div>
-
-                <div className="mt-4 pt-4 border-t border-default-border space-y-3">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            {testStatus === "idle" && (
-                                <span className=" text-default-border uppercase font-jetbrains text-xs">
-                                    Untested
-                                </span>
-                            )}
-                            {testStatus === "testing" && (
-                                <span className="">
-                                    <Loader2 size={14} className="flex items-center gap-2 font-jetbrains text-xs text-status-warning animate-pulse"/> Sandbox Running...
-                                </span>
-                            )}
-                            {testStatus === "passed" && (
-                                <span className="">
-                                    <CheckCircle2 size={14} className="flex items-center gap-2 font-jetbrains text-xs text-status-success"/> Solution Verified
-                                </span>
-                            )}
-                            {testStatus === "failed" && (
-                                <span className="">
-                                    <AlertTriangle size={14} className="flex items-center gap-2 font-jetbrains text-xs text-system-red"/> Compilation Error
-                                </span>
-                            )}
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleSandboxExecution}
-                            disabled={testStatus === "testing"}
-                            className="bg-default-text text-background hover:bg-transparent border border-transparent rounded-xl hover:text-system-red hover:border-system-red  px-4 py-2 transition-colors duration-300 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                            <div className="flex flex-row gap-2 items-center">
-                                <Play size={12} fill="currentColor"/>
-                                Run Test
-                            </div>
-                           
-                        </button>
-                    </div>
-
-                    {consoleOutput && (
-                        <pre className="p-3 bg-background rounded border border-tertiary-surface text-[12px] leading-relaxed text-default-border whitespace-pre-wrap max-h-30 overflow-y-auto">
-                            {consoleOutput}
-                        </pre>
-                    )}
-                </div>
+                <p className="mt-7 text-s text-default-border">
+                    The code will be executed when a test case is added, then the captured output will be staged with that input.
+                </p>
             </div>
         </div>
     )

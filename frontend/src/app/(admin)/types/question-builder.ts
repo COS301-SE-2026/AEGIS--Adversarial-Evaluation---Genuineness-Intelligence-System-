@@ -28,6 +28,7 @@ export interface QuestionBuilderState {
     difficulty: Difficulty
     maximum_score: number;
     tags: string[];
+    functionSignature: string;
     starterCode: string;
     options: MCQOption[];
     rubric: string;
@@ -57,13 +58,13 @@ export const defaultQuestionState: QuestionBuilderState = {
     difficulty: "Easy",
     maximum_score: 10,
     tags: [],
-    starterCode: "",
+    functionSignature: "",
+    starterCode: `def solve(nums, target):
+    # Add the function body here.`,
     options: Array.from({length: 4}, (_,index) => createDefaultMCQQuestion(index === 0)),
     rubric: "",
     expectedKeywords: [],
     blanks: [],
-    testCases: [
-        createDefaultTestCase(),
-    ],
+    testCases: [],
 }
 

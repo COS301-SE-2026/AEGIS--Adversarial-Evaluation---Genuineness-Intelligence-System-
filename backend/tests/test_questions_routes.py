@@ -26,6 +26,14 @@ def recruiter_client(mock_db):
     yield TestClient(app)
     app.dependency_overrides.clear()
 
+
+@pytest.fixture
+def candidate_client(mock_db):
+    app.dependency_overrides[get_db] = lambda: mock_db
+    app.dependency_overrides[get_current_user] = lambda: {"role": "CANDIDATE"}
+    yield TestClient(app)
+    app.dependency_overrides.clear()
+
 def test_add_source_question_returns_201(recruiter_client):
     with patch(
         "app.api.routes.question_management.create_source_question",
@@ -131,6 +139,50 @@ def test_update_source_question_returns_200(recruiter_client):
     assert body["title"] == "New title"
     assert body["type"] == "TEXT"
     mock_update.assert_called_once()
+
+
+def test_execute_source_question_reference_returns_200_for_recruiter(recruiter_client):
+    with patch(
+        "app.api.routes.question_management.execute_reference_implementation",
+        return_value={
+            "source_code": "def solve():\n    return 42\n",
+            "stdout": "42\n",
+            "stderr": "",
+            "compiled": True,
+            "error_message": None,
+        },
+    ) as mock_execute:
+        response = recruiter_client.post(
+            "/api/v1/questions/source/execute",
+            json={
+                "question_metadata": {"function_name": "solve"},
+                "implementation": "def solve():\n    return 42\n",
+                "input_data": "[]",
+                "language": "python",
+                "version": "3.11",
+            },
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["source_code"] == "def solve():\n    return 42\n"
+    assert body["stdout"] == "42\n"
+    assert body["compiled"] is True
+    mock_execute.assert_called_once()
+
+
+def test_execute_source_question_reference_returns_403_for_non_recruiter(candidate_client):
+    response = candidate_client.post(
+        "/api/v1/questions/source/execute",
+        json={
+            "question_metadata": {"function_name": "solve"},
+            "implementation": "def solve():\n    return 42\n",
+            "input_data": "[]",
+            "language": "python",
+            "version": "3.11",
+        },
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Only recruiters can run source question code."
 
 def test_returns_403_for_non_recruiter(mock_db):
     app.dependency_overrides[get_db] = lambda: mock_db

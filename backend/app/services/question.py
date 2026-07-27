@@ -35,11 +35,8 @@ def delete_source_question(db: Session, question_id: int) -> None:
         CodingTestCase.question_id == question_id
     ).all()
 
-    if test_cases:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Question has asssociated test cases"
-        )
+    for test_case in test_cases:
+        db.delete(test_case)
 
     db.delete(question)
     db.commit()

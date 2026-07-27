@@ -17,11 +17,8 @@ import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/que
       
       case "CODING":
         return {
-          correctAnswer: question.starterCode ?? "",
-          metadata: {
-            starterCode: question.starterCode,
-            testCases: question.testCases,
-          }  
+          correctAnswer: question.correct_answer ?? "",
+          metadata: question.question_metadata ?? {},
         };
 
       case "MCQ":
@@ -246,7 +243,7 @@ export default function ViewQuestionsPage() {
           type: newQuestion.type ?? "TEXT",
           maximum_score: newQuestion.maximum_score ?? 10,
           correct_answer: correctAnswer,
-          question_metadata: JSON.stringify(metadata),
+          question_metadata: metadata,
           tags: newQuestion.tags ?? [],
           category_id: newQuestion.category_id,
           difficulty: newQuestion.difficulty,
@@ -255,6 +252,23 @@ export default function ViewQuestionsPage() {
           headers: getAuthHeaders(),
         }
       );
+
+      if (newQuestion.type === "CODING" && Array.isArray(newQuestion.testCases) && newQuestion.testCases.length > 0) {
+        for (const testCase of newQuestion.testCases) {
+          await apiPost(
+            `/api/v1/questions/source/${createdQuestion.question_bank_id}/test-cases`,
+            {
+              description: null,
+              input_data: testCase.input,
+              expected_output: testCase.expectedOutput,
+              is_hidden: testCase.hidden,
+            },
+            {
+              headers: getAuthHeaders(),
+            }
+          );
+        }
+      }
 
       setQuestions((previousQuestions) => [
         {

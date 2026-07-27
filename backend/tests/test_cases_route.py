@@ -58,17 +58,17 @@ def test_delete_test_case_for_recruiter(mock_delete_test_case):
     mock_delete_test_case.return_value = None
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override("RECRUITER")
-    response = client.delete("/api/v1/questions/adversarial/7/test-cases/11")
+    response = client.delete("/api/v1/questions/source/7/test-cases/11")
     app.dependency_overrides.clear()
     assert response.status_code == 204
     mock_delete_test_case.assert_called_once()
 
 @patch("app.api.routes.test_cases.delete_test_case")
-def test_delete_test_case_for_recruiter(mock_delete_test_case):
+def test_delete_test_case_for_candidate(mock_delete_test_case):
     mock_delete_test_case.return_value = None
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override("Candidate")
-    response = client.delete("/api/v1/questions/adversarial/7/test-cases/11")
+    response = client.delete("/api/v1/questions/source/7/test-cases/11")
     app.dependency_overrides.clear()
     assert response.status_code == 403
     #mock_delete_test_case.assert_called_once()
@@ -88,7 +88,7 @@ def test_create_test_case_for_recruiter(mock_create_test_case):
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override("RECRUITER")
     response = client.post(
-        "/api/v1/questions/adversarial/7/test-cases",
+        "/api/v1/questions/source/7/test-cases",
         json={
             "description": "addition",
             "input_data": "5",
@@ -114,7 +114,7 @@ def test_update_test_case_for_recruiter(mock_update_test_case):
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override("RECRUITER")
     response = client.patch(
-        "/api/v1/questions/adversarial/7/test-cases/11",
+        "/api/v1/questions/source/7/test-cases/11",
         json={
             "description": "updated",
             "input_data": "5",

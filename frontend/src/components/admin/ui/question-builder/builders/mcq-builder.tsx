@@ -1,6 +1,6 @@
 "use client"
 
-import { MCQOption, QuestionBuilderState } from "@/app/(admin)/types/question-builder";
+import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
 import MCQOptionCard from "../mcq-option-card";
 
 type MCQBuilderProps = Readonly <{
@@ -14,22 +14,6 @@ type MCQBuilderProps = Readonly <{
 export default function MCQBuilder({question, update}: MCQBuilderProps) {
     const setCorrectAnswer = (selectedId: string) => {
         update("options", question.options.map((option) => ({...option, isCorrect: option.id === selectedId})));
-    };
-    
-    const updateOption = (updated: MCQOption) => {
-        
-        const updatedOptions = question.options.map((option) => 
-            option.id === updated.id ? updated : option
-        );
-
-        if(updated.isCorrect) {
-            update("options", updatedOptions.map((option) => ({
-                ...option, isCorrect: option.id === updated.id,
-            })));
-            return;
-        }
-
-        update("options", updatedOptions);
     };
 
     return (
@@ -53,11 +37,11 @@ export default function MCQBuilder({question, update}: MCQBuilderProps) {
                         option={option}
                         index={index}
                         onSelect={() => setCorrectAnswer(option.id)}
-                        onChange={(text) => 
-                            update("options", question.options.map((opt) => 
-                                opt.id === option.id ? {...opt, text} : opt
-                            ))
-                        }
+                        onChange={(text) => update("options", question.options.map((currentOption) => (
+                            currentOption.id === option.id
+                                ? { ...currentOption, text }
+                                : currentOption
+                        )))}
                     />
                 ))}
             </div>
