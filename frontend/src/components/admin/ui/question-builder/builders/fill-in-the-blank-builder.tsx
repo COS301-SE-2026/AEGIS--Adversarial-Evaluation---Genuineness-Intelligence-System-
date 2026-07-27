@@ -1,4 +1,5 @@
 "use client";
+import { useRef } from "react";
 
 import { Plus, Trash2 } from "lucide-react";
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
@@ -21,6 +22,19 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
         );
     };
 
+        const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+        // Helper to find the next letter based on existing blanks
+        const nextLetter = (existingBlanks: { id: string }[]): string | null => {
+            const maxCode = existingBlanks.reduce(
+                (max, b) => Math.max(max, b.id.charCodeAt(0)),
+                "A".charCodeAt(0) - 1
+            );
+        const nextCode = maxCode + 1;
+        if (nextCode > "Z".charCodeAt(0)) return null;
+        return String.fromCharCode(nextCode);
+        };
+
     const removeBlank = (id: string) => {
         update(
             "blanks",
@@ -28,13 +42,35 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
         );
     };
 
-    // Uses old UUID logic for now
-    const addUuidBlank = () => {
-        update("blanks", [
-            ...question.blanks,
-            { id: crypto.randomUUID(), answer: "" },
-        ]);
-    };
+    
+    const insertBlank = () => {
+    const letter = nextLetter(question.blanks);
+    if (!letter) return;
+
+    const marker = `[${letter}]`;
+    const textarea = textareaRef.current;
+
+    if (textarea) {
+        const start = textarea.selectionStart ?? question.content.length;
+        const end = textarea.selectionEnd ?? question.content.length;
+        const newContent = `${question.content.slice(0, start)}${marker}${question.content.slice(end)}`;
+        update("content", newContent);
+
+        // Also add the blank to the list
+        update("blanks", [...question.blanks, { id: letter, answer: "" }]);
+
+        requestAnimationFrame(() => {
+            textarea.focus();
+            const cursor = start + marker.length;
+            textarea.setSelectionRange(cursor, cursor);
+        });
+    } else {
+        // Fallback if ref is lost
+        const spacer = question.content && !question.content.endsWith(" ") ? " " : "";
+        update("content", `${question.content}${spacer}${marker}`);
+        update("blanks", [...question.blanks, { id: letter, answer: "" }]);
+    }
+};
 
     return (
         <div className="space-y-6">
@@ -51,6 +87,7 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
 
             <div className="rounded-lg border border-tertiary-surface bg-secondary-surface p-4 space-y-3">
                 <textarea
+                    ref={textareaRef}
                     value={question.content}
                     onChange={(event) => update("content", event.target.value)}
                     placeholder={"e.g. SELECT * FROM users [A] age > 18 [B] status = 'active';"}
@@ -60,7 +97,7 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
                 <div className="flex flex-wrap items-center gap-3">
                     <button
                         type="button"
-                        onClick={addUuidBlank}
+                        onClick={insertBlank}
                         className="flex items-center gap-2 rounded bg-system-red px-4 py-2 font-staatliches tracking-widest text-sm cursor-pointer hover:brightness-110 transition-all"
                     >
                         <Plus size={16} />
