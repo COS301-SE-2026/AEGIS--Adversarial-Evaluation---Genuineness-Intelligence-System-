@@ -7,6 +7,7 @@ import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-butt
 import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-button";
 import { TestSubmitButton } from "@/components/candidate/ui/buttons/test-submit-button";
 import type { Question } from "@/components/candidate/ui/cards/question.type";
+import { useAssessmentTimer } from '@/components/candidate/context/assessment-timer';
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 
@@ -34,14 +35,32 @@ type CandidateResponseApi = {
    is_correct?: string | null;
 };
 
+type CandidateAssessmentSessionApi = {
+   candidate_assess_id: number;
+   status: string;
+   access_token?: string | null;
+   total_score?: number | null;
+   start_time?: string | null;
+   end_time?: string | null;
+}
+
 function mapQuestionType(value: string): Question["type"] {
-   if (value === "MULTIPLE_CHOICE") {
-      return "multiple-choice";
+   const type = value.trim().toUpperCase();
+
+   switch (type) {
+      case "MULTIPLE_CHOICE":
+         return "multiple-choice";
+
+      case "CODING":
+         return "coding";
+
+      case "FILL_IN_BLANK":
+         return "fill-in-the-blank"
+
+      default:
+         console.warn(`Unknown question type: ${value}`);
+         return "fill-in-the-blank"
    }
-   if (value === "TEXT") {
-      return "fill-in-the-blank";
-   }
-   return "fill-in-the-blank";
 }
 
 function mapQuestionOptions(
@@ -74,6 +93,17 @@ function mapQuestionOptions(
       .filter((option): option is string => Boolean(option));
 }
 
+function mapFunctionSignature(
+   metadata: Record<string, unknown> | null | undefined,
+): string {
+   const rawSignature = metadata?.function_signature ?? metadata?.functionSignature;
+   if (typeof rawSignature === "string" && rawSignature.trim()) {
+      return rawSignature.trim();
+   }
+
+   return "";
+}
+
 export default function AssessmentCompletionPage({ params }: { params: Promise<{ id: string }> }) {
    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
    const [candidateAssessId, setCandidateAssessId] = useState<string | null>(null);
@@ -85,6 +115,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [submitError, setSubmitError] = useState<string | null>(null);
    const [error, setError] = useState<string | null>(null);
    const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
+   const {endTime, setEndTime} = useAssessmentTimer();
 
    useEffect(() => {
       params.then(p => setCandidateAssessId(p.id));
@@ -102,7 +133,11 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
             setIsLoading(true);
             setError(null);
             const authToken = getToken() ?? undefined;
-            const [questionData, responseData] = await Promise.all([
+            const [sessionData, questionData, responseData] = await Promise.all([
+               apiGet<CandidateAssessmentSessionApi>(
+                  `/api/v1/candidate/assessments/${candidateAssessId}`,
+                  authToken ? { authToken } : {}                  
+               ),
                apiGet<CandidateAssessmentQuestionApi[]>(
                   `/api/v1/assessments/candidate/${candidateAssessId}/questions`,
                   authToken ? { authToken } : {}
@@ -119,7 +154,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                   const question = item.question as NonNullable<
                      CandidateAssessmentQuestionApi["question"]
                   >;
-
+                  console.log(question.type);
                   const mappedType = mapQuestionType(question.type);
 
                   return {
@@ -127,6 +162,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                      questionTitle: question.title,
                      questionContent: question.content,
                      type: mappedType,
+                     functionSignature: mapFunctionSignature(question.question_metadata),
                      options: mapQuestionOptions(question.question_metadata, mappedType),
                      correctAnswer: "" as Question["correctAnswer"],
                      tags: question.tags ?? [],
@@ -148,6 +184,10 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                setQuestions(mapped);
                setCurrentQuestionIndex(0);
                setAnswersByQuestionId(existingAnswers);
+               
+               if (sessionData.end_time) {
+                  setEndTime(sessionData.end_time);
+               }
             }
          } catch (err) {
             const message = err instanceof Error
@@ -168,7 +208,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       return () => {
          isMounted = false;
       };
-   }, [candidateAssessId]);
+   }, [candidateAssessId, setEndTime]);
 
    const currentQuestion = questions[currentQuestionIndex];
    const totalQuestions = questions.length;
@@ -236,6 +276,18 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       }
    };
 
+   useEffect(()=>{
+      if (!endTime || isSubmitted || isSubmitting) return;
+
+      const timeRemaining = new Date(endTime).getTime() - Date.now();
+
+      const timeout = setTimeout(()=>{
+         handleSubmit()
+      }, Math.max(timeRemaining, 0));
+
+      return () => clearTimeout(timeout);
+   }, [endTime, isSubmitted, isSubmitting]);
+
    if (!candidateAssessId || isLoading) {
       return (
          <main className="flex items-center justify-center min-h-screen">
@@ -271,23 +323,31 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
      }
 
     return (
-        <main className="flex flex-col items-center justify-start min-h-screen 2xl:gap-8">
-            <div className="flex flex-row items-center 2xl:gap-4">
-               <TestDescriptionCard question={currentQuestion} />
-               <TestAnswerCard
-                  question={currentQuestion}
-                  value={answersByQuestionId[currentQuestion.questionId] ?? ""}
-                  onChange={(value) => {
-                     setAnswersByQuestionId((prev) => ({
-                        ...prev,
-                        [currentQuestion.questionId]: value,
-                     }));
-                  }}
-               />
+        <main className="min-h-screen py-8 px-8">
+            <div className="mx-auto max-w-screen-2xl">
+               
+               <section className="flex flex-col lg:flex-row gap-6">
+               
+                  <TestDescriptionCard question={currentQuestion} />
+                  
+                  <section className='flex-1'>
+                     <TestAnswerCard
+                        question={currentQuestion}
+                        value={answersByQuestionId[currentQuestion.questionId] ?? ""}
+                        candidateAssessId={candidateAssessId}
+                        onChange={(value) => {
+                           setAnswersByQuestionId((prev) => ({
+                              ...prev,
+                              [currentQuestion.questionId]: value,
+                           }));
+                        }}
+                     />
+                  </section>
+               </section>
 
             </div>
 
-            <div className="relative flex w-full items-center">
+            <footer className="flex justify-between items-center mt-8">
                <div className="mx-auto flex flex-row items-center gap-4">
                   <TestPreviousButton handlePrevious={handlePrevious} />
                   <p>{currentQuestionIndex + 1} / {totalQuestions}</p>
@@ -301,7 +361,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                      <TestSubmitButton onClick={handleSubmit} disabled={isSaving || isSubmitting} isSubmitting={isSubmitting} />
                   )}
                </div>
-            </div>
+            </footer>
             
         </main>
     );

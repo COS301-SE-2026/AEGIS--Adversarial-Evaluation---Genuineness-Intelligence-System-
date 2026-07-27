@@ -6,11 +6,56 @@ import AdminSidebar from "@/components/admin/layouts/sidebar";
 import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
-import QuestionModal from "./question-modal";
+import LegacyQuestionModal from "./legacy-question-modal";
+import CreateQuestionContainer from "@/components/admin/ui/question-builder/create-question-container";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 
+  function buildQuestionData(question: QuestionPayload) {
+    switch (question.type) {
+      
+      case "CODING":
+        return {
+          correctAnswer: question.starterCode ?? "",
+          metadata: {
+            starterCode: question.starterCode,
+            testCases: question.testCases,
+          }  
+        };
+
+      case "MCQ":
+        return {
+          correctAnswer: question.options?.find(option => option.isCorrect)?.text ?? "",
+          metadata: {
+             options: question.options
+          }
+        };
+
+      case "COMPREHENSION":
+        return {
+          correctAnswer: "",
+          metadata: {
+            rubric: question.rubric,
+            expectedKeywords: question.expectedKeywords,
+          }
+        };
+
+      case "FILL_BLANKS":
+        return {
+          correctAnswer: question.blanks?.join("|") ?? "",
+          metadata: {
+            blanks: question.blanks
+          }
+        };
+
+      default:
+        return {
+          correctAnswer: "",
+          metadata: {},
+        };
+    }
+  }
 
 export default function ViewQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
@@ -23,11 +68,9 @@ export default function ViewQuestionsPage() {
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
   
-  const [deleteError, setDeleteError] = useState<string|null>(null);
-  const [updateError, setUpdateError] = useState<string|null>(null);
   const [questions, setQuestions] = useState<QuestionBank[]>([]);
-  const [deleteSuccess, setDeleteSuccess] = useState<string|null>(null);
-  const [updateSuccess, setUpdateSuccess] = useState<string|null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -36,46 +79,41 @@ export default function ViewQuestionsPage() {
 
 
   useEffect(() => {
-    let isMounted = true;
-    const loadCategories = async () => {
+    let mounted = true;
+
+    const loadData = async () => {
       try {
-        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/", {
-          headers: getAuthHeaders(),
-        });
-        if (isMounted) {
-          setCategories(response);
-        }
-      } catch (error) {
-        console.error("Failed to load categories:", error);
+        const [categories, questions] = await Promise.all([
+          apiGet<QuestionCategory[]>("/api/v1/categories/", {
+            headers: getAuthHeaders(),
+          }),
+          apiGet<QuestionBank[]>("/api/v1/questions/", {
+            headers: getAuthHeaders(),
+          }),
+        ]);
+
+        if(!mounted) return;
+
+        setCategories(categories);
+
+        setQuestions(
+          questions.map(question => ({
+            ...question,
+            category_id: question.category_id ?? 0,
+            difficulty: question.difficulty ?? "Easy",
+          }))
+        );
+      }
+      catch(err) {
+        console.error(err);
       }
     };
 
-    const loadQuestions = async () => {
-      try {
-        const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
-          headers: getAuthHeaders(),
-        });
-
-        if (isMounted) {
-          setQuestions(
-            response.map((question) => ({
-              ...question,
-              category_id: question.category_id ?? 0,
-              difficulty: question.difficulty ?? "Easy",
-            }))
-          );
-        }
-      } catch (error) {
-        console.error("Failed to load questions:", error);
-      }
-    };
-
-    void loadCategories();
-    void loadQuestions();
+    void loadData();
 
     return () => {
-      isMounted = false;
-    };
+      mounted = false;
+    }
   }, []);
 
   const categoriesMap = useMemo( () => {
@@ -85,50 +123,72 @@ export default function ViewQuestionsPage() {
     }, {} as Record<number, string>); 
   }, [categories]);
 
-  const questionsFiltered = questions.filter((question) => {
-    const matchTag = Array.isArray(question.tags) ?
-    question.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase())) :
-    typeof question.tags === "string" ?
-    question.tags.toLowerCase().includes(searchTerm.toLowerCase()):
-    false;
+  function getSortValue (
+    question: QuestionBank,
+    column: "title" | "category" | "difficulty",
+    categoriesMap: Record<number, string>
+  ): string | number {
+    
+    switch(column) {
 
-    const matchesSearch = question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          question.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          matchTag;
+      case "title":
+        return question.title.toLowerCase();
+      
+      case "category":
+        return (categoriesMap[question.category_id] ?? "").toLowerCase();
 
-    const matchesCategory = categoryFilter === "all" || String(question.category_id) === categoryFilter;
-    const matchesDifficulty = difficultyFilter === "all" || question.difficulty === difficultyFilter;
-    return matchesSearch && matchesCategory && matchesDifficulty;
-  }).sort ((a, b) => {
-    if(!sortColumn) return 0;
-    let aValue: string | number = "";
-    let bValue: string | number = "";
-
-    if(sortColumn === "title") {
-      aValue = a.title.toLowerCase();
-      bValue = b.title.toLowerCase();
+      case "difficulty":
+        return {Easy: 1, Medium: 2, Hard: 3}[question.difficulty] ?? 0;
     }
-    else if (sortColumn === "category") {
-      aValue = (categoriesMap[a.category_id] || "").toLowerCase();
-      bValue = (categoriesMap[b.category_id] || "").toLowerCase();
-    }
-    else {
-      const difficultyOrder = {"Easy" : 1, "Medium" : 2, "Hard" : 3};
-      aValue = difficultyOrder[a.difficulty as keyof typeof difficultyOrder] || 0;
-      bValue = difficultyOrder[b.difficulty as keyof typeof difficultyOrder] || 0;
-    }
+  }
 
-    if(aValue < bValue) {
-      return sortDirection === "asc" ? -1 : 1;
-    }
+  const questionsFiltered = useMemo(() => {
+    return questions
+    .filter((question) => {
+      const normalizedSearch = searchTerm.toLowerCase();
 
-    if(bValue > aValue) {
-      return sortDirection === "asc" ? 1 : -1;
-    }
+      const matchTag = Array.isArray(question.tags) ?
+        question.tags.some((tag) => tag.toLocaleLowerCase().includes(normalizedSearch)) :
+        typeof question.tags === "string" && question.tags.toLowerCase().includes(normalizedSearch);
 
-    return 0;
-  });
+      const matchesSearch = 
+        question.title.toLowerCase().includes(normalizedSearch) ||
+        question.content.toLowerCase().includes(normalizedSearch) ||
+        matchTag;
 
+      const matchesCategory =  categoryFilter === "all" || String(question.category_id) === categoryFilter;
+      
+      const matchesDifficulty = difficultyFilter === "all" || question.difficulty === difficultyFilter;
+      
+      return matchesSearch && matchesCategory && matchesDifficulty;
+
+    }).sort ((a, b) => {
+      
+      if(!sortColumn) return 0;
+
+      const aValue = getSortValue(a, sortColumn, categoriesMap);
+      const bValue = getSortValue(b, sortColumn, categoriesMap);
+
+      if(aValue < bValue) {
+        return sortDirection === "asc" ? -1 : 1;
+      }
+
+      if(aValue > bValue) {
+        return sortDirection === "asc" ? 1 : -1
+      }
+
+      return 0;
+    });
+  }, [
+    questions,
+    searchTerm,
+    categoryFilter,
+    difficultyFilter,
+    sortColumn,
+    sortDirection,
+    categoriesMap,
+  ])
+ 
   const sortHandle = (column: "title" | "category" | "difficulty") => {
     if(sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -145,10 +205,11 @@ export default function ViewQuestionsPage() {
     setCategoryFilter("all");
     setDifficultyFilter("all");
     setCurrentPage(1);
-  }
+  };
+
   const handleSavedChanges = async (updatedData: QuestionPayload) => {
     if (editQuestionId === null) return;
-    setUpdateError(null);
+    setError(null);
     setIsSaving(true);
     try{
       await apiPatch(`/api/v1/questions/source/${editQuestionId}`, updatedData, {
@@ -162,18 +223,19 @@ export default function ViewQuestionsPage() {
         )
       );
 
-      setUpdateSuccess("Question updated successfully.");
+      setSuccess("Question updated successfully.");
       setEditQuestionId(null);
     } catch (error) {
-      setUpdateError(error instanceof Error ? error.message : "Failed to save changes.")
+      setError(error instanceof Error ? error.message : "Failed to save changes.")
     } finally {
       setIsSaving(false);
     }
     
-  }
+  };
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
-    setDeleteError(null);
+    setError(null);
+    const { correctAnswer, metadata } = buildQuestionData(newQuestion);
 
     try {
       const createdQuestion = await apiPost<QuestionBank>(
@@ -183,8 +245,8 @@ export default function ViewQuestionsPage() {
           content: newQuestion.content ?? "",
           type: newQuestion.type ?? "TEXT",
           maximum_score: newQuestion.maximum_score ?? 10,
-          correct_answer: newQuestion.correct_answer,
-          question_metadata: undefined,
+          correct_answer: correctAnswer,
+          question_metadata: JSON.stringify(metadata),
           tags: newQuestion.tags ?? [],
           category_id: newQuestion.category_id,
           difficulty: newQuestion.difficulty,
@@ -206,17 +268,23 @@ export default function ViewQuestionsPage() {
         ...previousQuestions,
       ]);
       setIsCreateOpen(false);
-      setDeleteSuccess("Question created successfully.");
+      setSuccess("Question created successfully.");
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : "Failed to create question.");
+      setError(error instanceof Error ? error.message : "Failed to create question.");
     }
-  }
+  };
 
   const totalNumberOfPages = Math.ceil(questionsFiltered.length / itemsPerPage)
+
   const sectionedQuestions = questionsFiltered.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const updateFilter = <T,>(setter: React.Dispatch<React.SetStateAction<T>>, value: T) => {
+    setter(value);
+    setCurrentPage(1);
+  }
   
   const handleDelete = async (quesetionId: number) => {
     setDeleteTargetId(quesetionId);
@@ -224,7 +292,7 @@ export default function ViewQuestionsPage() {
 
   const confirmDelete = async() => {
     if (deleteTargetId === null) return;
-    setDeleteError(null);
+    setError(null);
     try{
       await apiDelete(`/api/v1/questions/${deleteTargetId}`, {
         headers: getAuthHeaders()
@@ -235,27 +303,27 @@ export default function ViewQuestionsPage() {
       setQuestions(remainingQuestions);
       setCurrentPage((previousPage) => Math.min(previousPage, nextTotalPages));
       setOpenMenuId(null);
-      setDeleteSuccess("Question deleted successfully.");
+      setSuccess("Question deleted successfully.");
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : "Failed to delete question.")
+      setError(error instanceof Error ? error.message : "Failed to delete question.")
     } finally {
       setDeleteTargetId(null);
     }
   };
 
   useEffect(()=>{
-    if (!deleteSuccess) return;
-    const timeout = setTimeout(()=> setDeleteSuccess(null), 3000);
+    if (!success) return;
+    const timeout = setTimeout(()=> setSuccess(null), 3000);
     return ()=> clearTimeout(timeout);
-  }, [deleteSuccess]);
+  }, [success]);
 
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="fixed md:static top-0 left-0 w-55 h-screen md:min-h-screen z-50 transform transition-transform md:transform-none">
+      <aside>
         <AdminSidebar/>
-      </div>
+      </aside>
 
-      <div className="flex-1 flex flex-col w-full">
+      <div className="flex-1 flex flex-col w-full min-w-0 overflow-hidden">
         <AdminTopbar/>
 
         <main className="flex-1 overflow-auto">
@@ -270,36 +338,24 @@ export default function ViewQuestionsPage() {
 
             <QuestionFilters
               searchTerm={searchTerm}
-              onSearchChange={(value) => {setSearchTerm(value); setCurrentPage(1);}}
+              onSearchChange={(value) => updateFilter(setSearchTerm, value)}
               categoryFilter={categoryFilter}
-              onChangeCategory={(value) => {setCategoryFilter(value); setCurrentPage(1);}}
+              onChangeCategory={(value) => updateFilter(setCategoryFilter, value)}
               categories={categories}
               difficultyFilter={difficultyFilter}
-              onDifficultyChange={(value) => {setDifficultyFilter(value); setCurrentPage(1);}}
+              onDifficultyChange={(value) => updateFilter(setDifficultyFilter, value)}
               onClearFilters={clearFiltersHandle}
             />
 
-            {deleteSuccess && (
+            {success && (
               <div className="mb-4 rounded border border-status-success/30 bg-status-success/10 px-4 py-3 text-sm text-status-success">
-                {deleteSuccess}
+                {success}
               </div>
             )}      
             
-            {updateSuccess && (
-              <div className="mb-4 rounded border border-status-success/30 bg-status-success/10 px-4 py-3 text-sm text-status-success">
-                {updateSuccess}
-              </div>
-            )}
-
-            {updateError && (
+            {error && (
               <div className="mb-4 rounded border border-system-red/30 bg-system-red/10 px-4 py-3 text-sm text-system-red">
-                {updateError}
-              </div>
-            )}
-            
-            {deleteError && (
-              <div className="mb-4 rounded border border-system-red/30 bg-system-red/10 px-4 py-3 text-sm text-system-red">
-                {deleteError}
+                {error}
               </div>
             )}
 
@@ -383,33 +439,32 @@ export default function ViewQuestionsPage() {
                     <option value={12}>12</option>
                     <option value={16}>16</option>
                     <option value={25}>25</option>
-                  </select>
+                </select>
               </div>
             </div>
           </div>
         </main> 
       </div>
 
-      <QuestionModal
-        key={isCreateOpen ? "create" : (editQuestionId ?? "closed")}
-        isOpen={isCreateOpen || editQuestionId !== null}
-        mode={isCreateOpen ? "create" : "edit"}
+
+      <CreateQuestionContainer
+        open={isCreateOpen}
+        categories={categories}
+        isSaving={isSaving}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={handleDeployment}
+      />
+
+      <LegacyQuestionModal
+        key={editQuestionId ?? "closed"}
+        isOpen={editQuestionId !== null}
+        mode={"edit"}
         isSaving={isSaving}
         question_id={editQuestionId}
         questions={questions}
         categories={categories}
-        onClose={() => {
-          setIsCreateOpen(false);
-          setEditQuestionId(null);
-        }}
-        onSubmit={(payload) => {
-          if(isCreateOpen) {
-            handleDeployment(payload);
-          }
-          else{
-            handleSavedChanges(payload);
-          }
-        }}
+        onClose={() => setEditQuestionId(null)}
+        onSubmit={handleSavedChanges}
       />
 
       <ConfirmationModal

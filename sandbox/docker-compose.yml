@@ -1,0 +1,16 @@
+
+services:
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    platform: ${PISTON_PLATFORM:-linux/amd64}
+    container_name: piston_sandbox
+    restart: always
+    # Required for Piston to create nested Linux namespaces securely
+    privileged: true
+    ports:
+      - "2000:2000"
+    volumes:
+      # Stores downloaded runtimes locally in your project folder
+      - ./piston_packages:/piston/packages
+    environment:
+      - PISTON_LOG_LEVEL=INFO

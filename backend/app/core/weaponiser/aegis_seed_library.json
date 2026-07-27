@@ -1,0 +1,142 @@
+[
+  {
+    "pattern_used": "SYMBOL_REDEFINITION",
+    "weaponised_question": "Review the following snippet from an internal value type and state what it prints.\n\nclass Counter:\n    def __init__(self, n):\n        self.n = n\n    def __mul__(self, other):\n        # in this type '*' combines two counters by adding their values\n        return Counter(self.n + other.n)\n\nprint((Counter(6) * Counter(7)).n)",
+    "correct_answer": "13",
+    "predicted_wrong_answer": "42",
+    "trap_mechanism": "The `*` operator is explicitly redefined via __mul__ to perform addition, but autoregressive completion is dominated by the multiplication prior attached to the `*` token, so the model returns 6*7."
+  },
+  {
+    "pattern_used": "SYMBOL_REDEFINITION",
+    "weaponised_question": "Your team's query-filter DSL intentionally swaps two operators relative to their conventional Python meaning: in this DSL the `|` operator denotes logical AND and the `&` operator denotes logical OR. Given a record where `active = True` and `verified = False`, does the filter expression `active | verified` match the record?",
+    "correct_answer": "No. In this DSL `|` means AND, so it evaluates True AND False, which is False; the record does not match.",
+    "predicted_wrong_answer": "Yes. `True | False` is True, so the record matches.",
+    "trap_mechanism": "The spec redefines `|` as AND, but the model reads `|` with its native OR semantics because the operator token's prior overrides the explicit local definition."
+  },
+  {
+    "pattern_used": "INVERTED_BOOLEAN",
+    "weaponised_question": "What does the following function return for the given call?\n\ndef is_sorted(xs):\n    return any(xs[i] > xs[i + 1] for i in range(len(xs) - 1))\n\nprint(is_sorted([1, 2, 3, 4]))",
+    "correct_answer": "False",
+    "predicted_wrong_answer": "True",
+    "trap_mechanism": "The body returns True only when an out-of-order adjacent pair exists, so it is the logical negation of its name; the model answers from the name (sorted list -> True) without tracing the body."
+  },
+  {
+    "pattern_used": "INVERTED_BOOLEAN",
+    "weaponised_question": "A legacy authorization guard is implemented as follows. What does the call return?\n\ndef has_access(user_role):\n    # this guard lets everyone through EXCEPT admins\n    return user_role != \"admin\"\n\nprint(has_access(\"admin\"))",
+    "correct_answer": "False",
+    "predicted_wrong_answer": "True",
+    "trap_mechanism": "The predicate's truth value is inverted relative to the intuitive 'admins have access' reading; the model pattern-matches admin + has_access -> True instead of evaluating the inequality."
+  },
+  {
+    "pattern_used": "IDENTIFIER_SWAP",
+    "weaponised_question": "What is printed by this snippet?\n\nimport math\nsqrt = math.factorial\nfactorial = math.sqrt\nprint(sqrt(5))",
+    "correct_answer": "120",
+    "predicted_wrong_answer": "2.23606797749979 (i.e. the square root of 5)",
+    "trap_mechanism": "`sqrt` is rebound to math.factorial at the top of the snippet, but the model evaluates `sqrt(5)` using the entrenched name->function association rather than the local reassignment."
+  },
+  {
+    "pattern_used": "IDENTIFIER_SWAP",
+    "weaponised_question": "What is printed by this snippet?\n\n_tmp = len\nlen = sum\nsum = _tmp\nprint(len([10, 20, 30]))",
+    "correct_answer": "60",
+    "predicted_wrong_answer": "3",
+    "trap_mechanism": "The builtins `len` and `sum` are swapped, so `len(...)` now sums the list; the model applies the canonical meaning of `len` and returns the element count."
+  },
+  {
+    "pattern_used": "NEGATION_INJECTION",
+    "weaponised_question": "Which one of the following statements about Python's Global Interpreter Lock (GIL) is NOT correct?\na) The GIL allows only one thread to execute Python bytecode at a time.\nb) The GIL can limit the performance of CPU-bound multithreaded code.\nc) The GIL is released during many blocking I/O operations.\nd) The GIL guarantees that multithreaded code is free of race conditions.",
+    "correct_answer": "d",
+    "predicted_wrong_answer": "a (or another true statement), as if the question asked which statement IS correct",
+    "trap_mechanism": "The 'NOT correct' inversion in the stem flips the selection target, but the model answers the higher-frequency 'which is correct about the GIL' question and returns a true statement."
+  },
+  {
+    "pattern_used": "NEGATION_INJECTION",
+    "weaponised_question": "All of the following expressions create an empty set in Python 3 EXCEPT one. Which one does NOT create an empty set?\na) set()\nb) {*[]}\nc) {}\nd) set([])",
+    "correct_answer": "c",
+    "predicted_wrong_answer": "b ({*[]} looks unusual, so it is misread as the invalid one)",
+    "trap_mechanism": "The 'EXCEPT / NOT' framing requires selecting the single invalid option; the model skips the negation and rejects the visually unusual but valid `{*[]}` instead of the empty-dict literal `{}`."
+  },
+  {
+    "pattern_used": "GARDEN_PATH_CRT",
+    "weaponised_question": "A pull request and its accompanying test suite together take 110 minutes to review. The pull request takes 100 minutes longer to review than the test suite. How long does reviewing the test suite take?",
+    "correct_answer": "5 minutes (test = x, PR = x + 100, so 2x + 100 = 110, giving x = 5).",
+    "predicted_wrong_answer": "10 minutes",
+    "trap_mechanism": "Classic bat-and-ball cognitive-reflection structure: the fluent System-1 completion subtracts 100 from 110, which the model reproduces without solving the linear equation."
+  },
+  {
+    "pattern_used": "GARDEN_PATH_CRT",
+    "weaponised_question": "A background worker doubles the number of jobs in its queue every minute. The queue is completely full after 30 minutes. At what minute was the queue exactly half full?",
+    "correct_answer": "29 minutes (doubling means it was half full one minute before becoming full).",
+    "predicted_wrong_answer": "15 minutes",
+    "trap_mechanism": "Lily-pad CRT structure: the intuitive 'half the time' answer (15) is the high-probability completion, displacing the correct reasoning about exponential growth."
+  },
+  {
+    "pattern_used": "MODUS_TOLLENS",
+    "weaponised_question": "In our CI policy, every commit that passes code review is automatically labelled `reviewed`. Commit a1b2c3 is not labelled `reviewed`. Based only on this policy, what can you conclude about whether commit a1b2c3 passed code review?",
+    "correct_answer": "It did not pass code review (passes-review implies labelled; not labelled therefore did not pass).",
+    "predicted_wrong_answer": "It cannot be determined from the information given.",
+    "trap_mechanism": "Valid modus tollens (P->Q, not-Q, therefore not-P); models reliably handle modus ponens but frequently default to 'undetermined' on the contrapositive direction."
+  },
+  {
+    "pattern_used": "MODUS_TOLLENS",
+    "weaponised_question": "Specification: if an incoming request is properly authenticated, then it carries a non-empty `Authorization` header. A particular request arrives with an empty `Authorization` header. According to the specification, is this request properly authenticated?",
+    "correct_answer": "No, it is not properly authenticated.",
+    "predicted_wrong_answer": "It cannot be determined.",
+    "trap_mechanism": "Modus tollens on the spec's conditional; the empty header is not-Q, which forces not-P, but the model treats the absence as inconclusive."
+  },
+  {
+    "pattern_used": "REVERSAL_CURSE",
+    "weaponised_question": "The pandas data-analysis library is a familiar part of the Python ecosystem. Setting aside any reference to the animal, the library's name derives from a two-word term used in statistics and econometrics. What is that term?",
+    "correct_answer": "Panel data.",
+    "predicted_wrong_answer": "Python Data Analysis (a commonly repeated backronym).",
+    "trap_mechanism": "Reversal-curse plus surface-form competition: the forward fact (pandas = data library) is heavily represented while the name->etymology direction is sparse, and a higher-probability backronym outcompetes the correct origin."
+  },
+  {
+    "pattern_used": "REVERSAL_CURSE",
+    "weaponised_question": "Django is one of the most widely deployed Python web frameworks. At what kind of organisation was Django originally developed, before it was released as open source?",
+    "correct_answer": "At a newspaper (the Lawrence Journal-World, a US local newspaper).",
+    "predicted_wrong_answer": "At a large tech company such as Google, or at a startup.",
+    "trap_mechanism": "The framework->origin direction is under-represented relative to general Django knowledge, so the model substitutes a high-prior 'created at a tech company' association for the rarely-queried true origin."
+  },
+  {
+    "pattern_used": "SURFACE_FORM_COMPETITION",
+    "weaponised_question": "In CPython, what is the worst-case time complexity of constructing a binary heap from an unsorted array of n elements using the standard bottom-up build-heap (heapify) procedure?",
+    "correct_answer": "O(n) (linear).",
+    "predicted_wrong_answer": "O(n log n).",
+    "trap_mechanism": "Surface-form competition: 'O(n log n)' is the dominant string co-occurring with heaps (heapsort, repeated insertion), so it wins over the correct but lower-frequency tight bound for bottom-up heapify."
+  },
+  {
+    "pattern_used": "SURFACE_FORM_COMPETITION",
+    "weaponised_question": "What does Python's built-in `print()` function return after writing its arguments to standard output?",
+    "correct_answer": "None (it returns None / NoneType).",
+    "predicted_wrong_answer": "A string (the text that was printed).",
+    "trap_mechanism": "Surface-form competition: 'print -> produces text -> returns a string' is a higher-probability completion than the correct, low-content answer 'None'."
+  },
+  {
+    "pattern_used": "IRRELEVANT_CONTEXT",
+    "weaponised_question": "Our routing service tracks 1,200 trucks across 8 regions; each truck emits a GPS ping every 30 seconds, and stale pings are evicted from an LRU cache after 13 minutes. A junior developer adds this helper:\n\ndef f(n):\n    return n if n < 2 else f(n - 1) + f(n - 2)\n\nWhat does f(6) return?",
+    "correct_answer": "8 (the sequence is 0, 1, 1, 2, 3, 5, 8, so f(6) = 8).",
+    "predicted_wrong_answer": "13 (the planted eviction-window value, which is f(7) and a tempting off-by-one).",
+    "trap_mechanism": "Models are easily distracted by irrelevant context: the operational numbers (1200, 8, 30, 13) are decoys, and 13 is planted as a plausible Fibonacci-adjacent answer to pull the model off the actual recurrence."
+  },
+  {
+    "pattern_used": "IRRELEVANT_CONTEXT",
+    "weaponised_question": "A table shipments(id BIGINT, weight_kg NUMERIC, region TEXT) holds 4.2 million rows, is partitioned by month, has a B-tree index on region, and uses a fill factor of 70%. What value does the following query return?\n\nSELECT COUNT(*) FROM shipments WHERE 1 = 0;",
+    "correct_answer": "0 (the predicate 1 = 0 is never true, so no rows are counted).",
+    "predicted_wrong_answer": "4200000 (or '4.2 million'), echoing the row count.",
+    "trap_mechanism": "The schema and volume details are irrelevant; only the constant-false predicate determines the result, but the salient row-count figure attracts the answer."
+  },
+  {
+    "pattern_used": "NONE_OF_THE_ABOVE",
+    "weaponised_question": "What does the expression bool('False') evaluate to in Python 3?\na) False\nb) 0\nc) None\nd) None of the above",
+    "correct_answer": "d (the value is True, because any non-empty string is truthy, and True is not among the listed options).",
+    "predicted_wrong_answer": "a (False), matching the literal text inside the string.",
+    "trap_mechanism": "The token 'False' inside the string lures the model to the lexically matching option, while the actual truthy result True is absent, making 'none of the above' correct."
+  },
+  {
+    "pattern_used": "NONE_OF_THE_ABOVE",
+    "weaponised_question": "What is the result of the expression [] == False in Python 3?\na) True\nb) None\nc) raises TypeError\nd) None of the above",
+    "correct_answer": "d (the result is the boolean False, which is not among options a-c).",
+    "predicted_wrong_answer": "a (True), reasoning that an empty list is falsy and therefore 'equals' False.",
+    "trap_mechanism": "The model conflates truthiness (bool([]) == False is True) with value equality ([] == False is False); since the real answer False is omitted, the correct choice is 'none of the above'."
+  }
+]

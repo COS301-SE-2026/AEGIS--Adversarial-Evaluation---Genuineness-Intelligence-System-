@@ -1,18 +1,33 @@
 "use client";
 import { NAV_ITEMS } from "../../../app/(admin)/types/mock-data";
 import { usePathname } from "next/navigation";
+import { Menu } from "lucide-react";
 
-export default function AdminTopbar() {
+interface AdminTopbarProps {
+  onOpenSideBar?: () => void;
+}
+
+export default function AdminTopbar({onOpenSideBar}: Readonly<AdminTopbarProps>) {
   const pathname = usePathname();
   const activePage = NAV_ITEMS.find((item) => pathname === item.href || pathname.startsWith(`${item.href}`));
   const title = activePage ? activePage.label : ""
 
   return (
-    <div className="bg-secondary-surface border-b border-tertiary-surface flex items-center justify-between px-6 py-6 shrink-0">
-      <h1 className=" text-xl text-default-text">
-        ADMIN / <span className="text-system-red">{title}</span>
-      </h1>
-
+    <div className="flex items-center justify-between bg-secondary-surface border-b border-tertiary-surface px-4 py-4 sm:px-6 lg:px-8 shrink-0">
+      
+      <div className="flex items-center gap-3">
+        <button 
+          type="button"
+          onClick={onOpenSideBar}
+          className="lg:hidden text-default-text hover:text-system-red"
+        >
+          <Menu size={22}/>
+        </button>
+        <h1 className=" text-base sm:text-lg lg:text-xl truncate text-default-text">
+          ADMIN / <span className="text-system-red">{title}</span>
+        </h1>
+      </div>
+      
       <div className="flex items-center gap-5">
         {/* Bell icon */}
         <button

@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import Link from "next/link";
 import Image from "next/image"; 
-import { use, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AssessmentCardProps } from "./assessment-card.types"; //icons class 
 import { StartAssessmentButton } from "@/components/candidate/ui/buttons/start-assessment-button";
+import { apiPost } from "@/lib/apiClient";
+import { getToken } from "@/lib/auth";
 import { AssessmentPreviewModal } from "../modals/assessment-preview-modal";
-
 
 function formatStatus(status: string): string {
     return status.replace(/_/g, " ").toUpperCase();
@@ -15,21 +15,43 @@ function formatStatus(status: string): string {
 
 export function AssessmentCard({
     candidateAssessId,
+    accessToken,
     title,
     description,
     durationMins,
     status,
 }: AssessmentCardProps) {
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
+    const [isStarting, setIsStarting] = useState(false);
+    const [startError, setStartError] = useState<string|null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const handleStart = () => {
-        setIsModalOpen(false);
-        router.push(`assessment/${candidateAssessId}`);
-    };
+    async function handleStart() {
+        if (isStarting || accessToken) {
+            if (!accessToken) setStartError("Missing access token");
+        };
+        try {
+            setIsStarting(true);
+            setStartError(null);
+            const authToken = getToken() ?? undefined;
+
+            await apiPost(
+                `/api/v1/assessments/take/${accessToken}/start`,
+                undefined,
+                authToken ? { authToken } : {}
+            );
+            router.push(`/assessment/${candidateAssessId}`);
+        } catch (error) {
+            const errorMessage = error instanceof Error? error.message : "Assessment is not ready yet";
+            setStartError(errorMessage);
+        } finally {
+            setIsStarting(false);
+        }
+    }
+
 
     return (
-        <div className= "bg-secondary-surface/50 border-2 rounded-md border-tertiary-surface p-4 h-20rem w-15rem flex flex-col hover:scale-105 hover:border-default-text/75 hover:shadow-default-text/60 transition-all duration-300">
+        <div className= "flex flex-col h-full min-h-88 bg-secondary-surface/50 border-2 rounded-md border-tertiary-surface p-4 h-20rem w-15rem  hover:scale-105 hover:border-default-text/75 hover:shadow-default-text/60 transition-all duration-300">
             <div className="mb-4 shrink-0">
                 <h2 className="text-l mb-2 leading-6 tracking-widest">{title}</h2>
                 <p className="mt-4 line-clamp-2">{description}</p>
@@ -57,9 +79,10 @@ export function AssessmentCard({
                 </div>
             </div>
             <div className="mt-auto">
-                <StartAssessmentButton
-                    onClick={()=> setIsModalOpen(true)}
-                />
+                <StartAssessmentButton onClick={handleStart} disabled={isStarting} isStarting={isStarting}/>
+                {startError && (
+                    <p className="mt-2 text-sm text-system-red">{startError}</p>
+                )}
             </div>
             
             {isModalOpen && (

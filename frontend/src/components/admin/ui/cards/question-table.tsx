@@ -25,9 +25,9 @@ export default function QuestionTable({
     onDelete,
 }: QuestionTableProps) {
     const difficultyStyle = (difficulty: string) => {
-        switch (difficulty) {
-            case "Easy":  return "bg-status-success/20 text-status-success";
-            case "Medium": return "bg-status-warning/20 text-status-warning";
+        switch (difficulty.toLowerCase()) {
+            case "easy":  return "bg-status-success/20 text-status-success";
+            case "medium": return "bg-status-warning/20 text-status-warning";
             default: return "bg-system-red/20 text-system-red";
         }
     };
@@ -35,7 +35,7 @@ export default function QuestionTable({
     return (
         <div className="bg-secondary-surface rounded-lg border border-default-border overflow-hidden">
             <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-225">
                     <thead>
                         <tr className="border-b border-default-border">
                             <th onClick= {() => onSort("title")} className="px-4 sm:px-6 py-3 sm:py-4 text-left text-default-text font-semibold text-xs sm:text-sm cursor-pointer hover:text-system-red transistion-colors">

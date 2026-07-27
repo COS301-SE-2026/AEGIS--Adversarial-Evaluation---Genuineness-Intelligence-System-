@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo } from "react";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AssessmentCard } from "@/components/candidate/ui/cards/assesment-card";
 import type { AssessmentCardProps } from "@/components/candidate/ui/cards/assessment-card.types";
 import { apiGet } from "@/lib/apiClient";
@@ -28,6 +29,7 @@ function mapCandidateAssessment(session: CandidateAssessmentApi): AssessmentCard
 
     return {
         candidateAssessId: session.candidate_assess_id,
+        accessToken: session.access_token?? null,
         assessmentId: session.assessment.assessment_id,
         title: session.assessment.title,
         description: session.assessment.description ?? "No description provided.",
@@ -42,12 +44,15 @@ function getStoredAuthToken(): string | undefined {
     return getToken() ?? undefined;
 }
 
-export default function AssessmentPage() {
+function AssessmentPageContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+
     const [authChecked, setAuthChecked] = useState(false);
     const [assessments, setAssessments] = useState<AssessmentCardProps[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const searchQuery = searchParams.get("search")?.toLowerCase() ?? "";
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -104,6 +109,15 @@ export default function AssessmentPage() {
         };
     }, [authChecked]);
 
+
+    const filteredAssessments = useMemo(() => {
+        return assessments.filter((assessment) => {
+            const titleMatches = assessment.title.toLowerCase().includes(searchQuery);
+            const descMatches = assessment.description?.toLowerCase().includes(searchQuery);
+            return titleMatches || descMatches;
+        });
+    }, [assessments, searchQuery]);
+
     if (!authChecked) {
         return (
             <main>
@@ -112,8 +126,10 @@ export default function AssessmentPage() {
         );
     }
 
+
+
     return (
-        <main>
+        <main className="min-h-screen px-8 py-8">
             <div className="mt-8">
                 <h1 className="font-staatliches text-3xl text-default-text mb-2">Available Assessments</h1>
                 <div>
@@ -128,11 +144,11 @@ export default function AssessmentPage() {
                 <div className="pt-8 text-system-red">{error}</div>
             ) : assessments.length === 0 ? (
                 <div className="pt-8 text-white-smoke">
-                    No assessments assigned yet.
+                    No assessments assigned yet
                 </div>
             ) : (
-                <div className="grid grid-cols-4 gap-x-32 gap-y-16 pt-8 pb-8">
-                    {assessments.map((assessment) => (
+                <div className="grid grind-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-8 pb-8">
+                    {filteredAssessments.map((assessment) => (
                         <AssessmentCard
                             key={assessment.candidateAssessId}
                             {...assessment}
@@ -142,4 +158,19 @@ export default function AssessmentPage() {
             )}
         </main>
     );
+}
+
+export default function AssessmentPage() {
+    return (
+        <main>
+            <Suspense 
+                fallback=
+                {<div className="pt-8 text-default-text">
+                    Loading View...
+                </div>}
+            >
+                <AssessmentPageContent/>
+            </Suspense>
+        </main>
+    )
 }
