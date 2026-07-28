@@ -38,6 +38,7 @@ export default function AssessmentFilterBar({
           <path d="m21 21-4.35-4.35" />
         </svg>
         <input
+          title="Search for assessments by title or keywords."
           className="
             w-full bg-background border border-default-border text-default-text
             pl-9 pr-3 py-2 font-jetbrains text-[11px] tracking-[0.04em] rounded-[5px] outline-none
