@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { NAV_ITEMS } from "../../../app/(admin)/types/mock-data";
+import { DEMO_2_NAV_ITEMS } from "../../../app/(admin)/types/mock-data";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import  logo from "../../../../public/illustrations/AEGIS-logo-candidate-nav.png"
@@ -40,7 +40,7 @@ export default function AdminSidebar({mobile}: Readonly<AdminSidebarProps>) {
 
       <nav className="flex-1 mt-4 py-4">
         
-        {NAV_ITEMS.map((item) => {
+        {DEMO_2_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname?.startsWith(`${item.href}`);
           
           return(
