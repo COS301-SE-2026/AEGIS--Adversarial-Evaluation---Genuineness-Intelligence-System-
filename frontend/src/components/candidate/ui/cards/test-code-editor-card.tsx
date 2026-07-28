@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Editor } from "@monaco-editor/react";
 import { apiPost } from "@/lib/apiClient"
-import { Play, Pause } from "lucide-react";
 
 
 interface CodeEditorProps {
@@ -61,42 +60,6 @@ export default function CodeEditorCard({
         message: "Click Run Code To Test Your Code.",
     });
     const [isRunning, setIsRunning] = useState(false);
-
-    const [language, setLanguage] = useState("python");
-    const [output, setOutput] = useState("");
-    const [running, setRunning] = useState(false);
-
-    const languages = [
-        { label: "Python", value: "python" },
-    ];
-
-    const handleRun = async () => { //change the actual api.
-        try {
-            setRunning(true);
-            setOutput("");
-
-            const response: string = await apiPost("/api/v1/code/run", {
-                language,
-                source_code: code,
-            });
-
-            setOutput(response);
-        } 
-        catch (error) {
-            setOutput (
-                error instanceof Error ?
-                    error.message :
-                    "Unable to execute code."
-            );
-        }
-        finally {
-            setRunning(false);
-        }
-    }
-
-    const handleStop = () => {
-        setRunning(false);
-    }
 
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
         e.preventDefault();

@@ -19,9 +19,9 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">(startMode);
   
-  const [formData, setFormData] = useState({email: "", password: "", confirmPassword: ""});
-  const [errors, setErrors] = useState({email: "", password: "", confirmPassword: ""});
-  const [touched, setTouched] = useState({ email: false, password: false, confirmPassword: false });
+  const [formData, setFormData] = useState({fullName: "", email: "", password: "", confirmPassword: ""});
+  const [errors, setErrors] = useState({fullName: "", email: "", password: "", confirmPassword: ""});
+  const [touched, setTouched] = useState({fullName: false, email: false, password: false, confirmPassword: false });
 
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,28 +41,40 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
   }
 
   const validate = (): boolean => {
+    const fullNameError = mode === "register" && !formData.fullName.trim() ? "Full name is required" : "";
     const emailError = validateEmail(formData.email);
     const passwordError = validatePassword(formData.password);
     const confirmError = validatePasswordMatch(formData.password, formData.confirmPassword);
     setErrors({
+      fullName: fullNameError,
       email: emailError || "",
       password: passwordError || "",
       confirmPassword: confirmError || ""
     });
-    setTouched({ email: true, password: true, confirmPassword: true });
+    setTouched({fullName: true, email: true, password: true, confirmPassword: true });
 
     if(mode === "login") {
+      setErrors(prev => ({...prev, email: emailError || "", password: passwordError || ""}));
+      setTouched(prev => ({...prev, email: true, password: true}));
       return !emailError && !passwordError;
     }
 
-    return !emailError && !passwordError && !confirmError;
+    return !fullNameError && !emailError && !passwordError && !confirmError;
   }
 
   const validateField = (field: keyof typeof formData, currentForm: typeof formData) => {
     switch(field) {
-      case "email": return validateEmail(currentForm.email) || "";
-      case "password": return validatePassword(currentForm.password) || "";
-      case "confirmPassword": return validatePasswordMatch(currentForm.password, currentForm.confirmPassword) || "";
+      case "fullName": 
+        return currentForm.fullName.trim() ? "" : "Full name is required";
+     
+      case "email": 
+        return validateEmail(currentForm.email) || "";
+      
+      case "password": 
+        return validatePassword(currentForm.password) || "";
+      
+      case "confirmPassword": 
+        return validatePasswordMatch(currentForm.password, currentForm.confirmPassword) || "";
     }
   }
 
@@ -84,7 +96,18 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
       const response = await fetch(`${API_BASE}${targetEndpoint}`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({email: formData.email, password: formData.password}),
+        body: JSON.stringify(
+          mode === "login" ?
+          {
+            email: formData.email,
+            password: formData.password
+          } :
+          {
+            full_name: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+          }
+        ),
       });
 
       const data = await response.json();
@@ -100,7 +123,16 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
 
       localStorage.setItem("aegis_token", data.access_token);
       localStorage.setItem("aegis_role", data.role);
-      router.push("/assessment");
+      
+      if(data.role === "RECRUITER") {
+        router.push("/assessments");
+      }
+      else if(data.role === "CANDIDATE") {
+        router.push("/assessment");
+      }
+      else {
+        router.push("/auth/login");
+      }
     } catch {
       setServerError("Server unreachable.");
     } finally {
@@ -123,7 +155,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
       {showPassword ? (
         //eye off icon
         <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M9.88 9.88a3 3 0 1 0 4 4.24 4.24"/> <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/> <path d="M6.61 6.61A113.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/> <line x1="2" x2="22" y1="2" y2="22"/>
+          <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/> <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/> <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/> <line x1="2" x2="22" y1="2" y2="22"/>
         </svg>
       ) : (
         //eye on icon
@@ -161,6 +193,17 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
             <hr className="flex-1 border-default-border"/>
           </div>
           <div className="flex flex-col gap-6">
+            {mode === "register" && (
+              <Input
+                label="Full Name"
+                type="text"
+                placeholder="Enter your full name"
+                value={formData.fullName}
+                onChange={(value) => handleInputChange("fullName", value)}
+                error={errors.fullName}
+                onBlur={() => handleInputBlur("fullName")}
+              />
+            )}
             <Input
               label="Email"
               type="email"
@@ -221,8 +264,8 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
               onClick={() => {
                 setMode(mode === "login" ? "register" : "login");
                 setServerError("");
-                setErrors({email: "", password: "", confirmPassword: ""});
-                setTouched({email: false, password: false, confirmPassword: false});
+                setErrors({fullName: "", email: "", password: "", confirmPassword: ""});
+                setTouched({fullName: false, email: false, password: false, confirmPassword: false});
               }} 
               className="text-system-red hover:underline font-semibold bg-transparent border-none cursor-pointer p-0"
           >

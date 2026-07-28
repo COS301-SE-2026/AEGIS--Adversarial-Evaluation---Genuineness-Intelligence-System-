@@ -59,7 +59,7 @@ def test_update_test_case_for_candidate(mock_update_test_case):
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override("CANDIDATE")
     response = client.patch(
-        "/api/v1/questions/adversarial/7/test-cases/11",
+        "/api/v1/questions/source/7/test-cases/11",
         json={
             "description": "updated",
             "input_data": "5",
@@ -76,7 +76,7 @@ def test_create_test_case_for_candidate(mock_create_test_case):
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override("CANDIDATE")
     response = client.post(
-        "/api/v1/questions/adversarial/7/test-cases",
+        "/api/v1/questions/source/7/test-cases",
         json={
             "description": "addition",
             "input_data": "5",

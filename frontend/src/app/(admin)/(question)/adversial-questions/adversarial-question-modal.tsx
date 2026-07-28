@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { X, RefreshCw, Sparkles } from "lucide-react";
 import { QuestionBank, QuestionCategory, QuestionPayload } from "../../types/questions";
-import { apiGet, apiPost } from "@/lib/apiClient";
+import { apiGet, apiPatch, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 
 
@@ -23,9 +23,53 @@ interface GeneratedAdversarialQuestion {
     generated_at: string;
 }
 
+interface ValidationResult {
+    source_answer: string;
+    adversarial_answer: string;
+}
+
+interface TestCaseResult {
+    test_case_id: number;
+    input_data: string;
+    expected_output: string;
+    actual_output: string | null;
+    passed: boolean;
+}
+
+interface CodeExecutionComparison {
+    correct_answer_results: TestCaseResult[];
+    gemini_results: TestCaseResult[];
+}
+
+interface ValidateApiResponse {
+    adv_question_id: number;
+    weaponised_question: string;
+    correct_answer: string;
+    predicted_wrong_answer: string;
+    gemini_response: string;
+    gemini_took_bait: boolean;
+    question_type: string;
+    test_case_results: CodeExecutionComparison | null;
+    piston_note: string | null;
+}
+
+interface SavedAdversarialQuestion {
+    adv_question_id: number;
+    source_question_id: number;
+    content: string;
+    strategy_id: number;
+    llm: string | null;
+    generated_at: string;
+    correct_answer: string | null;
+    predicted_wrong_answer: string | null;
+    trap_mechanism: string | null;
+    pattern_used: string | null;
+    validation_status: string;
+}
+
 interface AdversarialQuestionModalProps {
     isOpen: boolean;
-    mode: "create" | "edit"
+    mode: "create" | "edit";
     question_id?: number | null;
     questions: QuestionBank[];
     categories: QuestionCategory[];
@@ -34,7 +78,7 @@ interface AdversarialQuestionModalProps {
     isSaving?: boolean;
 }
 
-export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, onSubmit, isSaving = false, mode, question_id}: AdversarialQuestionModalProps) {
+export default function AdversarialQuestionModal({isOpen, onClose, questions, categories, mode, question_id}: AdversarialQuestionModalProps) {
     const [sourceQuestionId, setSourceQuestionId] = useState<number | null>(null);
     const [strategyId, setStrategyId] = useState<number | null>(null);
     const [strategies, setStrategies] = useState<AdversarialStrategy[]>([]);
@@ -43,7 +87,13 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
     const [generated, setGenerated] = useState<GeneratedAdversarialQuestion | null>(null);
     const [generateError, setGenerateError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
-
+    const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+const [validationError, setValidationError] = useState<string | null>(null);
+const [isValidating, setIsValidating] = useState(false);
+const [deployError, setDeployError] = useState<string | null>(null);
+const [isDeploying, setIsDeploying] = useState(false);
+const [regenerateError, setRegenerateError] = useState<string | null>(null);
+const [isRegenerating, setIsRegenerating] = useState(false);
     const selectedSource = questions.find(q => q.question_bank_id === sourceQuestionId);
 
     useEffect(() => {
@@ -71,11 +121,19 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
         return () => { isMounted = false; };
     }, []);
 
+    const resetGenerationState = () => {
+    setGenerated(null);
+    setGenerateError(null);
+    setValidationResult(null);
+    setValidationError(null);
+};
+
     const handleGenerate = async () => {
         if(!sourceQuestionId || !strategyId) return;
 
         setIsGenerating(true);
         setGenerateError(null);
+        setValidationResult(null); 
         try{
             const response = await apiPost<GeneratedAdversarialQuestion>(
                 `/api/v1/questions/${sourceQuestionId}/generate-adversarial`,
@@ -92,18 +150,75 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
         }
     };
 
-    const handleSubmit = () => {
-        if (!generated) return;
-        const payload: QuestionPayload = {
-            title: selectedSource?.title || "New Adversarial Question",
-            category_id: selectedSource?.category_id || categories[0]?.category_id || 0,
-            difficulty: selectedSource?.difficulty || "Medium",
-            adv_question_id: generated.adv_question_id,
-        };
+    const handleRegenerate = async () => {
+        if (!generated || !strategyId) return;
 
-        onSubmit(payload);
-        onClose();
+        setIsRegenerating(true);
+        setRegenerateError(null);
+        try {
+            const response = await apiPatch<GeneratedAdversarialQuestion>(
+                `/api/v1/adversarial-questions/${generated.adv_question_id}/regenerate`,
+                { strategy_id: strategyId },
+                { headers: getAuthHeaders() }
+            );
+            setGenerated(response);
+            setValidationResult(null);
+            setValidationError(null);
+        } catch (err) {
+            setRegenerateError(
+                err instanceof Error ? err.message : "Failed to regenerate adversarial question."
+            );
+        } finally {
+            setIsRegenerating(false);
+        }
     };
+
+    const handleValidate = async () => {
+    if (!generated) return;
+
+    setIsValidating(true);
+    setValidationError(null);
+
+    try {
+        const response = await apiPost<ValidateApiResponse>(
+            `/api/v1/adversarial-questions/${generated.adv_question_id}/validate`,
+            undefined,
+            { headers: getAuthHeaders() }
+        );
+        setValidationResult({
+            source_answer: response.correct_answer,
+            adversarial_answer: response.gemini_response,
+        });
+    } catch (err) {
+        setValidationError(
+            err instanceof Error ? err.message : "Failed to validate adversarial question."
+        );
+    } finally {
+        setIsValidating(false);
+    }
+};
+
+    const handleDeploy = async () => {
+    if (!generated || !validationResult) return;
+
+    setIsDeploying(true);
+    setDeployError(null);
+
+    try {
+        await apiPost<SavedAdversarialQuestion>(
+            `/api/v1/adversarial-questions/${generated.adv_question_id}/save`,
+            undefined,
+            { headers: getAuthHeaders() }
+        );
+        onClose();
+    } catch (err) {
+        setDeployError(
+            err instanceof Error ? err.message : "Failed to save adversarial question."
+        );
+    } finally {
+        setIsDeploying(false);
+    }
+};
 
     if(!isOpen) return null;
     
@@ -127,7 +242,8 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
             <label className="block text-sm font-medium mb-2">Source Question</label>
             <select 
               value={sourceQuestionId || ""} 
-              onChange={(e) => setSourceQuestionId(Number(e.target.value))}
+              onChange={(e) => {setSourceQuestionId(Number(e.target.value));
+                resetGenerationState(); }}
               className="w-full p-3 border border-default-border rounded bg-secondary-surface text-white-smoke"
             >
               <option value="">Select a source question...</option>
@@ -144,7 +260,8 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
             <label className="block text-sm font-medium mb-2">Adversarial Technique</label>
             <select
               value={strategyId ?? ""}
-              onChange={(e) => setStrategyId(e.target.value ? Number(e.target.value) : null)}
+              onChange={(e) => { setStrategyId(e.target.value ? Number(e.target.value) : null);
+              resetGenerationState(); }}
               disabled={strategiesLoading}
               className="w-full p-3 border border-default-border rounded bg-secondary-surface text-white-smoke"
             >
@@ -176,40 +293,107 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
 
   <button
     type="button"
-    onClick={handleGenerate}
-    disabled={!generated || isGenerating}
-    className="flex-1 py-3 border border-default-border text-white-smoke rounded hover:bg-tertiary-surface disabled:opacity-50"
+    onClick={handleRegenerate}
+    disabled={!generated || !strategyId || isRegenerating || isGenerating}
+    className="flex-1 py-3 border border-default-border text-white-smoke rounded flex items-center justify-center gap-2 hover:bg-tertiary-surface disabled:opacity-50"
   >
-    REGENERATE
+    {isRegenerating && <RefreshCw className="animate-spin" size={16} />}
+    {isRegenerating ? "REGENERATING..." : "REGENERATE"}
   </button>
 </div>
 
 {generateError && (
   <p className="text-xs text-system-red">{generateError}</p>
 )}
+{regenerateError && (
+  <p className="text-xs text-system-red">{regenerateError}</p>
+)}
 
-{/* Always Visible Preview Box */}
-<div className="border border-tertiary-surface rounded p-5 bg-secondary-surface min-h-50">
-  <h3 className="font-staatliches text-lg mb-3 flex items-center gap-2">
-    Generated Question Preview
-    {generated && <span className="text-status-success text-sm">✓ Ready</span>}
-  </h3>
+{/* Row 1: Original Source Question / Adversarial Question*/}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Original Source Question</h3>
+        {selectedSource ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {selectedSource.content}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Select source question
+            </div>
+        )}
+    </div>
 
-  {generated ? (
-    <div>
-      <div className="font-medium text-white-smoke mb-3">
-        {selectedSource?.title || "Generated Question"}
-      </div>
-      <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed border-l-2 border-system-red pl-4">
-        {generated.content}
-      </div>
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Adversarial Question</h3>
+        {generated?.content ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {generated.content}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Generated adversarial question will appear here
+            </div>
+        )}
     </div>
-  ) : (
-    <div className="text-white-smoke/40 italic text-center py-12">
-      AI generated question will appear here..
-    </div>
-  )}
 </div>
+
+{/* Validate button */}
+<div className="flex justify-end">
+    <button
+        type="button"
+        onClick={handleValidate}
+        disabled={!generated || isValidating}
+        className="px-6 py-2 bg-system-red text-white rounded hover:bg-red-600 disabled:opacity-50 flex items-center gap-2"
+    >
+        {isValidating && <RefreshCw className="animate-spin" size={16} />}
+        {isValidating ? "VALIDATING..." : "VALIDATE"}
+    </button>
+</div>
+
+{/* Row 2: Answer to Source Question / Gemini Response  */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Answer to Source Question</h3>
+        {validationResult?.source_answer ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {validationResult.source_answer}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Validation results will appear here
+            </div>
+        )}
+    </div>
+
+    <div className="border border-tertiary-surface rounded p-5 bg-secondary-surface">
+        <h3 className="font-staatliches text-lg mb-3">Gemini Response to Adversarial Question</h3>
+        {validationResult?.adversarial_answer ? (
+            <div className="text-white-smoke/80 whitespace-pre-wrap leading-relaxed">
+                {validationResult.adversarial_answer}
+            </div>
+        ) : (
+            <div className="text-white-smoke/40 italic py-8 text-center">
+                Validation results will appear here
+            </div>
+        )}
+    </div>
+</div>
+
+{/* Deploy button */}
+<div className="flex justify-end">
+    <button
+        type="button"
+        onClick={handleDeploy}
+        disabled={!validationResult || isDeploying}
+        className="px-6 py-2 bg-system-red text-white rounded hover:bg-red-600 disabled:opacity-50"
+    >
+        {isDeploying ? "DEPLOYING..." : "DEPLOY QUESTION"}
+    </button>
+</div>
+
+{validationError && <p className="text-xs text-system-red">{validationError}</p>}
+{deployError && <p className="text-xs text-system-red">{deployError}</p>}
 
 {selectedSource && (
   <div className="text-xs text-white-smoke/60 mt-2">
@@ -219,18 +403,7 @@ export default function AdversarialQuestionModal({isOpen, onClose, questions, ca
 
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-tertiary-surface flex justify-end gap-3">
-          <button onClick={onClose} className="px-6 py-2 border border-default-border rounded">Cancel</button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!generated || isSaving}
-            className="px-6 py-2 bg-system-red text-white rounded disabled:opacity-50"
-          >
-            SAVE ADVERSARIAL QUESTION
-          </button>
-        </div>
+        
       </div>
     </div>
   

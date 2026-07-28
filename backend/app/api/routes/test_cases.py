@@ -37,12 +37,12 @@ async def get_test_cases_for_source_question(
 
 
 @router.delete(
-    "/adversarial/{adversarial_question_id}/test-cases/{test_case_id}",
+    "/source/{question_bank_id}/test-cases/{test_case_id}",
     status_code=status.HTTP_204_NO_CONTENT
 )
 async def delete_test_case_for_adv_question(
     test_case_id: int,
-    adversarial_question_id: int,
+    question_bank_id: int,
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user)
 ):
@@ -51,16 +51,16 @@ async def delete_test_case_for_adv_question(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters can delete test cases."
         )
-    delete_test_case(db, test_case_id, adversarial_question_id)
+    delete_test_case(db, test_case_id, question_bank_id)
 
 
 @router.post(
-    "/adversarial/{adversarial_question_id}/test-cases",
+    "/source/{question_bank_id}/test-cases",
     response_model=CodingTestCaseResponse,
     status_code=status.HTTP_201_CREATED
 )
 async def create_test_case_for_adv_question(
-    adversarial_question_id: int,
+    question_bank_id: int,
     payload: CodingTestCaseCreate,
     db: Session = Depends(get_db),
     user: dict = Depends(get_current_user)
@@ -72,18 +72,18 @@ async def create_test_case_for_adv_question(
         )
     new_test_case = create_test_case(
         db,
-        adversarial_question_id,
+        question_bank_id,
         payload)
     return new_test_case
 
 
 @router.patch(
-    "/adversarial/{adversarial_question_id}/test-cases/{test_case_id}",
+    "/source/{question_bank_id}/test-cases/{test_case_id}",
     response_model=CodingTestCaseResponse,
     status_code=status.HTTP_200_OK
 )
 async def update_test_case_for_adv_question(
-    adversarial_question_id: int,
+    question_bank_id: int,
     test_case_id: int,
     payload: CodingTestCaseUpdate,
     db: Session = Depends(get_db),
@@ -96,6 +96,6 @@ async def update_test_case_for_adv_question(
         )
     return update_test_case(
         db,
-        adversarial_question_id,
+        question_bank_id,
         test_case_id,
         payload)

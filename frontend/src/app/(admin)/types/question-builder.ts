@@ -1,5 +1,3 @@
-import MCQOptionCard from "@/components/admin/ui/question-builder/mcq-option-card";
-
 export type QuestionType = "CODING" | "MCQ" | "COMPREHENSION" | "FILL_BLANKS";
 
 export type Difficulty = "Easy" | "Medium" | "Hard";
@@ -30,6 +28,7 @@ export interface QuestionBuilderState {
     difficulty: Difficulty
     maximum_score: number;
     tags: string[];
+    functionSignature: string;
     starterCode: string;
     options: MCQOption[];
     rubric: string;
@@ -50,6 +49,10 @@ export const createDefaultMCQQuestion = (isCorrect = false): MCQOption => ({
     text: "",
     isCorrect,
 })
+// Mock template used to pre-populate a brand new Fill-in-the-Blank question
+export const FILL_BLANKS_PLACEHOLDER_TEMPLATE = `Complete the SQL query.
+
+SELECT * FROM users [A] age > 18 [B] status = 'active';`;
 
 export const defaultQuestionState: QuestionBuilderState = {
     type: "CODING",
@@ -59,16 +62,13 @@ export const defaultQuestionState: QuestionBuilderState = {
     difficulty: "Easy",
     maximum_score: 10,
     tags: [],
-    starterCode: "",
-    options: [
-        createDefaultMCQQuestion(true),
-        createDefaultMCQQuestion(false),
-    ],
+    functionSignature: "",
+    starterCode: `def solve(nums, target):
+    # Add the function body here.`,
+    options: Array.from({length: 4}, (_,index) => createDefaultMCQQuestion(index === 0)),
     rubric: "",
     expectedKeywords: [],
     blanks: [],
-    testCases: [
-        createDefaultTestCase(),
-    ],
+    testCases: [],
 }
 

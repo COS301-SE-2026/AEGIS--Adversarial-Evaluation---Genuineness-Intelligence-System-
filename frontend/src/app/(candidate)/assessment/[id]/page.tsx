@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { TestDescriptionCard } from "@/components/candidate/ui/cards/test-description-card";
 import { TestAnswerCard } from "@/components/candidate/ui/cards/test-answer-card";
 import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-button";
@@ -255,7 +255,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       }
    };
 
-   const handleSubmit = async () => {
+   const handleSubmit = useCallback(async () => {
       if (isSubmitting || !candidateAssessId) return;
 
       try {
@@ -274,7 +274,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       } finally {
          setIsSubmitting(false);
       }
-   };
+   }, [candidateAssessId, isSubmitting, saveCurrentAnswer]);
 
    useEffect(()=>{
       if (!endTime || isSubmitted || isSubmitting) return;
@@ -286,7 +286,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       }, Math.max(timeRemaining, 0));
 
       return () => clearTimeout(timeout);
-   }, [endTime, isSubmitted, isSubmitting]);
+   }, [endTime, handleSubmit, isSubmitted, isSubmitting]);
 
    if (!candidateAssessId || isLoading) {
       return (

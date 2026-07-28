@@ -107,7 +107,14 @@ def normalize_Piston_output(value: str | None) -> str:
 
 
 def _get_expected_function_name(question_bank: QuestionBank) -> str | None:
-    metadata = question_bank.question_metadata
+    return _get_expected_function_name_from_metadata(
+        question_bank.question_metadata
+    )
+
+
+def _get_expected_function_name_from_metadata(
+    metadata: dict[str, Any] | None,
+) -> str | None:
     if not isinstance(metadata, dict):
         return None
 
@@ -128,6 +135,65 @@ def _get_expected_function_name(question_bank: QuestionBank) -> str | None:
         return None
 
     return function_name
+
+
+def execute_reference_implementation(
+    question_metadata: dict[str, Any] | None,
+    implementation: str,
+    input_data: str | None,
+    language: str = "python",
+    version: str | None = None,
+    piston_client: PistonClient | None = None,
+) -> dict[str, Any]:
+    function_name = _get_expected_function_name_from_metadata(
+        question_metadata
+    )
+    if function_name is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "Coding questions require a valid function_name or "
+                "function_signature."
+            ),
+        )
+
+    if not isinstance(implementation, str) or not implementation.strip():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Coding questions require a reference implementation.",
+        )
+    arguments = _parse_test_case_arguments(input_data)
+    source_code = _build_auto_call_source(
+        implementation,
+        function_name,
+        arguments,
+    )
+    client = piston_client or PistonClient()
+
+    try:
+        execution_result = client.execute(
+            language=language,
+            source_code=source_code,
+            version=version,
+        )
+    except PistonError as error:
+        return {
+            "source_code": source_code,
+            "stdout": "",
+            "stderr": "",
+            "compiled": False,
+            "error_message": str(error),
+        }
+
+    stderr_output = extract_piston_stderr(execution_result)
+    stdout_output = extract_piston_stdout(execution_result)
+    return {
+        "source_code": source_code,
+        "stdout": stdout_output,
+        "stderr": stderr_output,
+        "compiled": not bool(stderr_output.strip()),
+        "error_message": stderr_output if stderr_output.strip() else None,
+    }
 
 
 def _parse_test_case_arguments(input_data: str | None) -> list[Any]:

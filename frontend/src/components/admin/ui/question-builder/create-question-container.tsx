@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react";
-import { defaultQuestionState, QuestionBuilderState, QuestionType } from "@/app/(admin)/types/question-builder";
+import { defaultQuestionState, FILL_BLANKS_PLACEHOLDER_TEMPLATE, QuestionBuilderState, QuestionType } from "@/app/(admin)/types/question-builder";
 import { QuestionCategory, QuestionPayload } from "@/app/(admin)/types/questions";
 
 import QuestionTypeModal from "./question-type-modal";
@@ -36,7 +36,11 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
 
     function handleSelectedType(type: QuestionType) {
         setSelectedType(type);
-        setQuestion({...defaultQuestionState, type});
+        setQuestion({
+    ...defaultQuestionState,
+    type,
+    content: type === "FILL_BLANKS" ? FILL_BLANKS_PLACEHOLDER_TEMPLATE : defaultQuestionState.content,
+        });
     }
 
     const handleClose = () => {
@@ -85,7 +89,39 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
         }
     }, [question]);
 
+    // The generic payload only carries the universal fields (title, category, difficulty, etc). Each question type also needs its own shape mapped in.
+    function buildTypeSpecificPayload(question: QuestionBuilderState): Partial<QuestionPayload> {
+    switch (question.type) {
+        case "CODING":
+            return {
+                starterCode: question.starterCode,
+                testCases: question.testCases,
+            };
+        case "MCQ":
+            return {
+                options: question.options,
+            };
+        case "COMPREHENSION":
+            return {
+                rubric: question.rubric,
+                expectedKeywords: question.expectedKeywords,
+            };
+        case "FILL_BLANKS":
+            return {
+                // preserves appearance order (A, B, C, ...) so it lines up with the [A][B][C] markers on the backend.
+                blanks: question.blanks.map((blank) => blank.answer),
+            };
+        default:
+            return {};
+    }
+}
+
     function handleSave() {
+        const codingMetadata = question.type === "CODING"
+            ? {
+                function_signature: question.functionSignature.trim(),
+            }
+            : undefined;
         
         const payload: QuestionPayload = {
             
@@ -96,9 +132,12 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
             maximum_score: question.maximum_score,
             tags: question.tags,
             type: question.type,
-            correct_answer: "",
+            correct_answer: question.type === "CODING" ? question.starterCode : "",
+            question_metadata: codingMetadata,
+            testCases: question.type === "CODING" ? question.testCases : undefined,
             source_question_id: -1,
             technique: "",
+            ...buildTypeSpecificPayload(question), 
         };
 
         onSubmit(payload);
