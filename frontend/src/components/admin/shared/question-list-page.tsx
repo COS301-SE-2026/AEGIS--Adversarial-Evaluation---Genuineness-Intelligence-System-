@@ -10,6 +10,7 @@ import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
+import { normalizeFillBlankPayload } from "@/lib/question-payload";
 
 
 export interface QuestionListModalProps {
@@ -38,6 +39,69 @@ export interface QuestionListPageConfig {
 
 export default function QuestionListPage({ config }: { config: QuestionListPageConfig }) {
   const { ModalComponent } = config;
+  const MCQ_OPTION_LABELS = ["A", "B", "C", "D"] as const;
+
+  function buildSourceQuestionPayload(question: QuestionPayload) {
+    if (question.type === "MCQ") {
+      const options = question.options ?? [];
+
+      if (options.length !== MCQ_OPTION_LABELS.length) {
+        throw new Error("MCQ questions must have exactly four options.");
+      }
+
+      const selectedIndex = options.findIndex((option) => option.isCorrect);
+      if (selectedIndex < 0) {
+        throw new Error("Select one correct MCQ option before saving.");
+      }
+
+      return {
+        title: question.title,
+        content: question.content ?? "",
+        type: question.type ?? "TEXT",
+        maximum_score: question.maximum_score ?? 10,
+        correct_answer: { answer: MCQ_OPTION_LABELS[selectedIndex] },
+        question_metadata: {
+          options: MCQ_OPTION_LABELS.reduce((accumulator, label, index) => {
+            accumulator[label] = options[index]?.text?.trim() ?? "";
+            return accumulator;
+          }, {} as Record<(typeof MCQ_OPTION_LABELS)[number], string>),
+        },
+        tags: question.tags ?? [],
+        category_id: question.category_id,
+        difficulty: question.difficulty,
+      };
+    }
+
+    if (question.type === "FILL_IN_THE_BLANK") {
+      const { blanks, normalizedAnswers } = normalizeFillBlankPayload(question);
+      return {
+        title: question.title,
+        content: question.content ?? "",
+        type: "FILL_IN_THE_BLANK",
+        maximum_score: question.maximum_score ?? 10,
+        correct_answer: { answer: normalizedAnswers },
+        question_metadata: {
+          blanks,
+        },
+        tags: question.tags ?? [],
+        category_id: question.category_id,
+        difficulty: question.difficulty,
+      };
+    }
+
+    return {
+      title: question.title,
+      content: question.content ?? "",
+      type: question.type ?? "TEXT",
+      maximum_score: question.maximum_score ?? 10,
+      correct_answer: question.correct_answer,
+      question_metadata: question.question_metadata,
+      tags: question.tags ?? [],
+      category_id: question.category_id,
+      difficulty: question.difficulty,
+    };
+  }
+
 
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -183,13 +247,31 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
     setUpdateError(null);
     setIsSaving(true);
     try {
-      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, updatedData, {
+      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, buildSourceQuestionPayload(updatedData), {
         headers: getAuthHeaders(),
       });
       setQuestions((previousQuestions) =>
-        previousQuestions.map((question) =>
-          question.question_bank_id === editQuestionId ? { ...question, ...updatedData } : question
-        )
+        previousQuestions.map((question) => {
+          if (question.question_bank_id !== editQuestionId) {
+            return question;
+          }
+
+          return {
+            ...question,
+            title: updatedData.title,
+            content: updatedData.content ?? question.content,
+            type: updatedData.type ?? question.type,
+            maximum_score: updatedData.maximum_score ?? question.maximum_score,
+            tags: updatedData.tags ?? question.tags,
+            category_id: updatedData.category_id,
+            difficulty: updatedData.difficulty,
+            correct_answer:
+              typeof updatedData.correct_answer === "string"
+                ? updatedData.correct_answer
+                : question.correct_answer,
+            question_metadata: updatedData.question_metadata ?? question.question_metadata,
+          };
+        })
       );
 
       setUpdateSuccess("Question updated successfully.");
@@ -207,17 +289,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
     try {
       const createdQuestion = await apiPost<QuestionBank>(
         "/api/v1/questions/source",
-        {
-          title: newQuestion.title,
-          content: newQuestion.content ?? "",
-          type: newQuestion.type ?? "TEXT",
-          maximum_score: newQuestion.maximum_score ?? 10,
-          correct_answer: newQuestion.correct_answer,
-          question_metadata: undefined,
-          tags: newQuestion.tags ?? [],
-          category_id: newQuestion.category_id,
-          difficulty: newQuestion.difficulty,
-        },
+        buildSourceQuestionPayload(newQuestion),
         {
           headers: getAuthHeaders(),
         }
