@@ -339,7 +339,11 @@ export default function ViewQuestionsPage() {
                 <span className="sm:hidden">New</span>
               </button>
 
-              <button title="Open the help guide." type="button" onClick={()=>setIsHelpOpen(true)} className="flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+              <button 
+                title="Open the help guide." 
+                type="button" onClick={()=>setIsHelpOpen(true)} 
+                className="flex items-center gap-2 text-default-text border border-default-border hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wider cursor-pointer"
+              >
                 <HelpCircle size={18}/>
                 <span>Help</span>
               </button>

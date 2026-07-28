@@ -35,10 +35,10 @@ export default function QuestionBuilderDrawer({
             />
 
             <aside
-                className={`fixed right-0 top-0 z-50 flex flex-col h-screen w-full max-w-5xl border border-tertiary-surface bg-secondary-surface transition-transform duration-300 ease-out
+                className={`fixed left-0 top-0 z-50 flex flex-col h-screen w-full max-w-5xl border border-tertiary-surface bg-secondary-surface transition-transform duration-300 ease-out
                     ${open 
                         ? "translate-x-0"
-                        : "translate-x-full"
+                        : "-translate-x-full"
                 }`}
             >
                 <header className="flex items-ceneter justify-between border-b border-tertiary-surface px-8 py-5">

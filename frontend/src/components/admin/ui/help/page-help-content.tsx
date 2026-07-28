@@ -72,5 +72,44 @@ export const PAGE_HELP_CONTENT: Record<string, PageHelpConfig> = {
         answer: "Yes. You can regenerate an adversarial question until you get a satisfactory adversarial question"
       },
     ]
+  },
+
+  "/assessment" : {
+    title: "Assessment Guide",
+    description: "This page displays all assessments assigned to you. Each assessment can only be started when it becomes available. Read the instructions carefully before beginning.",
+   
+    steps: [
+      {
+        title: "Choose an assessment",
+        body: "Review the assessment title, description and duration before starting.",
+      },
+      {
+        title: "Start the assessment",
+        body: "Click 'Start' and confirm your choice. Once started, the assessment timer begins immediately.",
+      },
+      {
+        title: "Complete every question",
+        body: "Move between questions using the Previous and Next buttons. Your latest answer is saved whenever you move to another question.",
+      },
+      {
+        title: "Submit",
+        body: "After answering the final question, click Submit Assessment. If time expires, your assessment is submitted automatically."
+      }
+    ],
+
+    faq: [
+      {
+        question: "Can I pause an assessment?",
+        answer: "No. Once started, the assessment timer continues until submission or until the allotted time expires."
+      },
+      {
+        question: "Will my answers be saved?",
+        answer: "Yes. Your answers are saved whenever you navigate between questions and before final submission."
+      },
+      {
+        question: "Can I start an assessment again?",
+        answer: "No. An assessment can only be started once."
+      }
+    ]
   }
 }
