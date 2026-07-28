@@ -2,6 +2,7 @@
 
 import { QuestionCategory } from "@/app/(admin)/types/questions"
 import { QuestionBuilderState } from "@/app/(admin)/types/question-builder";
+import { useState } from "react";
 
 
 type UniversalFieldsProps = Readonly <{
@@ -22,6 +23,56 @@ export default function UniversalFields({
     
     const difficulties = ["Easy", "Medium", "Hard"] as const;
     const isFillBlanks = question.type === "FILL_BLANKS";
+    const [tagsInput, setTagsInput] = useState("");
+
+    const addTag = (raw: string) => {
+        const tag = raw.trim();
+
+        if (!tag) return;
+        if (question.tags.includes(tag)) {
+            setTagsInput("");
+            return;
+        }
+
+        update("tags", [...question.tags, tag]);
+        setTagsInput("");
+
+    };
+
+    const removeTag = (tag: string) => {
+        update("tags", question.tags.filter(tg => tg !== tag));
+    };
+
+    const handleKeyDown = (element: React.KeyboardEvent<HTMLInputElement>) => {
+        if (element.key === "," || element.key === "Enter") {
+            element.preventDefault();
+            addTag(tagsInput);
+        }
+
+        if(element.key === "Backspace" && tagsInput === "" && question.tags.length > 0) {
+            removeTag(question.tags[question.tags.length - 1]);
+        }
+
+    }
+
+    const handlePaste = (element: React.ClipboardEvent<HTMLInputElement>) => {
+        element.preventDefault();
+
+        const pasted = element.clipboardData.getData("text");
+
+        const newTags = pasted.split(",").map(tag => tag.trim()).filter(Boolean);
+
+        const merged = [
+            ...new Set([
+                ...question.tags,
+                ...newTags
+            ])
+        ];
+
+        update("tags", merged);
+    }
+
+
 
     return (
         <div className="space-y-6 bg-secondary-surface p-6 rounded-lg border border-tertiary-surface">
@@ -133,16 +184,42 @@ export default function UniversalFields({
                     htmlFor="question-tags"
                     className="block text-xs uppercase tracking-wider text-default-border"
                 >
-                    Indexed Tags (Comma Seperated)
+                    Indexed Tags  (Press <kbd>,</kbd> OR <kbd>Enter</kbd> to add a tag)
                 </label>
-                <input
-                    id="question-tag"
-                    type="text"
-                    value={question.tags.join(", ")}
-                    onChange={(event) => update("tags", event.target.value.split(",").map(tag => tag.trim()).filter(Boolean))}
-                    placeholder="e.g. Algorithm, Python"
-                    className="w-full px-4 py-2 bg-background border-default-border rounded text-default-text text-sm focus:outline-none focus:border-system-red transition-colors"
-                />
+                <div className="rounded border border-default-border bg-background p-3 focus-within:border-system-red transition-colors">
+                    <div className="flex flex-wrap gap-2 mb-2">
+                        {question.tags.map(tag => (
+                            <span
+                                key={tag}
+                                className="flex items-center gap-2 rounded-md px-3 py-1 text-xs text-default-text"
+                            >
+                                {tag}
+                                <button
+                                    type="button"
+                                    onClick={() => removeTag(tag)}
+                                    className="text-default-border hover:text-system-red transition-colors"
+                                >
+                                    x
+                                </button>
+                            </span>
+                        ))}
+                        <input
+                            id="question-tag"
+                            type="text"
+                            value={tagsInput}
+                            onChange={(element) => setTagsInput(element.target.value)}
+                            onKeyDown={handleKeyDown}
+                            onPaste={handlePaste}
+                            placeholder={question.tags.length === 0 ?
+                                "Type a tag" :
+                                ""
+                            }
+                            className="flex-1 min-w-30 bg-transparent outline-none text-default-text text-sm"
+                        />
+                    </div>
+                </div>
+
+                    
             </div>
         </div>
     )
