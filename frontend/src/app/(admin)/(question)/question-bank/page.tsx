@@ -11,75 +11,7 @@ import CreateQuestionContainer from "@/components/admin/ui/question-builder/crea
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
-import { normalizeFillBlankPayload } from "@/lib/question-payload";
-
-const MCQ_OPTION_LABELS = ["A", "B", "C", "D"] as const;
-
-function buildQuestionData(question: QuestionPayload) {
-  const buildMcqPayload = () => {
-    const options = question.options ?? [];
-
-    if (options.length !== MCQ_OPTION_LABELS.length) {
-      throw new Error("MCQ questions must have exactly four options.");
-    }
-    const normalizedOptions = MCQ_OPTION_LABELS.reduce((accumulator, label, index) => {
-      accumulator[label] = options[index]?.text?.trim() ?? "";
-      return accumulator;
-    }, {} as Record<(typeof MCQ_OPTION_LABELS)[number], string>);
-
-    const selectedIndex = options.findIndex((option) => option.isCorrect);
-
-    if (selectedIndex < 0 || selectedIndex >= MCQ_OPTION_LABELS.length) {
-      throw new Error("Select one correct MCQ option before saving.");
-    }
-
-    return {
-      correctAnswer: { answer: MCQ_OPTION_LABELS[selectedIndex] },
-      metadata: {
-        options: normalizedOptions,
-      },
-    };
-  };
-
-    switch (question.type) {
-      
-      case "CODING":
-        return {
-          correctAnswer: question.correct_answer ?? "",
-          metadata: question.question_metadata ?? {},
-        };
-
-      case "MCQ":
-        return buildMcqPayload();
-
-      case "COMPREHENSION":
-        return {
-          correctAnswer: "",
-          metadata: {
-            rubric: question.rubric,
-            expectedKeywords: question.expectedKeywords,
-          }
-        };
-
-      case "FILL_IN_THE_BLANK":
-        {
-          const { blanks, normalizedAnswers } = normalizeFillBlankPayload(question);
-          return {
-            correctAnswer: { answer: normalizedAnswers },
-            metadata: {
-              blanks,
-            },
-            type: "FILL_IN_THE_BLANK",
-          };
-        }
-
-      default:
-        return {
-          correctAnswer: "",
-          metadata: {},
-        };
-    }
-  }
+import { buildSourceQuestionPayload } from "@/lib/question-payload";
 
 export default function ViewQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
@@ -236,7 +168,7 @@ export default function ViewQuestionsPage() {
     setError(null);
     setIsSaving(true);
     try{
-      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, updatedData, {
+      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, buildSourceQuestionPayload(updatedData), {
         headers: getAuthHeaders()
       });
       setQuestions((previousQuestions) =>
@@ -275,22 +207,11 @@ export default function ViewQuestionsPage() {
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
     setError(null);
-    const { correctAnswer, metadata } = buildQuestionData(newQuestion);
 
     try {
       const createdQuestion = await apiPost<QuestionBank>(
         "/api/v1/questions/source",
-        {
-          title: newQuestion.title,
-          content: newQuestion.content ?? "",
-          type: newQuestion.type ?? "TEXT",
-          maximum_score: newQuestion.maximum_score ?? 10,
-          correct_answer: correctAnswer,
-          question_metadata: metadata,
-          tags: newQuestion.tags ?? [],
-          category_id: newQuestion.category_id,
-          difficulty: newQuestion.difficulty,
-        },
+        buildSourceQuestionPayload(newQuestion),
         {
           headers: getAuthHeaders(),
         }

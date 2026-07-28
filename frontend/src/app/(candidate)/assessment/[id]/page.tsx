@@ -249,7 +249,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const totalQuestions = questions.length;
    const isLastQuestion = totalQuestions > 0 && currentQuestionIndex === totalQuestions - 1;
 
-   const saveCurrentAnswer = async () => {
+   const saveCurrentAnswer = useCallback(async () => {
       if (!candidateAssessId || !currentQuestion) {
          return;
       }
@@ -268,7 +268,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
          },
          authToken ? { authToken } : {}
       );
-   };
+   }, [answersByQuestionId, candidateAssessId, currentQuestion]);
 
    const handleNext = async () => {
       if (isSaving || currentQuestionIndex >= totalQuestions - 1) {

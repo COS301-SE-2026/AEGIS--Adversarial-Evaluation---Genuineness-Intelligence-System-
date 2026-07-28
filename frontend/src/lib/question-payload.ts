@@ -5,6 +5,8 @@ export type NormalizedFillBlankPayload = {
   normalizedAnswers: Record<string, string>;
 };
 
+const MCQ_OPTION_LABELS = ["A", "B", "C", "D"] as const;
+
 export function normalizeFillBlankPayload(
   question: QuestionPayload,
 ): NormalizedFillBlankPayload {
@@ -41,4 +43,75 @@ export function normalizeFillBlankPayload(
     blanks,
     normalizedAnswers,
   };
+}
+
+function normalizeMcqPayload(question: QuestionPayload) {
+  const options = question.options ?? [];
+
+  if (options.length !== MCQ_OPTION_LABELS.length) {
+    throw new Error("MCQ questions must have exactly four options.");
+  }
+
+  const selectedIndex = options.findIndex((option) => option.isCorrect);
+
+  if (selectedIndex < 0 || selectedIndex >= MCQ_OPTION_LABELS.length) {
+    throw new Error("Select one correct MCQ option before saving.");
+  }
+
+  return {
+    correct_answer: { answer: MCQ_OPTION_LABELS[selectedIndex] },
+    question_metadata: {
+      options: MCQ_OPTION_LABELS.reduce((accumulator, label, index) => {
+        accumulator[label] = options[index]?.text?.trim() ?? "";
+        return accumulator;
+      }, {} as Record<(typeof MCQ_OPTION_LABELS)[number], string>),
+    },
+  };
+}
+
+export function buildSourceQuestionPayload(question: QuestionPayload) {
+  const basePayload = {
+    title: question.title,
+    content: question.content ?? "",
+    type: question.type ?? "TEXT",
+    maximum_score: question.maximum_score ?? 10,
+    tags: question.tags ?? [],
+    category_id: question.category_id,
+    difficulty: question.difficulty,
+  };
+
+  switch (question.type) {
+    case "CODING":
+      return {
+        ...basePayload,
+        correct_answer: question.correct_answer ?? "",
+        question_metadata: question.question_metadata ?? {},
+      };
+
+    case "MCQ":
+      return {
+        ...basePayload,
+        ...normalizeMcqPayload(question),
+      };
+
+    case "FILL_IN_THE_BLANK": {
+      const { blanks, normalizedAnswers } = normalizeFillBlankPayload(question);
+
+      return {
+        ...basePayload,
+        type: "FILL_IN_THE_BLANK",
+        correct_answer: { answer: normalizedAnswers },
+        question_metadata: {
+          blanks,
+        },
+      };
+    }
+
+    default:
+      return {
+        ...basePayload,
+        correct_answer: question.correct_answer,
+        question_metadata: question.question_metadata,
+      };
+  }
 }

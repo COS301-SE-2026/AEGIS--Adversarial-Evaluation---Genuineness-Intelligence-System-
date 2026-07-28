@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Question } from "./question.type";
 
 type FillInTheBlanksProps = {
@@ -37,19 +37,13 @@ function parseStoredAnswers(value?: string): Record<string, string> {
 
 export function TestFillInTheBlanksCard({ question, value, onChange }: FillInTheBlanksProps) {
     const blankLabels = useMemo(() => question.options, [question.options]);
-    const [answers, setAnswers] = useState<Record<string, string>>(() => parseStoredAnswers(value));
-
-    useEffect(() => {
-        setAnswers(parseStoredAnswers(value));
-    }, [question.questionId, value]);
+    const answers = useMemo(() => parseStoredAnswers(value), [value]);
 
     const updateAnswer = (label: string, nextValue: string) => {
         const nextAnswers = {
             ...answers,
             [label]: nextValue,
         };
-
-        setAnswers(nextAnswers);
         onChange?.(JSON.stringify({ answer: nextAnswers }));
     };
 
