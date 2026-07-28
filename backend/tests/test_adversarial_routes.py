@@ -398,8 +398,9 @@ def test_validate_adversarial_200_on_success(mock_validate):
         adv_question_id=5,
         weaponised_question="What does f(6) return?",
         correct_answer="8",
+        source_question_correct_answer="B",
         predicted_wrong_answer="13",
-        gemini_response="The answer is 8.",
+        gemini_response="8",
         gemini_took_bait=False,
         question_type="MULTIPLE_CHOICE",
         test_case_results=None,
@@ -418,8 +419,9 @@ def test_validate_adversarial_200_on_success(mock_validate):
     assert body["adv_question_id"] == 5
     assert body["weaponised_question"] == "What does f(6) return?"
     assert body["correct_answer"] == "8"
+    assert body["source_question_correct_answer"] == "B"
     assert body["predicted_wrong_answer"] == "13"
-    assert body["gemini_response"] == "The answer is 8."
+    assert body["gemini_response"] == "8"
     assert body["gemini_took_bait"] is False
     assert body["question_type"] == "MULTIPLE_CHOICE"
     assert body["test_case_results"] is None

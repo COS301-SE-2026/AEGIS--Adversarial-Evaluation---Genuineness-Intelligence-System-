@@ -60,6 +60,10 @@ def _mock_question():
     question.question_bank_id = 1
     question.title = "Fibonacci helper"
     question.difficulty = "Easy"
+    question.type = QuestionType.CODING
+    question.content = "Write a function that returns the nth Fibonacci number."
+    question.correct_answer = "return a + b"
+    question.question_metadata = {"function_name": "fibonacci"}
     return question
 
 
@@ -481,10 +485,28 @@ def _mock_adv_question_full(
     return adv_question
 
 
-def _mock_source_question(question_type=QuestionType.MULTIPLE_CHOICE):
+_DEFAULT_SOURCE_CORRECT_ANSWERS = {
+    QuestionType.MULTIPLE_CHOICE: {"answer": "B"},
+    QuestionType.FILL_IN_THE_BLANK: {"answer": {"BLANK_1": "sample"}},
+    QuestionType.CODING: "print(8)",
+}
+
+
+_UNSET = object()
+
+
+def _mock_source_question(
+    question_type=QuestionType.MULTIPLE_CHOICE,
+    correct_answer=_UNSET,
+):
     question = MagicMock()
     question.question_bank_id = 1
     question.type = question_type
+    question.correct_answer = (
+        _DEFAULT_SOURCE_CORRECT_ANSWERS[question_type]
+        if correct_answer is _UNSET
+        else correct_answer
+    )
     return question
 
 
@@ -513,6 +535,73 @@ def _mock_db_for_validate(
 
     mock_db.query.side_effect = query_side_effect
     return mock_db
+
+
+def test_format_source_correct_answer_mcq():
+    source_question = _mock_source_question(
+        QuestionType.MULTIPLE_CHOICE, correct_answer={"answer": "B"}
+    )
+
+    assert _format_source_correct_answer(source_question) == "B"
+
+
+def test_format_source_correct_answer_fill_in_the_blank():
+    source_question = _mock_source_question(
+        QuestionType.FILL_IN_THE_BLANK,
+        correct_answer={"answer": {"BLANK_1": "8", "BLANK_2": "13"}},
+    )
+
+    assert (
+        _format_source_correct_answer(source_question)
+        == "BLANK_1: 8, BLANK_2: 13"
+    )
+
+
+def test_format_source_correct_answer_coding():
+    source_question = _mock_source_question(
+        QuestionType.CODING, correct_answer="return a + b"
+    )
+
+    assert (
+        _format_source_correct_answer(source_question)
+        == "return a + b"
+    )
+
+
+def test_format_source_correct_answer_none():
+    source_question = _mock_source_question(
+        QuestionType.CODING, correct_answer=None
+    )
+
+    assert _format_source_correct_answer(source_question) == ""
+
+
+def test_validate_adversarial_question_source_answer_is_not_adversarial_answer():
+    adv_question = _mock_adv_question_full(correct_answer="D")
+    source_question = _mock_source_question(
+        QuestionType.MULTIPLE_CHOICE, correct_answer={"answer": "B"}
+    )
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text=json.dumps(
+            {"final_answer": "D", "reasoning": "D is correct."}
+        ),
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    assert result.correct_answer == "D"
+    assert result.source_question_correct_answer == "B"
 
 
 def test_validate_adversarial_question_404_when_not_found():
@@ -554,7 +643,9 @@ def test_validate_adversarial_question_success_mcq():
     )
     mock_client = MagicMock()
     mock_client.models.generate_content.return_value = MagicMock(
-        text="I think the answer is 8",
+        text=json.dumps(
+            {"final_answer": "8", "reasoning": "8 is correct."}
+        ),
     )
 
     with patch(
@@ -568,8 +659,10 @@ def test_validate_adversarial_question_success_mcq():
     assert result.adv_question_id == 5
     assert result.weaponised_question == "What does f(6) return?"
     assert result.correct_answer == "8"
+    assert result.source_question_correct_answer == "B"
+    assert result.correct_answer != result.source_question_correct_answer
     assert result.predicted_wrong_answer == "13"
-    assert result.gemini_response == "I think the answer is 8"
+    assert result.gemini_response == "8"
     assert result.question_type == "MULTIPLE_CHOICE"
     assert result.test_case_results is None
     assert result.piston_note is None
@@ -587,7 +680,9 @@ def test_validate_adversarial_question_gemini_took_bait_true():
     )
     mock_client = MagicMock()
     mock_client.models.generate_content.return_value = MagicMock(
-        text="The answer is 13.",
+        text=json.dumps(
+            {"final_answer": " 13 ", "reasoning": "It is 13."}
+        ),
     )
 
     with patch(
@@ -599,6 +694,7 @@ def test_validate_adversarial_question_gemini_took_bait_true():
         )
 
     assert result.gemini_took_bait is True
+    assert result.gemini_response == " 13 "
 
 
 def test_validate_adversarial_question_gemini_took_bait_false():
@@ -612,7 +708,9 @@ def test_validate_adversarial_question_gemini_took_bait_false():
     )
     mock_client = MagicMock()
     mock_client.models.generate_content.return_value = MagicMock(
-        text="The answer is 8.",
+        text=json.dumps(
+            {"final_answer": "8", "reasoning": "It is 8."}
+        ),
     )
 
     with patch(
@@ -624,6 +722,61 @@ def test_validate_adversarial_question_gemini_took_bait_false():
         )
 
     assert result.gemini_took_bait is False
+
+
+def test_validate_adversarial_question_gemini_took_bait_normalised():
+    adv_question = _mock_adv_question_full(
+        predicted_wrong_answer="True"
+    )
+    source_question = _mock_source_question(
+        QuestionType.MULTIPLE_CHOICE
+    )
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text=json.dumps(
+            {"final_answer": " true ", "reasoning": "It is true."}
+        ),
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    assert result.gemini_took_bait is True
+
+
+def test_validate_adversarial_question_invalid_json_response():
+    adv_question = _mock_adv_question_full()
+    source_question = _mock_source_question(
+        QuestionType.MULTIPLE_CHOICE
+    )
+    mock_db = _mock_db_for_validate(
+        adv_question_result=adv_question,
+        question_result=source_question,
+    )
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="I think the answer is 8",
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = validate_adversarial_question(
+            mock_db, adv_question_id=5
+        )
+
+    assert result.gemini_took_bait is False
+    assert result.gemini_response == "I think the answer is 8"
 
 
 def test_validate_adversarial_question_coding_no_piston():
@@ -638,7 +791,9 @@ def test_validate_adversarial_question_coding_no_piston():
     )
     mock_client = MagicMock()
     mock_client.models.generate_content.return_value = MagicMock(
-        text="print(8)",
+        text=json.dumps(
+            {"final_answer": "print(8)", "reasoning": "ok"}
+        ),
     )
 
     with patch(
@@ -675,7 +830,9 @@ def test_validate_adversarial_question_coding_with_piston():
     )
     mock_client = MagicMock()
     mock_client.models.generate_content.return_value = MagicMock(
-        text="print(8)",
+        text=json.dumps(
+            {"final_answer": "print(8)", "reasoning": "ok"}
+        ),
     )
 
     mock_piston_instance = MagicMock()
