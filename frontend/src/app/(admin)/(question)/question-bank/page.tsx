@@ -12,6 +12,8 @@ import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 import { buildSourceQuestionPayload } from "@/lib/question-payload";
+import PageHelpDrawer from "@/components/admin/ui/help/page-help-drawer";
+import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content";
 
 export default function ViewQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);

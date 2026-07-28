@@ -11,6 +11,7 @@ import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
 import { buildSourceQuestionPayload } from "@/lib/question-payload";
+import PageHelpDrawer, { type PageHelpConfig } from "@/components/admin/ui/help/page-help-drawer";
 
 
 export interface QuestionListModalProps {
