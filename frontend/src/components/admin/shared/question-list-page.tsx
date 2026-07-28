@@ -10,7 +10,7 @@ import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
-import { buildSourceQuestionPayload } from "@/lib/question-payload";
+import { buildSourceQuestionPayload, updateSavedQuestionList } from "@/lib/question-payload";
 import PageHelpDrawer, { type PageHelpConfig } from "@/components/admin/ui/help/page-help-drawer";
 
 
@@ -193,27 +193,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
         headers: getAuthHeaders(),
       });
       setQuestions((previousQuestions) =>
-        previousQuestions.map((question) => {
-          if (question.question_bank_id !== editQuestionId) {
-            return question;
-          }
-
-          return {
-            ...question,
-            title: updatedData.title,
-            content: updatedData.content ?? question.content,
-            type: updatedData.type ?? question.type,
-            maximum_score: updatedData.maximum_score ?? question.maximum_score,
-            tags: updatedData.tags ?? question.tags,
-            category_id: updatedData.category_id,
-            difficulty: updatedData.difficulty,
-            correct_answer:
-              typeof updatedData.correct_answer === "string"
-                ? updatedData.correct_answer
-                : question.correct_answer,
-            question_metadata: updatedData.question_metadata ?? question.question_metadata,
-          };
-        })
+        updateSavedQuestionList(previousQuestions, editQuestionId, updatedData)
       );
 
       setUpdateSuccess("Question updated successfully.");

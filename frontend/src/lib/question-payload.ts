@@ -1,4 +1,4 @@
-import type { QuestionPayload } from "@/app/(admin)/types/questions";
+import type { QuestionBank, QuestionPayload } from "@/app/(admin)/types/questions";
 
 export type NormalizedFillBlankPayload = {
   blanks: string[];
@@ -114,4 +114,32 @@ export function buildSourceQuestionPayload(question: QuestionPayload) {
         question_metadata: question.question_metadata,
       };
   }
+}
+
+export function updateSavedQuestionList(
+  previousQuestions: QuestionBank[],
+  questionBankId: number,
+  updatedData: QuestionPayload,
+) {
+  return previousQuestions.map((question) => {
+    if (question.question_bank_id !== questionBankId) {
+      return question;
+    }
+
+    return {
+      ...question,
+      title: updatedData.title,
+      content: updatedData.content ?? question.content,
+      type: updatedData.type ?? question.type,
+      maximum_score: updatedData.maximum_score ?? question.maximum_score,
+      tags: updatedData.tags ?? question.tags,
+      category_id: updatedData.category_id,
+      difficulty: updatedData.difficulty,
+      correct_answer:
+        typeof updatedData.correct_answer === "string"
+          ? updatedData.correct_answer
+          : question.correct_answer,
+      question_metadata: updatedData.question_metadata ?? question.question_metadata,
+    };
+  });
 }
