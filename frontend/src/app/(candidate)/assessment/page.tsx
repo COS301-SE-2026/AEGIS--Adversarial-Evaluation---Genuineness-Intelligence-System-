@@ -7,6 +7,9 @@ import { AssessmentCard } from "@/components/candidate/ui/cards/assesment-card";
 import type { AssessmentCardProps } from "@/components/candidate/ui/cards/assessment-card.types";
 import { apiGet } from "@/lib/apiClient";
 import { getToken, isAuthenticated, getRole } from "@/lib/auth";
+import { HelpCircle } from "lucide-react";
+import PageHelpDrawer from "@/components/admin/ui/help/page-help-drawer";
+import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content";
 
 type CandidateAssessmentApi = {
     candidate_assess_id: number;
@@ -34,7 +37,7 @@ function mapCandidateAssessment(session: CandidateAssessmentApi): AssessmentCard
         title: session.assessment.title,
         description: session.assessment.description ?? "No description provided.",
         durationMins: session.assessment.duration_mins,
-        status: 'READY TO START',
+        status: session.status === "STARTED" ? "Ready to start." : session.status,
         startTime: session.start_time ?? null,
         endTime: session.end_time ?? null,
     };
@@ -52,6 +55,7 @@ function AssessmentPageContent() {
     const [assessments, setAssessments] = useState<AssessmentCardProps[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [helpOpen, setHelpOpen] = useState(false);
     const searchQuery = searchParams.get("search")?.toLowerCase() ?? "";
 
     useEffect(() => {
@@ -130,14 +134,36 @@ function AssessmentPageContent() {
 
     return (
         <main className="min-h-screen px-8 py-8">
-            <div className="mt-8">
-                <h1 className="font-staatliches text-3xl text-default-text mb-2">Available Assessments</h1>
+            <div className="mt-8 flex items-start justify-between">
                 <div>
+                    <h1 className="text-3xl text-default-text mb-2">Available Assessments</h1>  
                     <p className="font-ibm-plex text-base text-white-smoke">
                         Start an assessment with carefully curated questions.
                     </p>
                 </div>
+
+                <div className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50">
+                    <button
+                        onClick={() => setHelpOpen(true)}
+                        className="flex flex-col items-center text-system-red hover:text-default-text transition-all duration-200 group"
+                        aria-label="Open FAQ"
+                    >
+                        <HelpCircle 
+                            type="button"
+                            strokeWidth={1.75}
+                            className="w-8 h-8 sm:w-8 sm:h-8 lg:w-10 lg:h-10 group-hover:scale-110 transition-transform"
+                        />
+                        <span className="mt-1 text-11px sm:text-sm uppercase tracking-wider">
+                            Help
+                        </span>
+                    </button>
+                </div>
             </div>
+            <PageHelpDrawer
+                open={helpOpen}
+                onClose={() => setHelpOpen(false)}
+                config={PAGE_HELP_CONTENT["/assessment"]}
+            />
             {isLoading ? (
                 <div className="pt-8 text-white-smoke">Loading assessments...</div>
             ) : error ? (

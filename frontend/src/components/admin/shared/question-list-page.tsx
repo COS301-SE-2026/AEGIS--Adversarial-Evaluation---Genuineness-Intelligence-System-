@@ -7,10 +7,11 @@ import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
-import { Plus } from "lucide-react";
+import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
-
+import PageHelpDrawer from "../ui/help/page-help-drawer";
+import type { PageHelpConfig } from "../ui/help/page-help-drawer";
 
 export interface QuestionListModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export interface QuestionListPageConfig {
   deleteDescription: string;
   //chooses which modal to render
   ModalComponent: ComponentType<QuestionListModalProps>;
+  helpConfig?: PageHelpConfig;
 }
 
 export default function QuestionListPage({ config }: { config: QuestionListPageConfig }) {
@@ -61,6 +63,8 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -296,6 +300,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
           <div className="p-4 py-6 sm:p-6 lg:px-8 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button
+                title={config.newButtonLabel.toLowerCase().includes("adverserial") ? "Use AI to weaponise a source question." : config.newButtonLabel}
                 type="button"
                 onClick={() => setIsCreateOpen(true)}
                 className="inline-flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base whitespace-nowrap duration-300 cursor-pointer"
@@ -304,7 +309,18 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
                 <span className="hidden sm:inline">{config.newButtonLabel}</span>
                 <span className="sm:hidden">{config.newButtonLabelShort ?? "New"}</span>
               </button>
+
+              {config.helpConfig && (
+                <button title="Open the help guide." type="button" onClick={()=>setIsHelpOpen(true)} className="inline-flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+                  <HelpCircle size={18}/>
+                  <span>Help</span>
+                </button>
+              )}
             </div>
+
+            {config.helpConfig && (
+              <PageHelpDrawer open={isHelpOpen} onClose={()=>setIsHelpOpen(false)} config={config.helpConfig}/>
+            )}
 
             <QuestionFilters
               searchTerm={searchTerm}
