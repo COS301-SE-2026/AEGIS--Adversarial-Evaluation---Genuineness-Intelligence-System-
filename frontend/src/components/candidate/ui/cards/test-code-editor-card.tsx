@@ -141,9 +141,9 @@ export default function CodeEditorCard({
 
     return (
         <div onPaste={handlePaste} className="flex flex-col border border-default-border rounded-md overflow-hidden">
-                        <div className="bg-red-600 border-b border-blue-700 p-3">
+                        <div className="bg-white-300 border-b border-white-700 p-3">
                                 <p className="text-m text-white-600 mb-2">
-                                <strong>Important:</strong> For {questionTitle ?? "this question"}, define the function with the expected name.
+                                <strong>Important:</strong> For {questionTitle ?? "this question"}, implement the function in Python and define the function with the expected name.
                                 </p>
                                 <p className="text-m text-white-600 font-mono bg-grey-600 p-2 rounded">
                             {functionSignature || "Function signature not available."}
@@ -188,7 +188,7 @@ export default function CodeEditorCard({
                     type="button"
                     onClick={handleRunClick}
                     disabled={isRunning}
-                    className="px-4 py-2 bg-red-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-green-700 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                     {isRunning ? "Running..." : "Run Code"}
                 </button>

@@ -11,8 +11,36 @@ import CreateQuestionContainer from "@/components/admin/ui/question-builder/crea
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
+import { normalizeFillBlankPayload } from "@/lib/question-payload";
 
-  function buildQuestionData(question: QuestionPayload) {
+const MCQ_OPTION_LABELS = ["A", "B", "C", "D"] as const;
+
+function buildQuestionData(question: QuestionPayload) {
+  const buildMcqPayload = () => {
+    const options = question.options ?? [];
+
+    if (options.length !== MCQ_OPTION_LABELS.length) {
+      throw new Error("MCQ questions must have exactly four options.");
+    }
+    const normalizedOptions = MCQ_OPTION_LABELS.reduce((accumulator, label, index) => {
+      accumulator[label] = options[index]?.text?.trim() ?? "";
+      return accumulator;
+    }, {} as Record<(typeof MCQ_OPTION_LABELS)[number], string>);
+
+    const selectedIndex = options.findIndex((option) => option.isCorrect);
+
+    if (selectedIndex < 0 || selectedIndex >= MCQ_OPTION_LABELS.length) {
+      throw new Error("Select one correct MCQ option before saving.");
+    }
+
+    return {
+      correctAnswer: { answer: MCQ_OPTION_LABELS[selectedIndex] },
+      metadata: {
+        options: normalizedOptions,
+      },
+    };
+  };
+
     switch (question.type) {
       
       case "CODING":
@@ -22,12 +50,7 @@ import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/que
         };
 
       case "MCQ":
-        return {
-          correctAnswer: question.options?.find(option => option.isCorrect)?.text ?? "",
-          metadata: {
-             options: question.options
-          }
-        };
+        return buildMcqPayload();
 
       case "COMPREHENSION":
         return {
@@ -38,13 +61,17 @@ import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/que
           }
         };
 
-      case "FILL_BLANKS":
-        return {
-          correctAnswer: question.blanks?.join("|") ?? "",
-          metadata: {
-            blanks: question.blanks
-          }
-        };
+      case "FILL_IN_THE_BLANK":
+        {
+          const { blanks, normalizedAnswers } = normalizeFillBlankPayload(question);
+          return {
+            correctAnswer: { answer: normalizedAnswers },
+            metadata: {
+              blanks,
+            },
+            type: "FILL_IN_THE_BLANK",
+          };
+        }
 
       default:
         return {
@@ -213,11 +240,27 @@ export default function ViewQuestionsPage() {
         headers: getAuthHeaders()
       });
       setQuestions((previousQuestions) =>
-        previousQuestions.map((question) =>
-          question.question_bank_id === editQuestionId
-            ? { ...question, ...updatedData }
-            : question
-        )
+        previousQuestions.map((question) => {
+          if (question.question_bank_id !== editQuestionId) {
+            return question;
+          }
+
+          return {
+            ...question,
+            title: updatedData.title,
+            content: updatedData.content ?? question.content,
+            type: updatedData.type ?? question.type,
+            maximum_score: updatedData.maximum_score ?? question.maximum_score,
+            tags: updatedData.tags ?? question.tags,
+            category_id: updatedData.category_id,
+            difficulty: updatedData.difficulty,
+            correct_answer:
+              typeof updatedData.correct_answer === "string"
+                ? updatedData.correct_answer
+                : question.correct_answer,
+            question_metadata: updatedData.question_metadata ?? question.question_metadata,
+          };
+        })
       );
 
       setSuccess("Question updated successfully.");
