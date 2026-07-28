@@ -108,8 +108,14 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
             };
         case "FILL_BLANKS":
             return {
-                // preserves appearance order (A, B, C, ...) so it lines up with the [A][B][C] markers on the backend.
-                blanks: question.blanks.map((blank) => blank.answer),
+                // preserves appearance order (A, B, C, ...) so it lines up with the backend markers.
+                blanks: question.blanks.map((blank) => blank.id),
+                correct_answer: {
+                    answer: question.blanks.reduce((accumulator, blank) => {
+                        accumulator[blank.id] = blank.answer;
+                        return accumulator;
+                    }, {} as Record<string, string>),
+                },
             };
         default:
             return {};
@@ -131,8 +137,18 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
             difficulty: question.difficulty,
             maximum_score: question.maximum_score,
             tags: question.tags,
-            type: question.type,
-            correct_answer: question.type === "CODING" ? question.starterCode : "",
+            type: question.type === "FILL_BLANKS" ? "FILL_IN_THE_BLANK" : question.type,
+            correct_answer:
+                question.type === "CODING"
+                    ? question.starterCode
+                    : question.type === "FILL_BLANKS"
+                        ? {
+                            answer: question.blanks.reduce((accumulator, blank) => {
+                                accumulator[blank.id] = blank.answer;
+                                return accumulator;
+                            }, {} as Record<string, string>),
+                        }
+                        : "",
             question_metadata: codingMetadata,
             testCases: question.type === "CODING" ? question.testCases : undefined,
             source_question_id: -1,

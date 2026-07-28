@@ -44,6 +44,19 @@ type CandidateAssessmentSessionApi = {
    end_time?: string | null;
 }
 
+function extractFillBlankLabels(content: string | undefined | null): string[] {
+   if (typeof content !== "string" || !content.trim()) {
+      return [];
+   }
+
+   const matches = content.match(/\[([A-Z])\]/g) ?? [];
+   const labels = matches
+      .map((match) => match.slice(1, -1))
+      .filter((label, index, array) => array.indexOf(label) === index);
+
+   return labels;
+}
+
 function mapQuestionType(value: string): Question["type"] {
    const type = value.trim().toUpperCase();
 
@@ -55,6 +68,7 @@ function mapQuestionType(value: string): Question["type"] {
          return "coding";
 
       case "FILL_IN_BLANK":
+      case "FILL_IN_THE_BLANK":
          return "fill-in-the-blank"
 
       default:
@@ -65,32 +79,53 @@ function mapQuestionType(value: string): Question["type"] {
 
 function mapQuestionOptions(
    metadata: Record<string, unknown> | null | undefined,
-   questionType: Question["type"]
+   questionType: Question["type"],
+   questionContent?: string | null,
 ): string[] {
-   if (questionType !== "multiple-choice") {
+   if (questionType === "multiple-choice") {
+      const rawOptions = metadata?.options ?? metadata?.choices ?? metadata?.answers;
+
+      if (Array.isArray(rawOptions)) {
+         return rawOptions
+            .map((option) => {
+               if (typeof option === "string") {
+                  return option;
+               }
+
+               if (option && typeof option === "object") {
+                  const record = option as Record<string, unknown>;
+                  const label = record.label ?? record.value ?? record.text;
+                  return label ? String(label) : null;
+               }
+
+               return null;
+            })
+            .filter((option): option is string => Boolean(option));
+      }
+
+      if (rawOptions && typeof rawOptions === "object") {
+         const record = rawOptions as Record<string, unknown>;
+         return ["A", "B", "C", "D"]
+            .map((label) => record[label])
+            .filter((option): option is unknown => option !== undefined && option !== null)
+            .map((option) => String(option));
+      }
+
       return [];
    }
 
-   const rawOptions = metadata?.options ?? metadata?.choices ?? metadata?.answers;
-   if (!Array.isArray(rawOptions)) {
-      return [];
+   if (questionType === "fill-in-the-blank") {
+      const rawBlanks = metadata?.blanks;
+      if (Array.isArray(rawBlanks)) {
+         return rawBlanks
+            .filter((blank): blank is string => typeof blank === "string" && Boolean(blank.trim()))
+            .map((blank) => blank.trim());
+      }
+
+      return extractFillBlankLabels(questionContent);
    }
 
-   return rawOptions
-      .map((option) => {
-         if (typeof option === "string") {
-            return option;
-         }
-
-         if (option && typeof option === "object") {
-            const record = option as Record<string, unknown>;
-            const label = record.label ?? record.value ?? record.text;
-            return label ? String(label) : null;
-         }
-
-         return null;
-      })
-      .filter((option): option is string => Boolean(option));
+   return [];
 }
 
 function mapFunctionSignature(
@@ -163,7 +198,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                      questionContent: question.content,
                      type: mappedType,
                      functionSignature: mapFunctionSignature(question.question_metadata),
-                     options: mapQuestionOptions(question.question_metadata, mappedType),
+                     options: mapQuestionOptions(question.question_metadata, mappedType, question.content),
                      correctAnswer: "" as Question["correctAnswer"],
                      tags: question.tags ?? [],
                      attempted: false,
