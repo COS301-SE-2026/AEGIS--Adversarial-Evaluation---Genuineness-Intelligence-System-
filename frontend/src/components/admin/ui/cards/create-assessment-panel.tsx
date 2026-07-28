@@ -97,6 +97,15 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
     return () => { isMounted = false; };
   }, []);
 
+  useEffect(() => {
+  if (isCreating) return;
+  const handleEscape = (e: KeyboardEvent) => {
+    if (e.key === "Escape") onClose();
+  };
+  document.addEventListener("keydown", handleEscape);
+  return () => document.removeEventListener("keydown", handleEscape);
+}, [isCreating, onClose]);
+
   const toggleQuestion = (id: number) => {
     setSelectedIds (prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
