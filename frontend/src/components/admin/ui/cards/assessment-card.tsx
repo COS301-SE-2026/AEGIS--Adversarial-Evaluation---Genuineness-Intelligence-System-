@@ -250,9 +250,9 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
       </div>
 
       <div className="flex flex-wrap gap-2.5 mb-3 font-jetbrains text-[10px] text-white-smoke/40">
-        <span className="flex items-center gap-1">🎯 {a.role ?? "—"}</span>
-        <span className="flex items-center gap-1">📊 {a.difficulty ?? "—"}</span>
-        <span className="flex items-center gap-1">❓ {a.questions ?? 0} Qs</span>
+        <span className="flex items-center gap-1">{a.role ?? "—"}</span>
+        <span className="flex items-center gap-1">{a.difficulty ?? "—"}</span>
+        <span className="flex items-center gap-1">{a.questions ?? 0} Qs</span>
         <span className="text-[9px] text-white-smoke/30">{(a.langs ?? []).join(", ")}</span>
       </div>
 

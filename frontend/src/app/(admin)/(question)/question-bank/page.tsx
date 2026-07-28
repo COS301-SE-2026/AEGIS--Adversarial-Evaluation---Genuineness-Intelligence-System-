@@ -9,7 +9,7 @@ import QuestionTable from "@/components/admin/ui/cards/question-table";
 import LegacyQuestionModal from "./legacy-question-modal";
 import CreateQuestionContainer from "@/components/admin/ui/question-builder/create-question-container";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
-import { Plus } from "lucide-react";
+import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 import { buildSourceQuestionPayload } from "@/lib/question-payload";
 
@@ -32,7 +32,9 @@ export default function ViewQuestionsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId,setEditQuestionId] = useState<number | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
+  const helpConfig = PAGE_HELP_CONTENT["/question-bank"];
 
   useEffect(() => {
     let mounted = true;
@@ -307,12 +309,27 @@ export default function ViewQuestionsPage() {
         <main className="flex-1 overflow-auto">
           <div className="p-4 sm:p-6 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
-              <button onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer">
+              <button title="Create a new custom source question" onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer">
                 <Plus size={18} className="sm:w-5 sm:h-5"/>
                 <span className="hidden sm:inline">New Question</span>
                 <span className="sm:hidden">New</span>
               </button>
+
+              <button 
+                title="Open the help guide." 
+                type="button" onClick={()=>setIsHelpOpen(true)} 
+                className="flex items-center gap-2 text-default-text border border-default-border hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wider cursor-pointer"
+              >
+                <HelpCircle size={18}/>
+                <span>Help</span>
+              </button>
             </div>
+
+            <PageHelpDrawer
+              open={isHelpOpen}
+              onClose={()=>setIsHelpOpen(false)}
+              config={helpConfig}
+            />
 
             <QuestionFilters
               searchTerm={searchTerm}
