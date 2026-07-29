@@ -297,3 +297,9 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "AI Analytics",  href: "/ai-analytics" },
   { label: "Reports",       href: "/reports" },
 ];
+
+export const DEMO_2_NAV_ITEMS: NavItem[] = [
+  { label: "Assessments",   href: "/assessments", active: true },
+  { label: "Question Bank", href: "/question-bank" },
+  { label: "Adversarial Questions", href: "/adversial-questions"},
+];

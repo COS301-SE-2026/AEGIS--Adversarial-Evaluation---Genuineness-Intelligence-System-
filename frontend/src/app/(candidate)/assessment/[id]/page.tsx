@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState, useEffect } from 'react';
+import { useRouter } from "next/navigation"
 import { TestDescriptionCard } from "@/components/candidate/ui/cards/test-description-card";
 import { TestAnswerCard } from "@/components/candidate/ui/cards/test-answer-card";
 import { TestNextButton } from "@/components/candidate/ui/buttons/test-next-button";
@@ -248,6 +249,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const currentQuestion = questions[currentQuestionIndex];
    const totalQuestions = questions.length;
    const isLastQuestion = totalQuestions > 0 && currentQuestionIndex === totalQuestions - 1;
+   const router = useRouter();
 
    const saveCurrentAnswer = useCallback(async () => {
       if (!candidateAssessId || !currentQuestion) {
@@ -301,6 +303,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
 
          const authToken = getToken() ?? undefined;
          await apiPost(`/api/v1/candidate-assessments/${candidateAssessId}/submit`, undefined, authToken ? { authToken } : {});
+         router.replace("/assessment");
 
          setIsSubmitted(true);
       } catch (err) {
