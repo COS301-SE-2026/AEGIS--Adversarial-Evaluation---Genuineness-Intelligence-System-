@@ -45,6 +45,7 @@ interface ValidateApiResponse {
     adv_question_id: number;
     weaponised_question: string;
     correct_answer: string;
+    source_question_correct_answer: string;
     predicted_wrong_answer: string;
     gemini_response: string;
     gemini_took_bait: boolean;
@@ -186,7 +187,7 @@ const [isRegenerating, setIsRegenerating] = useState(false);
             { headers: getAuthHeaders() }
         );
         setValidationResult({
-            source_answer: response.correct_answer,
+            source_answer: response.source_question_correct_answer,
             adversarial_answer: response.gemini_response,
         });
     } catch (err) {

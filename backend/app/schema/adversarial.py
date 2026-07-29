@@ -94,7 +94,10 @@ class ValidationResult(BaseModel):
         ..., description="The weaponised question sent to Gemini"
     )
     correct_answer: str = Field(
-        ..., description="Stored correct answer"
+        ..., description="Stored correct answer for the weaponised item"
+    )
+    source_question_correct_answer: str = Field(
+        ..., description="Correct answer of the original source question"
     )
     predicted_wrong_answer: str = Field(
         ..., description="Stored predicted wrong answer"

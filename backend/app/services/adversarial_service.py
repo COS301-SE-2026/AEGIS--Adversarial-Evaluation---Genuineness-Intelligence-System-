@@ -23,8 +23,10 @@ from app.schema.adversarial import (
 )
 
 _WEAPONISER_DIR = Path(__file__).parent.parent / "core" / "weaponiser"
-_SYSTEM_PROMPT_PATH = _WEAPONISER_DIR / "weaponiser_system_prompt.md"
-_SEED_LIBRARY_PATH = _WEAPONISER_DIR / "aegis_seed_library.json"
+_SYSTEM_PROMPT_V1_PATH = _WEAPONISER_DIR / "weaponiser_system_prompt.md"
+_SYSTEM_PROMPT_V2_PATH = _WEAPONISER_DIR / "weaponiser_prompt_v2.md"
+_SEED_LIBRARY_V1_PATH = _WEAPONISER_DIR / "aegis_seed_library.json"
+_SEED_LIBRARY_V2_PATH = _WEAPONISER_DIR / "aegis_seed_library_v2.json"
 
 _REQUIRED_FIELDS = (
     "weaponised_question",
@@ -34,15 +36,61 @@ _REQUIRED_FIELDS = (
     "pattern_used",
 )
 
-_SYSTEM_PROMPT: str = (
-    _SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+_SYSTEM_PROMPT_V1: str = (
+    _SYSTEM_PROMPT_V1_PATH.read_text(encoding="utf-8")
+)
+_SYSTEM_PROMPT_V2: str = (
+    _SYSTEM_PROMPT_V2_PATH.read_text(encoding="utf-8")
 )
 
-_GEMINI_MODEL = "gemini-3.1-flash-lite"
+_SYSTEM_PROMPTS = {
+    "v1": _SYSTEM_PROMPT_V1,
+    "v2": _SYSTEM_PROMPT_V2,
+}
+
+_SEED_LIBRARIES = {
+    "v1": _SEED_LIBRARY_V1_PATH,
+    "v2": _SEED_LIBRARY_V2_PATH,
+}
+
+_GENERATOR_MODEL = "gemini-3.1-flash-lite"
+_VALIDATOR_MODEL = "gemini-3.1-flash-lite"
+
+_logger = logging.getLogger(__name__)
+
+_VALIDATION_SYSTEM_PROMPT = (
+    "You are a technical assessment candidate answering "
+    "a question. Respond only with a JSON object "
+    "containing two fields: final_answer (your complete "
+    "answer — for MCQ give only the letter, for "
+    "fill-in-the-blank use the exact blank labels/markers "
+    "given in the question and answer each one using the "
+    "question's own labels, formatted as label: value pairs "
+    "separated by commas if there are multiple blanks (e.g. "
+    "\"A: LEFT, B: WHERE\"), without renumbering, "
+    "relabelling, or dropping any label, for True/False give "
+    "only True or False, for numeric give only the number, "
+    "for code give only the code) and reasoning (one "
+    "sentence explaining your answer). No other text."
+)
+
+_VERIFICATION_SYSTEM_PROMPT = (
+    "You are a technical fact-checker. You will be given "
+    "a question, its stated correct answer, and the "
+    "answer a model is predicted to give incorrectly. "
+    "Your job is to verify that the stated correct "
+    "answer is factually and logically correct given "
+    "the question. Respond only with a JSON object: "
+    '{"correct_answer_is_valid": true or false, '
+    '"reason": "one sentence"}'
+)
 
 
-def _load_few_shot_examples(strategy_name: str) -> list[dict]:
-    with open(_SEED_LIBRARY_PATH, encoding="utf-8") as seed_file:
+def _load_few_shot_examples(
+    strategy_name: str, prompt_version: str = "v1"
+) -> list[dict]:
+    seed_library_path = _SEED_LIBRARIES[prompt_version]
+    with open(seed_library_path, encoding="utf-8") as seed_file:
         seed_library = json.load(seed_file)
     matches = [
         item for item in seed_library

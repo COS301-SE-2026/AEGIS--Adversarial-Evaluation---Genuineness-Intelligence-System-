@@ -11,6 +11,12 @@ from app.models.coding_test_cases import CodingTestCase
 from app.models.question_bank import QuestionBank, QuestionType
 from app.schema.adversarial import TestCaseResult
 from app.services.adversarial_service import (
+    _SYSTEM_PROMPT_V1,
+    _SYSTEM_PROMPT_V2,
+    _VALIDATION_SYSTEM_PROMPT,
+    _build_user_message,
+    _call_gemini_and_parse,
+    _format_source_correct_answer,
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
