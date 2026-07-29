@@ -18,7 +18,10 @@ from app.services.adversarial_service import (
     _build_verification_user_message,
     _call_gemini_and_parse,
     _format_source_correct_answer,
+    _load_few_shot_examples,
     _load_system_prompt_v2,
+    _verify_generated_item,
+    _verify_via_gemini,
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
@@ -648,6 +651,83 @@ def test_verify_generated_item_true_generation_proceeds():
     assert result.content == VALID_RESPONSE["weaponised_question"]
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
+
+
+def test_verify_via_gemini_invalid_json_response_returns_none():
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="not valid json",
+    )
+
+    with patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = _verify_via_gemini(VALID_RESPONSE)
+
+    assert result is None
+
+
+def test_verify_generated_item_coding_piston_success_skips_gemini():
+    parsed = dict(VALID_RESPONSE)
+    source_question = _mock_question()
+    test_case = MagicMock()
+    test_case.description = "case 1"
+    test_case.input_data = ""
+    test_case.expected_output = "8"
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.all.return_value = [
+        test_case
+    ]
+
+    mock_piston_instance = MagicMock()
+    mock_piston_instance.execute.return_value = {
+        "run": {"stdout": "8\n"},
+    }
+
+    with patch(
+        "app.services.adversarial_service.settings.piston_enabled",
+        True,
+    ), patch(
+        "app.services.adversarial_service.PistonClient",
+        return_value=mock_piston_instance,
+    ), patch(
+        "app.services.adversarial_service.get_gemini_client",
+    ) as mock_get_client:
+        result = _verify_generated_item(parsed, source_question, mock_db)
+
+    assert result is None
+    mock_get_client.assert_not_called()
+
+
+def test_verify_generated_item_coding_piston_failure_raises_422():
+    parsed = dict(VALID_RESPONSE)
+    source_question = _mock_question()
+    test_case = MagicMock()
+    test_case.description = "case 1"
+    test_case.input_data = ""
+    test_case.expected_output = "8"
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.all.return_value = [
+        test_case
+    ]
+
+    mock_piston_instance = MagicMock()
+    mock_piston_instance.execute.return_value = {
+        "run": {"stdout": "13\n"},
+    }
+
+    with patch(
+        "app.services.adversarial_service.settings.piston_enabled",
+        True,
+    ), patch(
+        "app.services.adversarial_service.PistonClient",
+        return_value=mock_piston_instance,
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            _verify_generated_item(parsed, source_question, mock_db)
+
+    assert exc_info.value.status_code == 422
 
 
 def test_generate_adversarial_question_verify_false_skips():
@@ -1522,3 +1602,18 @@ def test_v2_few_shot_examples_missing_file_raises_clear_error(
 
     assert "v2 seed library file not found" in str(exc_info.value)
     assert "v1 remains fully functional" in str(exc_info.value)
+
+
+def test_load_few_shot_examples_v1_missing_file_reraises_plainly(
+    tmp_path,
+):
+    missing_path = tmp_path / "does_not_exist.json"
+
+    with patch.dict(
+        "app.services.adversarial_service._SEED_LIBRARIES",
+        {"v1": missing_path},
+    ):
+        with pytest.raises(FileNotFoundError) as exc_info:
+            _load_few_shot_examples("SYMBOL_REDEFINITION", "v1")
+
+    assert "v2 seed library file not found" not in str(exc_info.value)
