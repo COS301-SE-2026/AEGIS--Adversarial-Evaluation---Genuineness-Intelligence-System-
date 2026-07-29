@@ -11,6 +11,12 @@ import { Plus } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
 
+interface AdversarialQuestionRecord {
+  adv_question_id: number;
+  source_question_id: number;
+  content: string;
+  validation_status: string;
+}
 
 export interface QuestionListModalProps {
   isOpen: boolean;
@@ -52,6 +58,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuestionBank[]>([]);
+  const [sourceQuestions, setSourceQuestions] = useState<QuestionBank[]>([]);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,17 +86,40 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
 
     const loadQuestions = async () => {
       try {
-         const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
-          headers: getAuthHeaders(),
-        });
+        const [sourceResponse, adversarialResponse] = await Promise.all([
+          apiGet<QuestionBank[]>("/api/v1/questions/", {
+            headers: getAuthHeaders(),
+          }),
+          apiGet<AdversarialQuestionRecord[]>("/api/v1/adversarial-questions/all", {
+            headers: getAuthHeaders(),
+          }),
+        ]);
+
+        const normalisedSourceQuestions = sourceResponse.map((question) => ({
+          ...question,
+          category_id: question.category_id ?? 0,
+          difficulty: question.difficulty ?? "Easy",
+        }));
+        const sourceQuestionsById = new Map(
+          normalisedSourceQuestions.map((question) => [question.question_bank_id, question])
+        );
 
         if (isMounted) {
+          setSourceQuestions(normalisedSourceQuestions);
           setQuestions(
-            response.map((question) => ({
-              ...question,
-              category_id: question.category_id ?? 0,
-              difficulty: question.difficulty ?? "Easy",
-            }))
+            adversarialResponse.map((adversarialQuestion) => {
+              const sourceQuestion = sourceQuestionsById.get(adversarialQuestion.source_question_id);
+              return {
+                question_bank_id: adversarialQuestion.adv_question_id,
+                title: sourceQuestion?.title ?? `Adversarial Question #${adversarialQuestion.adv_question_id}`,
+                content: adversarialQuestion.content,
+                type: sourceQuestion?.type,
+                maximum_score: sourceQuestion?.maximum_score,
+                category_id: sourceQuestion?.category_id ?? 0,
+                difficulty: sourceQuestion?.difficulty ?? "Easy",
+                tags: [adversarialQuestion.validation_status],
+              };
+            })
           );
         }
       } catch (error) {
@@ -255,7 +285,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
     if (deleteTargetId === null) return;
     setDeleteError(null);
     try {
-      await apiDelete(`/api/v1/questions/${deleteTargetId}`, {
+      await apiDelete(`/api/v1/adversarial-questions/${deleteTargetId}`, {
         headers: getAuthHeaders(),
       });
       const remainingQuestions = questions.filter((question) => question.question_bank_id !== deleteTargetId);
@@ -455,7 +485,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
         mode={isCreateOpen ? "create" : "edit"}
         isSaving={isSaving}
         question_id={editQuestionId}
-        questions={questions}
+        questions={sourceQuestions}
         categories={categories}
         onClose={() => {
           setIsCreateOpen(false);
