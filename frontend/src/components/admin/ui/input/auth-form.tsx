@@ -142,7 +142,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
   }
 
   function handleGoogle() {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
   }
 
   const togglePasswordIcon = (
