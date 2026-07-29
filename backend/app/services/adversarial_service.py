@@ -167,15 +167,28 @@ def _parse_gemini_response(raw_text: str) -> dict:
     return parsed
 
 
+def _select_system_prompt(prompt_version: str) -> str:
+    if prompt_version not in _SYSTEM_PROMPTS:
+        raise ValueError(
+            f"Invalid prompt_version: {prompt_version!r}. "
+            "Must be one of: "
+            + ", ".join(sorted(_SYSTEM_PROMPTS))
+        )
+    return _SYSTEM_PROMPTS[prompt_version]
+
+
 def _call_gemini_and_parse(
     strategy: AdversarialStrategy,
     source_question: QuestionBank,
     use_few_shot: bool = False,
+    prompt_version: str = "v1",
 ) -> dict:
-    system_prompt = _SYSTEM_PROMPT
+    system_prompt = _select_system_prompt(prompt_version)
     examples_block = ""
     if use_few_shot:
-        examples = _load_few_shot_examples(strategy.strategy_name)
+        examples = _load_few_shot_examples(
+            strategy.strategy_name, prompt_version
+        )
         examples_block = _format_few_shot_examples(examples)
     user_message = _build_user_message(
         strategy,
@@ -185,7 +198,7 @@ def _call_gemini_and_parse(
 
     client = get_gemini_client()
     response = client.models.generate_content(
-        model=_GEMINI_MODEL,
+        model=_GENERATOR_MODEL,
         contents=user_message,
         config=types.GenerateContentConfig(
             system_instruction=system_prompt,
@@ -197,10 +210,120 @@ def _call_gemini_and_parse(
     return _parse_gemini_response(response.text)
 
 
+def _build_verification_user_message(parsed: dict) -> str:
+    return (
+        f"Question: {parsed['weaponised_question']}\n"
+        f"Stated correct answer: {parsed['correct_answer']}\n"
+        "Predicted wrong answer: "
+        f"{parsed['predicted_wrong_answer']}\n"
+        "Is the stated correct answer factually correct?"
+    )
+
+
+def _verify_via_gemini(parsed: dict) -> bool:
+    client = get_gemini_client()
+    response = client.models.generate_content(
+        model=_GENERATOR_MODEL,
+        contents=_build_verification_user_message(parsed),
+        config=types.GenerateContentConfig(
+            system_instruction=_VERIFICATION_SYSTEM_PROMPT,
+            temperature=0.0,
+            response_mime_type="application/json",
+        ),
+    )
+    raw_text = response.text or ""
+
+    try:
+        verification = json.loads(raw_text)
+    except (json.JSONDecodeError, TypeError):
+        _logger.warning(
+            "Verification response was not valid JSON: %s",
+            raw_text,
+        )
+        return True
+
+    if verification.get("correct_answer_is_valid") is False:
+        reason = verification.get("reason", "")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "Generated question failed verification: "
+                f"{reason}"
+            ),
+        )
+    return True
+
+
+def _verify_coding_via_piston(
+    parsed: dict,
+    test_cases: list[CodingTestCase],
+) -> bool:
+    code = parsed.get("correct_answer", "")
+    piston_client = PistonClient()
+    for test_case in test_cases:
+        execution = piston_client.execute(
+            "python",
+            code,
+            stdin=test_case.input_data,
+        )
+        stdout = execution.get("run", {}).get("stdout", "")
+        expected = test_case.expected_output.strip()
+        if stdout.strip() != expected:
+            _logger.warning(
+                "Correct answer failed test case %s: "
+                "expected %r, got %r",
+                test_case.description,
+                expected,
+                stdout.strip(),
+            )
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "Correct answer failed test case "
+                    f"execution: {test_case.description}"
+                ),
+            )
+    return True
+
+
+def _verify_generated_item(
+    parsed: dict,
+    source_question: QuestionBank,
+    db: Session,
+) -> bool:
+    if source_question.type.value == "CODING":
+        test_cases = (
+            db.query(CodingTestCase)
+            .filter(
+                CodingTestCase.question_id
+                == source_question.question_bank_id
+            )
+            .all()
+        )
+        if test_cases:
+            try:
+                if not settings.piston_enabled:
+                    raise PistonError("Piston is disabled")
+                return _verify_coding_via_piston(
+                    parsed, test_cases
+                )
+            except HTTPException:
+                raise
+            except PistonError as exc:
+                _logger.warning(
+                    "Piston unavailable, falling back to "
+                    "Gemini verification: %s",
+                    exc,
+                )
+    return _verify_via_gemini(parsed)
+
+
 def generate_adversarial_question(
     db: Session,
     source_question_id: int,
     strategy_id: int,
+    verify: bool = True,
+    prompt_version: str = "v1",
 ) -> AdversarialQuestion:
     source_question = (
         db.query(QuestionBank)
@@ -224,13 +347,17 @@ def generate_adversarial_question(
             detail="Adversarial strategy not found",
         )
 
-    parsed = _call_gemini_and_parse(strategy, source_question)
+    parsed = _call_gemini_and_parse(
+        strategy, source_question, prompt_version=prompt_version
+    )
+    if verify:
+        _verify_generated_item(parsed, source_question, db)
 
     adversarial_question = AdversarialQuestion(
         source_question_id=source_question_id,
         content=parsed["weaponised_question"],
         strategy_id=strategy_id,
-        llm=_GEMINI_MODEL,
+        llm=_GENERATOR_MODEL,
         generated_at=datetime.now(timezone.utc),
         correct_answer=parsed["correct_answer"],
         predicted_wrong_answer=parsed["predicted_wrong_answer"],
@@ -247,6 +374,8 @@ def regenerate_adversarial_question(
     db: Session,
     adv_question_id: int,
     strategy_id: int,
+    verify: bool = True,
+    prompt_version: str = "v1",
 ) -> AdversarialQuestion:
     adversarial_question = (
         db.query(AdversarialQuestion)
@@ -292,7 +421,11 @@ def regenerate_adversarial_question(
             detail="Adversarial strategy not found",
         )
 
-    parsed = _call_gemini_and_parse(strategy, source_question)
+    parsed = _call_gemini_and_parse(
+        strategy, source_question, prompt_version=prompt_version
+    )
+    if verify:
+        _verify_generated_item(parsed, source_question, db)
 
     adversarial_question.content = parsed["weaponised_question"]
     adversarial_question.correct_answer = parsed["correct_answer"]
@@ -302,7 +435,7 @@ def regenerate_adversarial_question(
     adversarial_question.trap_mechanism = parsed["trap_mechanism"]
     adversarial_question.pattern_used = parsed["pattern_used"]
     adversarial_question.strategy_id = strategy_id
-    adversarial_question.llm = _GEMINI_MODEL
+    adversarial_question.llm = _GENERATOR_MODEL
     adversarial_question.generated_at = datetime.now(timezone.utc)
 
     db.commit()
