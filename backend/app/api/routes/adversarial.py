@@ -12,10 +12,12 @@ from app.schema.adversarial import (
     ValidationResult,
 )
 from app.services.adversarial_service import (
+    delete_adversarial_question,
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
     get_all_strategies,
+    get_every_adversarial_question,
     regenerate_adversarial_question,
     save_adversarial_question,
     validate_adversarial_question,
@@ -94,6 +96,37 @@ async def get_all_adversarial_questions_route(
     current_user: dict = Depends(get_current_user),
 ):
     return get_all_adversarial_questions(db)
+
+
+@adversarial_questions_router.get(
+    "/adversarial-questions/all",
+    response_model=List[AdversarialQuestionResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get every adversarial question, draft and validated",
+)
+async def get_every_adversarial_question_route(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return get_every_adversarial_question(db)
+
+
+@adversarial_questions_router.delete(
+    "/adversarial-questions/{adv_question_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a draft or validated adversarial question",
+)
+async def delete_adversarial_question_route(
+    adv_question_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can delete adversarial questions.",
+        )
+    delete_adversarial_question(db, adv_question_id)
 
 
 @adversarial_questions_router.patch(

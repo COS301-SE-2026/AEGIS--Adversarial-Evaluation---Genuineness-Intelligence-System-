@@ -751,6 +751,46 @@ def get_all_draft_adversarial_questions(db: Session) -> list:
     ).all()
 
 
+def get_every_adversarial_question(db: Session) -> list:
+    return db.query(AdversarialQuestion).all()
+
+
+def delete_adversarial_question(
+    db: Session, adv_question_id: int
+) -> None:
+    adversarial_question = (
+        db.query(AdversarialQuestion)
+        .filter(
+            AdversarialQuestion.adv_question_id == adv_question_id
+        )
+        .first()
+    )
+    if adversarial_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Adversarial question not found",
+        )
+
+    in_use = (
+        db.query(AssessmentQuestion)
+        .filter(
+            AssessmentQuestion.adv_question_id == adv_question_id
+        )
+        .first()
+    )
+    if in_use is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "This adversarial question is used in an "
+                "assessment"
+            ),
+        )
+
+    db.delete(adversarial_question)
+    db.commit()
+
+
 def verify_assessment_exists(db: Session, assessment_id: int) -> Assessment:
     assessment = (
         db.query(Assessment)
