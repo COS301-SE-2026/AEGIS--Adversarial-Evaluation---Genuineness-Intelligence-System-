@@ -729,7 +729,7 @@ def start_candidate_assessment(
                 detail="Assessment has already been started",
             )
         return session
-    
+
     if session.status == SessionStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
