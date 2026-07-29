@@ -288,7 +288,7 @@ def _build_verification_user_message(parsed: dict) -> str:
     )
 
 
-def _verify_via_gemini(parsed: dict) -> bool:
+def _verify_via_gemini(parsed: dict) -> None:
     client = get_gemini_client()
     response = client.models.generate_content(
         model=_GENERATOR_MODEL,
@@ -308,7 +308,7 @@ def _verify_via_gemini(parsed: dict) -> bool:
             "Verification response was not valid JSON: %s",
             raw_text,
         )
-        return True
+        return
 
     if verification.get("correct_answer_is_valid") is False:
         reason = verification.get("reason", "")
@@ -319,7 +319,6 @@ def _verify_via_gemini(parsed: dict) -> bool:
                 f"{reason}"
             ),
         )
-    return True
 
 
 def _verify_coding_via_piston(
@@ -358,7 +357,7 @@ def _verify_generated_item(
     parsed: dict,
     source_question: QuestionBank,
     db: Session,
-) -> bool:
+) -> None:
     if source_question.type.value == "CODING":
         test_cases = (
             db.query(CodingTestCase)
@@ -372,9 +371,8 @@ def _verify_generated_item(
             try:
                 if not settings.piston_enabled:
                     raise PistonError("Piston is disabled")
-                return _verify_coding_via_piston(
-                    parsed, test_cases
-                )
+                _verify_coding_via_piston(parsed, test_cases)
+                return
             except HTTPException:
                 raise
             except PistonError as exc:
@@ -383,7 +381,7 @@ def _verify_generated_item(
                     "Gemini verification: %s",
                     exc,
                 )
-    return _verify_via_gemini(parsed)
+    _verify_via_gemini(parsed)
 
 
 def generate_adversarial_question(

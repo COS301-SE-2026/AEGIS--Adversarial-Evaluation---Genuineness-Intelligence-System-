@@ -12,6 +12,7 @@ from app.models.question_bank import QuestionBank, QuestionType
 from app.schema.adversarial import TestCaseResult
 from app.services.adversarial_service import (
     _SYSTEM_PROMPT_V1,
+    _SYSTEM_PROMPT_V2_PATH,
     _VALIDATION_SYSTEM_PROMPT,
     _build_user_message,
     _call_gemini_and_parse,
@@ -26,6 +27,14 @@ from app.services.adversarial_service import (
     save_adversarial_question,
     validate_adversarial_question,
     verify_assessment_exists,
+)
+
+requires_local_v2_file = pytest.mark.skipif(
+    not _SYSTEM_PROMPT_V2_PATH.exists(),
+    reason=(
+        "requires the local-only weaponiser_prompt_v2.md, which is "
+        "intentionally not committed to this repo"
+    ),
 )
 
 VALID_RESPONSE = {
@@ -237,6 +246,7 @@ def test_call_gemini_and_parse_default_uses_v1_prompt():
     assert call_kwargs["config"].system_instruction == _SYSTEM_PROMPT_V1
 
 
+@requires_local_v2_file
 def test_call_gemini_and_parse_v2_selects_v2_prompt():
     strategy = _mock_strategy()
     source_question = _mock_question()
@@ -267,6 +277,7 @@ def test_call_gemini_and_parse_invalid_prompt_version_raises():
         )
 
 
+@requires_local_v2_file
 def test_system_prompt_v2_excludes_wrapper_prose():
     assert "Design change vs v1" not in _load_system_prompt_v2()
     assert "## SYSTEM PROMPT" not in _load_system_prompt_v2()
@@ -283,6 +294,7 @@ def test_system_prompt_v1_instructs_blank_marker_preservation():
     assert "one exact canonical token" not in _SYSTEM_PROMPT_V1
 
 
+@requires_local_v2_file
 def test_system_prompt_v2_instructs_blank_marker_preservation():
     assert "preserve the exact blank-marker format" in _load_system_prompt_v2()
     assert "[A]" in _load_system_prompt_v2()
@@ -302,6 +314,7 @@ def test_validation_system_prompt_instructs_blank_label_preservation():
     assert "for code give only the code" in _VALIDATION_SYSTEM_PROMPT
 
 
+@requires_local_v2_file
 def test_call_gemini_and_parse_v2_uses_v2_few_shot_examples():
     strategy = _mock_strategy()
     strategy.strategy_name = "NEGATION_INJECTION"
@@ -351,6 +364,7 @@ def test_call_gemini_and_parse_v1_few_shot_examples_unaffected():
     assert "readings" not in user_message
 
 
+@requires_local_v2_file
 def test_generate_adversarial_question_forwards_prompt_version():
     mock_db = _mock_db(
         question_result=_mock_question(),
@@ -377,6 +391,7 @@ def test_generate_adversarial_question_forwards_prompt_version():
     assert call_kwargs["config"].system_instruction == _load_system_prompt_v2()
 
 
+@requires_local_v2_file
 def test_regenerate_adversarial_question_forwards_prompt_version():
     adv_question = _mock_adv_question()
     mock_db = _mock_db_for_regenerate(
@@ -1425,6 +1440,7 @@ def test_v2_prompt_missing_file_raises_clear_error(tmp_path):
     assert "v1 remains fully functional" in str(exc_info.value)
 
 
+@requires_local_v2_file
 def test_v2_prompt_loads_when_file_present():
     _load_system_prompt_v2.cache_clear()
     try:
@@ -1435,6 +1451,7 @@ def test_v2_prompt_loads_when_file_present():
     assert "You are the Question Weaponiser" in prompt
 
 
+@requires_local_v2_file
 def test_v2_few_shot_examples_missing_file_raises_clear_error(
     tmp_path,
 ):
