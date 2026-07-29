@@ -63,6 +63,7 @@ const validateResponse = {
   adv_question_id: 42,
   weaponised_question: "Adversarial version of the question.",
   correct_answer: "The linked list is reversed in place, in O(n) time.",
+  source_question_correct_answer: "Reverse the list by rewiring next pointers.",
   predicted_wrong_answer: "The linked list is copied and reversed.",
   gemini_response: "Gemini's real response text to the adversarial question.",
   gemini_took_bait: false,
@@ -212,15 +213,29 @@ describe("AdversarialQuestionModal — Validate", () => {
     );
   });
 
-  it("renders the real correct_answer and gemini_response in the comparison panels, not placeholder text", async () => {
+  it("renders the real source_question_correct_answer and gemini_response in the comparison panels, not placeholder text", async () => {
     const user = await reachGeneratedState();
 
     mockedApiPost.mockResolvedValueOnce(validateResponse);
     await user.click(screen.getByRole("button", { name: /^validate$/i }));
 
-    expect(await screen.findByText(validateResponse.correct_answer)).toBeInTheDocument();
+    expect(
+      await screen.findByText(validateResponse.source_question_correct_answer)
+    ).toBeInTheDocument();
     expect(await screen.findByText(validateResponse.gemini_response)).toBeInTheDocument();
     expect(screen.queryByText(/placeholder answer/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the source question's own correct_answer, not the weaponised item's correct_answer, in the 'Answer to Source Question' panel", async () => {
+    const user = await reachGeneratedState();
+
+    mockedApiPost.mockResolvedValueOnce(validateResponse);
+    await user.click(screen.getByRole("button", { name: /^validate$/i }));
+
+    expect(
+      await screen.findByText(validateResponse.source_question_correct_answer)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(validateResponse.correct_answer)).not.toBeInTheDocument();
   });
 
   it("shows an inline error and does not populate the comparison when validate fails", async () => {
@@ -286,13 +301,17 @@ describe("AdversarialQuestionModal — Regenerate", () => {
   it("clears validationResult after a successful regenerate", async () => {
     const user = await reachDeployableState();
 
-    expect(screen.getByText(validateResponse.correct_answer)).toBeInTheDocument();
+    expect(
+      screen.getByText(validateResponse.source_question_correct_answer)
+    ).toBeInTheDocument();
 
     mockedApiPatch.mockResolvedValueOnce(regeneratedQuestion);
     await user.click(screen.getByRole("button", { name: /^regenerate$/i }));
 
     await waitFor(() =>
-      expect(screen.queryByText(validateResponse.correct_answer)).not.toBeInTheDocument()
+      expect(
+        screen.queryByText(validateResponse.source_question_correct_answer)
+      ).not.toBeInTheDocument()
     );
     expect(screen.queryByText(validateResponse.gemini_response)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /deploy question/i })).toBeDisabled();
