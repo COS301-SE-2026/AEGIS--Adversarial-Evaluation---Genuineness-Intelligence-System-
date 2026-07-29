@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
 from fastapi import HTTPException, status
@@ -39,19 +40,29 @@ _REQUIRED_FIELDS = (
 _SYSTEM_PROMPT_V1: str = (
     _SYSTEM_PROMPT_V1_PATH.read_text(encoding="utf-8")
 )
-_SYSTEM_PROMPT_V2: str = (
-    _SYSTEM_PROMPT_V2_PATH.read_text(encoding="utf-8")
-)
-
-_SYSTEM_PROMPTS = {
-    "v1": _SYSTEM_PROMPT_V1,
-    "v2": _SYSTEM_PROMPT_V2,
-}
 
 _SEED_LIBRARIES = {
     "v1": _SEED_LIBRARY_V1_PATH,
     "v2": _SEED_LIBRARY_V2_PATH,
 }
+
+_V2_MISSING_FILE_HINT = (
+    "this is expected if you don't have local v2 files (they are "
+    "intentionally not committed to this repo); v1 remains fully "
+    "functional"
+)
+
+
+@lru_cache(maxsize=1)
+def _load_system_prompt_v2() -> str:
+    try:
+        return _SYSTEM_PROMPT_V2_PATH.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(
+            "v2 prompt file not found at "
+            f"{_SYSTEM_PROMPT_V2_PATH} — {_V2_MISSING_FILE_HINT}."
+        ) from exc
+
 
 _GENERATOR_MODEL = "gemini-3.1-flash-lite"
 _VALIDATOR_MODEL = "gemini-3.1-flash-lite"
@@ -90,8 +101,16 @@ def _load_few_shot_examples(
     strategy_name: str, prompt_version: str = "v1"
 ) -> list[dict]:
     seed_library_path = _SEED_LIBRARIES[prompt_version]
-    with open(seed_library_path, encoding="utf-8") as seed_file:
-        seed_library = json.load(seed_file)
+    try:
+        with open(seed_library_path, encoding="utf-8") as seed_file:
+            seed_library = json.load(seed_file)
+    except FileNotFoundError as exc:
+        if prompt_version == "v2":
+            raise FileNotFoundError(
+                "v2 seed library file not found at "
+                f"{seed_library_path} — {_V2_MISSING_FILE_HINT}."
+            ) from exc
+        raise
     matches = [
         item for item in seed_library
         if item.get("pattern_used") == strategy_name
@@ -216,13 +235,14 @@ def _parse_gemini_response(raw_text: str) -> dict:
 
 
 def _select_system_prompt(prompt_version: str) -> str:
-    if prompt_version not in _SYSTEM_PROMPTS:
-        raise ValueError(
-            f"Invalid prompt_version: {prompt_version!r}. "
-            "Must be one of: "
-            + ", ".join(sorted(_SYSTEM_PROMPTS))
-        )
-    return _SYSTEM_PROMPTS[prompt_version]
+    if prompt_version == "v1":
+        return _SYSTEM_PROMPT_V1
+    if prompt_version == "v2":
+        return _load_system_prompt_v2()
+    raise ValueError(
+        f"Invalid prompt_version: {prompt_version!r}. "
+        "Must be one of: v1, v2"
+    )
 
 
 def _call_gemini_and_parse(

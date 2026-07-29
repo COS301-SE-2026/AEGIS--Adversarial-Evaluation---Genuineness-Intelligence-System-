@@ -12,11 +12,11 @@ from app.models.question_bank import QuestionBank, QuestionType
 from app.schema.adversarial import TestCaseResult
 from app.services.adversarial_service import (
     _SYSTEM_PROMPT_V1,
-    _SYSTEM_PROMPT_V2,
     _VALIDATION_SYSTEM_PROMPT,
     _build_user_message,
     _call_gemini_and_parse,
     _format_source_correct_answer,
+    _load_system_prompt_v2,
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
@@ -254,7 +254,7 @@ def test_call_gemini_and_parse_v2_selects_v2_prompt():
         )
 
     call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _SYSTEM_PROMPT_V2
+    assert call_kwargs["config"].system_instruction == _load_system_prompt_v2()
 
 
 def test_call_gemini_and_parse_invalid_prompt_version_raises():
@@ -268,12 +268,12 @@ def test_call_gemini_and_parse_invalid_prompt_version_raises():
 
 
 def test_system_prompt_v2_excludes_wrapper_prose():
-    assert "Design change vs v1" not in _SYSTEM_PROMPT_V2
-    assert "## SYSTEM PROMPT" not in _SYSTEM_PROMPT_V2
-    assert "Estimated length" not in _SYSTEM_PROMPT_V2
-    assert "Revised few-shot examples" not in _SYSTEM_PROMPT_V2
-    assert "You are the Question Weaponiser" in _SYSTEM_PROMPT_V2
-    assert "CORE PRINCIPLE" in _SYSTEM_PROMPT_V2
+    assert "Design change vs v1" not in _load_system_prompt_v2()
+    assert "## SYSTEM PROMPT" not in _load_system_prompt_v2()
+    assert "Estimated length" not in _load_system_prompt_v2()
+    assert "Revised few-shot examples" not in _load_system_prompt_v2()
+    assert "You are the Question Weaponiser" in _load_system_prompt_v2()
+    assert "CORE PRINCIPLE" in _load_system_prompt_v2()
 
 
 def test_system_prompt_v1_instructs_blank_marker_preservation():
@@ -284,10 +284,10 @@ def test_system_prompt_v1_instructs_blank_marker_preservation():
 
 
 def test_system_prompt_v2_instructs_blank_marker_preservation():
-    assert "preserve the exact blank-marker format" in _SYSTEM_PROMPT_V2
-    assert "[A]" in _SYSTEM_PROMPT_V2
-    assert "do not renumber or relabel the blanks" in _SYSTEM_PROMPT_V2
-    assert "ask for one exact canonical token" not in _SYSTEM_PROMPT_V2
+    assert "preserve the exact blank-marker format" in _load_system_prompt_v2()
+    assert "[A]" in _load_system_prompt_v2()
+    assert "do not renumber or relabel the blanks" in _load_system_prompt_v2()
+    assert "ask for one exact canonical token" not in _load_system_prompt_v2()
 
 
 def test_validation_system_prompt_instructs_blank_label_preservation():
@@ -374,7 +374,7 @@ def test_generate_adversarial_question_forwards_prompt_version():
         )
 
     call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _SYSTEM_PROMPT_V2
+    assert call_kwargs["config"].system_instruction == _load_system_prompt_v2()
 
 
 def test_regenerate_adversarial_question_forwards_prompt_version():
@@ -402,7 +402,7 @@ def test_regenerate_adversarial_question_forwards_prompt_version():
         )
 
     call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _SYSTEM_PROMPT_V2
+    assert call_kwargs["config"].system_instruction == _load_system_prompt_v2()
 
 
 def test_generate_adversarial_question_404_when_source_missing():
@@ -1378,3 +1378,89 @@ def test_save_adversarial_question_success():
     assert result.validation_status == "validated"
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(adv_question)
+
+
+def test_v1_prompt_works_when_v2_file_missing(tmp_path):
+    missing_path = tmp_path / "does_not_exist.md"
+    strategy = _mock_strategy()
+    source_question = _mock_question()
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text=json.dumps(VALID_RESPONSE),
+    )
+
+    with patch(
+        "app.services.adversarial_service._SYSTEM_PROMPT_V2_PATH",
+        missing_path,
+    ), patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = _call_gemini_and_parse(strategy, source_question)
+
+    call_kwargs = mock_client.models.generate_content.call_args.kwargs
+    assert call_kwargs["config"].system_instruction == _SYSTEM_PROMPT_V1
+    assert result == VALID_RESPONSE
+
+
+def test_v2_prompt_missing_file_raises_clear_error(tmp_path):
+    missing_path = tmp_path / "does_not_exist.md"
+    strategy = _mock_strategy()
+    source_question = _mock_question()
+
+    _load_system_prompt_v2.cache_clear()
+    try:
+        with patch(
+            "app.services.adversarial_service._SYSTEM_PROMPT_V2_PATH",
+            missing_path,
+        ):
+            with pytest.raises(FileNotFoundError) as exc_info:
+                _call_gemini_and_parse(
+                    strategy, source_question, prompt_version="v2"
+                )
+    finally:
+        _load_system_prompt_v2.cache_clear()
+
+    assert "v2 prompt file not found" in str(exc_info.value)
+    assert "v1 remains fully functional" in str(exc_info.value)
+
+
+def test_v2_prompt_loads_when_file_present():
+    _load_system_prompt_v2.cache_clear()
+    try:
+        prompt = _load_system_prompt_v2()
+    finally:
+        _load_system_prompt_v2.cache_clear()
+
+    assert "You are the Question Weaponiser" in prompt
+
+
+def test_v2_few_shot_examples_missing_file_raises_clear_error(
+    tmp_path,
+):
+    missing_path = tmp_path / "does_not_exist.json"
+    strategy = _mock_strategy()
+    strategy.strategy_name = "NEGATION_INJECTION"
+    source_question = _mock_question()
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text=json.dumps(VALID_RESPONSE),
+    )
+
+    with patch.dict(
+        "app.services.adversarial_service._SEED_LIBRARIES",
+        {"v2": missing_path},
+    ), patch(
+        "app.services.adversarial_service.get_gemini_client",
+        return_value=mock_client,
+    ):
+        with pytest.raises(FileNotFoundError) as exc_info:
+            _call_gemini_and_parse(
+                strategy,
+                source_question,
+                use_few_shot=True,
+                prompt_version="v2",
+            )
+
+    assert "v2 seed library file not found" in str(exc_info.value)
+    assert "v1 remains fully functional" in str(exc_info.value)
