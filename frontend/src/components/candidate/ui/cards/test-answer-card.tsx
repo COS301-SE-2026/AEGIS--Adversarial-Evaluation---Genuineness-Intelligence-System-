@@ -39,6 +39,8 @@ export function TestAnswerCard({ question, value, onChange, candidateAssessId }:
             'fill-in-the-blank': (
             <TestFillInTheBlanksCard
             question={question}
+            value={value}
+            onChange={onChange}
             />
         ),
         } as const;

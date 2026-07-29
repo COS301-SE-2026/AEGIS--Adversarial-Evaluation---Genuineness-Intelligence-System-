@@ -77,10 +77,6 @@ export default function FillBlanksBuilder({ question, update }: FillBlanksBuilde
     update("content", FILL_BLANKS_PLACEHOLDER_TEMPLATE);
 };
        
-const detectedKey = analysis.validLetters.join(",");
-
-// Deliberately re-run only when the detected letters change to avoid a sync loop.
-// eslint-disable-next-line react-hooks/exhaustive-deps
 useEffect(() => {
     const nextBlanks: FillBlank[] = analysis.validLetters.map((letter) => {
         const existing = question.blanks.find((blank) => blank.id === letter);
@@ -94,7 +90,7 @@ useEffect(() => {
     if (!isSame) {
         update("blanks", nextBlanks);
     }
-}, [detectedKey]);
+}, [analysis.validLetters, question.blanks, update]);
 
 
        

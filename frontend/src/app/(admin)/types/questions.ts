@@ -28,7 +28,7 @@ export interface QuestionPayload {
     type?: string,
     tags?: string[],
     content?: string,
-    correct_answer?: string,
+    correct_answer?: string | { answer: Record<string, string> },
     question_metadata?: unknown //assuming its a json object
     starterCode?: string;
     options?: MCQOption[],

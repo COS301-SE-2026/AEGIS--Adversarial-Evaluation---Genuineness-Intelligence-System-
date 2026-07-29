@@ -11,50 +11,9 @@ import CreateQuestionContainer from "@/components/admin/ui/question-builder/crea
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
+import { buildSourceQuestionPayload, updateSavedQuestionList } from "@/lib/question-payload";
 import PageHelpDrawer from "@/components/admin/ui/help/page-help-drawer";
 import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content";
-
-  function buildQuestionData(question: QuestionPayload) {
-    switch (question.type) {
-      
-      case "CODING":
-        return {
-          correctAnswer: question.correct_answer ?? "",
-          metadata: question.question_metadata ?? {},
-        };
-
-      case "MCQ":
-        return {
-          correctAnswer: question.options?.find(option => option.isCorrect)?.text ?? "",
-          metadata: {
-             options: question.options
-          }
-        };
-
-      case "COMPREHENSION":
-        return {
-          correctAnswer: "",
-          metadata: {
-            rubric: question.rubric,
-            expectedKeywords: question.expectedKeywords,
-          }
-        };
-
-      case "FILL_BLANKS":
-        return {
-          correctAnswer: question.blanks?.join("|") ?? "",
-          metadata: {
-            blanks: question.blanks
-          }
-        };
-
-      default:
-        return {
-          correctAnswer: "",
-          metadata: {},
-        };
-    }
-  }
 
 export default function ViewQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
@@ -213,15 +172,11 @@ export default function ViewQuestionsPage() {
     setError(null);
     setIsSaving(true);
     try{
-      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, updatedData, {
+      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, buildSourceQuestionPayload(updatedData), {
         headers: getAuthHeaders()
       });
       setQuestions((previousQuestions) =>
-        previousQuestions.map((question) =>
-          question.question_bank_id === editQuestionId
-            ? { ...question, ...updatedData }
-            : question
-        )
+        updateSavedQuestionList(previousQuestions, editQuestionId, updatedData)
       );
 
       setSuccess("Question updated successfully.");
@@ -236,22 +191,11 @@ export default function ViewQuestionsPage() {
 
   const handleDeployment = async (newQuestion: QuestionPayload) => {
     setError(null);
-    const { correctAnswer, metadata } = buildQuestionData(newQuestion);
 
     try {
       const createdQuestion = await apiPost<QuestionBank>(
         "/api/v1/questions/source",
-        {
-          title: newQuestion.title,
-          content: newQuestion.content ?? "",
-          type: newQuestion.type ?? "TEXT",
-          maximum_score: newQuestion.maximum_score ?? 10,
-          correct_answer: correctAnswer,
-          question_metadata: metadata,
-          tags: newQuestion.tags ?? [],
-          category_id: newQuestion.category_id,
-          difficulty: newQuestion.difficulty,
-        },
+        buildSourceQuestionPayload(newQuestion),
         {
           headers: getAuthHeaders(),
         }

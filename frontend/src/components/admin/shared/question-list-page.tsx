@@ -10,8 +10,9 @@ import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
-import PageHelpDrawer from "../ui/help/page-help-drawer";
-import type { PageHelpConfig } from "../ui/help/page-help-drawer";
+import { buildSourceQuestionPayload, updateSavedQuestionList } from "@/lib/question-payload";
+import PageHelpDrawer, { type PageHelpConfig } from "@/components/admin/ui/help/page-help-drawer";
+
 
 export interface QuestionListModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export interface QuestionListPageConfig {
 
 export default function QuestionListPage({ config }: { config: QuestionListPageConfig }) {
   const { ModalComponent } = config;
+
 
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -187,13 +189,11 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
     setUpdateError(null);
     setIsSaving(true);
     try {
-      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, updatedData, {
+      await apiPatch(`/api/v1/questions/source/${editQuestionId}`, buildSourceQuestionPayload(updatedData), {
         headers: getAuthHeaders(),
       });
       setQuestions((previousQuestions) =>
-        previousQuestions.map((question) =>
-          question.question_bank_id === editQuestionId ? { ...question, ...updatedData } : question
-        )
+        updateSavedQuestionList(previousQuestions, editQuestionId, updatedData)
       );
 
       setUpdateSuccess("Question updated successfully.");
@@ -211,17 +211,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
     try {
       const createdQuestion = await apiPost<QuestionBank>(
         "/api/v1/questions/source",
-        {
-          title: newQuestion.title,
-          content: newQuestion.content ?? "",
-          type: newQuestion.type ?? "TEXT",
-          maximum_score: newQuestion.maximum_score ?? 10,
-          correct_answer: newQuestion.correct_answer,
-          question_metadata: undefined,
-          tags: newQuestion.tags ?? [],
-          category_id: newQuestion.category_id,
-          difficulty: newQuestion.difficulty,
-        },
+        buildSourceQuestionPayload(newQuestion),
         {
           headers: getAuthHeaders(),
         }
