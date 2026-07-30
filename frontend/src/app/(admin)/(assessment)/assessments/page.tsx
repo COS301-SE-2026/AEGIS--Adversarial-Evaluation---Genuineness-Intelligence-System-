@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "../../../../components/admin/layouts/sidebar";
 import AdminTopbar from "../../../../components/admin/layouts/topbar";
@@ -10,6 +10,9 @@ import CreateAssessmentPanel from "../../../../components/admin/ui/cards/create-
 import type { AssessmentStatus } from "../../types/assessment";
 import { isAuthenticated, getRole, getAuthHeaders } from "@/lib/auth";
 import { apiGet } from "@/lib/apiClient";
+import PageHelpDrawer from "@/components/admin/ui/help/page-help-drawer";
+import { HelpCircle } from "lucide-react";
+import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content";
 
 type FilterValue = AssessmentStatus | "all";
 
@@ -30,6 +33,8 @@ export default function AssessmentsPage() {
   const [assessments, setAssessments] = useState<ApiAssessment[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const helpConfig = PAGE_HELP_CONTENT["/assessments"];
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -42,34 +47,30 @@ export default function AssessmentsPage() {
     checkAuth();
   }, [router]);
 
+  const loadAssessments = useCallback(async () => {
+    try {
+      setLoadingData(true);
+      setDataError(null);
+      const data = await apiGet<ApiAssessment[]>("/api/v1/assessments", {
+        headers: getAuthHeaders(),
+      });
+      setAssessments(data);
+    } catch (err) {
+      setDataError(
+        err instanceof Error ? err.message : "Failed to load assessments."
+      );
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!authChecked) return;
-
-    let isMounted = true;
-    const loadAssessments = async () => {
-      try {
-        setLoadingData(true);
-        setDataError(null);
-        const data = await apiGet<ApiAssessment[]>("/api/v1/assessments", {
-          headers: getAuthHeaders(),
-        });
-        if (isMounted) setAssessments(data);
-      } catch (err) {
-        if (isMounted) {
-          setDataError(
-            err instanceof Error ? err.message : "Failed to load assessments."
-          );
-        }
-      } finally {
-        if (isMounted) setLoadingData(false);
-      }
+    const load = async () => {
+      await loadAssessments();
     };
-
-    loadAssessments();
-    return () => {
-      isMounted = false;
-    };
-  }, [authChecked]);
+    load();
+  }, [authChecked, loadAssessments]);
 
   if (!authChecked) {
     return (
@@ -92,19 +93,42 @@ export default function AssessmentsPage() {
       <AdminSidebar />
 
       <div className="flex flex-col flex-1 min-w-0">
-        <AdminTopbar onNewAssessment={() => setPanelOpen(true)} />
+        <AdminTopbar/>
 
         <main className="flex-1 overflow-y-auto px-7 py-6">
           <div className="flex items-start justify-between mb-5">
             <div>
-              <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-[#F5F5F5]">
+              <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-default-text">
                 ASSESSMENT ARSENAL
               </h1>
               <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mt-1">
                 {"// manage, deploy, and monitor adversarial assessment sets"}
               </p>
             </div>
+
+            <div className="flex items-center gap-4">
+              <button title="Open the help guide" type="button" onClick={()=>setIsHelpOpen(true)} className="flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+                <HelpCircle size={18}/>
+                <span>Help</span>
+              </button>
+
+              {/*Create Assessment button*/}
+              <button
+                type="button"
+                title="Create a new assessment."
+                onClick={() => setPanelOpen(true)}
+                className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-staatliches tracking-wider"
+              >
+                <span>+ New Assessment</span>
+              </button>              
+            </div>
           </div>
+
+          <PageHelpDrawer
+            open={isHelpOpen}
+            onClose={()=>setIsHelpOpen(false)}
+            config={helpConfig}
+          />
 
           <AssessmentFilterBar
             filter={filter}
@@ -126,7 +150,7 @@ export default function AssessmentsPage() {
               </div>
             </div>
           ) : filtered.length > 0 ? (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(310px,1fr))] gap-3.5">
+            <div title="Assign assessments to candidates" className="grid grid-cols-[repeat(auto-fill,minmax(310px,1fr))] gap-3.5">
               {filtered.map((a) => (
                 <AssessmentCard key={a.assessment_id} assessment={a} />
               ))}
@@ -145,7 +169,10 @@ export default function AssessmentsPage() {
       </div>
 
       {panelOpen && (
-        <CreateAssessmentPanel onClose={() => setPanelOpen(false)} />
+        <CreateAssessmentPanel
+          onClose={() => setPanelOpen(false)}
+          onCreated={loadAssessments}
+        />
       )}
     </div>
   );

@@ -2,7 +2,7 @@
 
 export type AssessmentStatus = "active" | "closed" | "pending" | "draft";
 
-export type Difficulty = "Junior" | "Mid" | "Senior" | "Lead" | "Architect";
+export type Difficulty = "Easy" | "Medium" | "Hard" | "Expert";
 
 export interface Assessment {
   id: number;

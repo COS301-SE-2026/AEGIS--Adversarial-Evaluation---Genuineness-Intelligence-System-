@@ -63,7 +63,7 @@ export const mockAssessmentQuestions: { [key: string]: Question[] } = {
     },
     {
       questionId: 3,
-      questionTitle: "Array Method Completion",
+      questionTitle: "Array Method Completion ",
       questionContent: "\n\nconst numbers = [1, 2, 3, 4];\nconst doubled = numbers.___A___(x => x * 2);\nconst total = doubled.___B___((a, b) => a + b, 0);\n// total = 20",
       type: 'fill-in-the-blank',
       options: ["map", "reduce"],

@@ -1,27 +1,33 @@
 'use client';
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useAssessmentTimer } from "../context/assessment-timer";
 import { SearchBar } from "../ui/buttons/search-bar";
 import { NotificationBell } from "../ui/buttons/notification-bell-button";
 import { UserIcon } from "../ui/buttons/user-profile-button";
-// import { TestSaveButton } from "../ui/buttons/test-save-button";
 import { ExitSessionButton } from "../ui/buttons/exit-session-button";
 
 export function Navbar() {
 
     const pathname = usePathname();
-    const [timer, setTimer] = useState(60 * 60); // 60 minutes in seconds
+    const {endTime} = useAssessmentTimer();
+    const [timer, setTimer] = useState(0);
 
     useEffect(() => {
-        if (pathname !== "/assessment") {
-            const interval = setInterval(() => {
-                setTimer((prev) => (prev > 0 ? prev - 1 : 0));
-            }, 1000);
-            return () => clearInterval(interval);
+        if (!endTime) return;
+        const updateTimer = () => {
+            const remainingTime = Math.floor((new Date(endTime).getTime() - Date.now()) / 1000);
+            setTimer(remainingTime > 0 ? remainingTime : 0);
         }
-    }, [pathname]);
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [endTime]);
+
+
 
     const formatTime = (seconds: number) => {
         const hours = Math.floor(seconds / 3600);
@@ -33,7 +39,7 @@ export function Navbar() {
     if (pathname === "/assessment" || pathname === "/reports") {
         return (
             <header>
-                <nav className="bg-secondary-surface border-b border-tertiary-surface py-4 px-24 flex items-center justify-between">
+                <nav className="bg-secondary-surface border-b border-tertiary-surface py-4 px-6 lg:px-12 2xl:px-24 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link href="/assessment">
                             <Image src="/illustrations/AEGIS-logo-candidate-nav.png" alt="Logo" width={75} height={55} />
@@ -44,7 +50,11 @@ export function Navbar() {
                         </div>
                     </div>
                     <div className="flex items-center gap-16">
-                        <SearchBar />
+                        <Suspense fallback={<div className="w-40  h-[36] bg-default-border/20 rounded-md animated-pulse"/>}
+                        >
+                            <SearchBar />
+                        </Suspense>
+                           
                         <NotificationBell />
                         <UserIcon />
                     </div>

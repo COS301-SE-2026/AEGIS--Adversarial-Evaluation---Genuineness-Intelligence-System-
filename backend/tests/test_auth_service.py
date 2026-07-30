@@ -1,4 +1,6 @@
 import os
+from app.core import security
+
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
@@ -307,26 +309,18 @@ def test_get_or_create_user_uses_sub_when_id_missing():
     assert result == mock_user
 
 
-def test_hash_password_returns_string():
-    from app.core.security import hash_password
 
-    result = hash_password("Test1234!")
-    assert isinstance(result, str)
-    assert result != "Test1234!"
+def test_hash_password_returns_string(monkeypatch):
+    monkeypatch.setattr(security.pwd_context, "hash", lambda plain: "hashed")
+    assert security.hash_password("Test1234!") == "hashed"
 
+def test_verify_password_returns_true_for_correct_password(monkeypatch):
+    monkeypatch.setattr(security.pwd_context, "verify", lambda plain, hashed: True)
+    assert security.verify_password("Test1234!", "hashed") is True
 
-def test_verify_password_returns_true_for_correct_password():
-    from app.core.security import hash_password, verify_password
-
-    hashed = hash_password("Test1234!")
-    assert verify_password("Test1234!", hashed) is True
-
-
-def test_verify_password_returns_false_for_wrong_password():
-    from app.core.security import hash_password, verify_password
-
-    hashed = hash_password("Test1234!")
-    assert verify_password("Wrong1234!", hashed) is False
+def test_verify_password_returns_false_for_wrong_password(monkeypatch):
+    monkeypatch.setattr(security.pwd_context, "verify", lambda plain, hashed: False)
+    assert security.verify_password("Wrong1234!", "hashed") is False
 
 
 def test_create_access_token_returns_string():

@@ -28,3 +28,19 @@ Thumbs.db
 dist/
 build/
 backend/alembic.ini
+
+backend/.venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+
+dist/
+build/
+*.egg-info/
+
+# Piston Sandbox Binaries
+sandbox/piston_packages/
+
+/node_modules

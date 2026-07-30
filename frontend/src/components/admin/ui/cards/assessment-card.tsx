@@ -31,15 +31,18 @@ interface InviteResponse {
   access_link: string;
 }
 
-function StatusBadge({ status = "pending" }: { status?: AdminCardAssessment["status"] }) {
-  const config = {
+function StatusBadge({ status = "pending" }: { status?: string }) {
+  const config: Record<string, { cls: string; text: string }> = {
     active:  { cls: "bg-[rgba(56,142,60,0.18)] text-[#66BB6A] border border-[rgba(56,142,60,0.3)]",  text: "ACTIVE"  },
     closed:  { cls: "bg-[rgba(51,51,49,0.6)] text-[rgba(245,245,245,0.42)] border border-[#333331]", text: "CLOSED"  },
     pending: { cls: "bg-[rgba(249,168,37,0.15)] text-[#FFCA28] border border-[rgba(249,168,37,0.3)]",text: "PENDING" },
     draft:   { cls: "bg-[rgba(21,101,192,0.15)] text-[#64B5F6] border border-[rgba(21,101,192,0.3)]",text: "DRAFT"   },
-  } as const;
+  };
 
-  const { cls, text } = config[status ?? "pending"];
+  const { cls, text } = config[status] ?? {
+    cls: "bg-[rgba(153,153,153,0.15)] text-[rgba(245,245,245,0.6)] border border-[rgba(153,153,153,0.3)]",
+    text: status,
+  };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-[5px] font-jetbrains text-[9px] tracking-[0.04em] whitespace-nowrap ${cls}`}>
       {text}
@@ -120,6 +123,7 @@ function AssignDropdown({ assessmentId, assessmentTitle }: { assessmentId: numbe
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         aria-label="Assign to candidate"
         onClick={() => setOpen((o) => !o)}
         className={`bg-transparent border p-1 px-2 rounded-[5px] cursor-pointer transition-all duration-150 flex items-center gap-1 ${
@@ -141,10 +145,10 @@ function AssignDropdown({ assessmentId, assessmentTitle }: { assessmentId: numbe
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-1.5 w-[220px] bg-secondary-surface border border-tertiary-surface rounded-[5px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] z-20 overflow-hidden">
+        <div className="absolute bottom-full right-0 mb-1.5 w-55 bg-secondary-surface border border-tertiary-surface rounded-[5px] shadow-[0_8px_24px_rgba(0,0,0,0.5)] z-20 overflow-hidden">
           {accessLink && (
             <div className="px-3 py-2 border-b border-tertiary-surface bg-[rgba(56,142,60,0.08)]">
-              <div className="font-staatliches text-[11px] tracking-[0.04em] text-[#66BB6A] mb-1">
+              <div className="font-staatliches text-[11px] tracking-[0.04em] text-status-success mb-1">
                 INVITE LINK
               </div>
               <div className="font-jetbrains text-[9px] text-white-smoke/60 break-all leading-relaxed">
@@ -178,6 +182,7 @@ function AssignDropdown({ assessmentId, assessmentTitle }: { assessmentId: numbe
                 const displayName = c.full_name ?? c.email;
                 return (
                   <button
+                    type="button"
                     key={c.user_id}
                     onClick={() => { handleAssign(c); }}
                     disabled={isAssigned}
@@ -193,11 +198,11 @@ function AssignDropdown({ assessmentId, assessmentTitle }: { assessmentId: numbe
                       {displayName}
                     </span>
                     {isAssigned ? (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#66BB6A" strokeWidth="2.5" className="flex-shrink-0">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#66BB6A" strokeWidth="2.5" className="shrink-0">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
                     ) : (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="flex-shrink-0 text-white-smoke/30">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="shrink-0 text-white-smoke/30">
                         <line x1="12" y1="5" x2="12" y2="19"/>
                         <line x1="5" y1="12" x2="19" y2="12"/>
                       </svg>
@@ -228,7 +233,7 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
   return (
     <div className="
         bg-secondary-surface border border-tertiary-surface rounded-[5px]
-        px-5 py-[18px] cursor-pointer relative overflow-hidden
+        px-5 py-4.5 cursor-pointer relative overflow-hidden
         transition-all duration-150
         hover:bg-tertiary-surface hover:border-system-red/40
         group
@@ -243,13 +248,13 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
         <div className="font-staatliches text-lg tracking-[0.04em] leading-[1.1] text-white-smoke flex-1 pr-2.5">
           {a.title}
         </div>
-        <StatusBadge status={a.status} />
+        <StatusBadge status={a.status?.toLowerCase()} />
       </div>
 
       <div className="flex flex-wrap gap-2.5 mb-3 font-jetbrains text-[10px] text-white-smoke/40">
-        <span className="flex items-center gap-1">🎯 {a.role ?? "—"}</span>
-        <span className="flex items-center gap-1">📊 {a.difficulty ?? "—"}</span>
-        <span className="flex items-center gap-1">❓ {a.questions ?? 0} Qs</span>
+        <span className="flex items-center gap-1">{a.role ?? "—"}</span>
+        <span className="flex items-center gap-1">{a.difficulty ?? "—"}</span>
+        <span className="flex items-center gap-1">{a.questions ?? 0} Qs</span>
         <span className="text-[9px] text-white-smoke/30">{(a.langs ?? []).join(", ")}</span>
       </div>
 
@@ -297,6 +302,7 @@ export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
         </div>
         <div className="flex gap-1.5">
           <button
+            type="button"
             aria-label="Edit assessment"
             className="bg-transparent border border-tertiary-surface text-white-smoke/40 p-1 px-2 rounded-[5px] cursor-pointer transition-all duration-150 flex items-center hover:border-system-red hover:text-system-red"
           >

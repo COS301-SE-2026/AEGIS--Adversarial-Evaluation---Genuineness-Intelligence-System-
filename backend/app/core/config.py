@@ -37,9 +37,14 @@ class Settings(BaseSettings):
     google_redirect_uri: str
     frontend_url: str = "http://localhost:3000"
 
-    github_client_id: str
-    github_client_secret: str
-    github_redirect_uri: str
+    # Gemini API configuration
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-1.5-flash"
+
+    # Piston sandbox configuration
+    piston_base_url: str = "http://localhost:2000"
+    piston_request_timeout_seconds: int = 30
+    piston_enabled: bool = False
 
 
 # Single shared instance imported by the rest of the app

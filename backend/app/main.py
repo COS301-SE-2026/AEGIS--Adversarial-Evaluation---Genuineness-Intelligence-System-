@@ -1,13 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.adversarial import (
+    adversarial_questions_router,
+    assessment_adversarial_router,
+    question_adversarial_router,
+    router as adversarial_router,
+)
 from app.api.routes.assessment import (
     candidate_response_router,
     router as assessment_router,
 )
 from app.api.routes.auth import router as auth_router
 from app.api.routes.user import router as user_router
+from app.api.routes.question import router as question_router2, category_router
+from app.api.routes.test_cases import router as test_cases_router
 from app.core.config import settings
+
+from app.api.routes.question_management import router as question_router
+from app.api.routes.candidate_ass import router as candidate_assessment_router
+
 
 app = FastAPI()
 
@@ -23,6 +35,15 @@ app.include_router(auth_router, prefix="/api/v1")
 app.include_router(assessment_router, prefix="/api/v1")
 app.include_router(candidate_response_router, prefix="/api/v1")
 app.include_router(user_router, prefix="/api/v1")
+app.include_router(question_router2, prefix="/api/v1")
+app.include_router(question_router, prefix="/api/v1")
+app.include_router(test_cases_router, prefix="/api/v1")
+app.include_router(category_router, prefix="/api/v1")
+app.include_router(candidate_assessment_router, prefix="/api/v1")
+app.include_router(adversarial_router, prefix="/api/v1")
+app.include_router(assessment_adversarial_router, prefix="/api/v1")
+app.include_router(question_adversarial_router, prefix="/api/v1")
+app.include_router(adversarial_questions_router, prefix="/api/v1")
 
 
 @app.on_event("startup")
