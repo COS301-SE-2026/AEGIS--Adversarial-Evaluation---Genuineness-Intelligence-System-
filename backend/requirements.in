@@ -4,6 +4,7 @@ uvicorn==0.24.0
 
 # Database ORM & Driver
 sqlalchemy==2.0.23
+greenlet==3.5.4
 psycopg2-binary==2.9.9
 
 # Environment variables
