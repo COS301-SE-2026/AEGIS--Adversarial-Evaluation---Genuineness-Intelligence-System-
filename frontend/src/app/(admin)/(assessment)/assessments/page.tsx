@@ -98,7 +98,7 @@ export default function AssessmentsPage() {
         <main className="flex-1 overflow-y-auto px-7 py-6">
           <div className="flex items-start justify-between mb-5">
             <div>
-              <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-[#F5F5F5]">
+              <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-default-text">
                 ASSESSMENT ARSENAL
               </h1>
               <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mt-1">
@@ -114,9 +114,11 @@ export default function AssessmentsPage() {
 
               {/*Create Assessment button*/}
               <button
-              title="Create a new assessment."
-              onClick={() => setPanelOpen(true)}
-              className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-staatliches tracking-wider">
+                type="button"
+                title="Create a new assessment."
+                onClick={() => setPanelOpen(true)}
+                className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red hover:border-system-red px-4 py-2 rounded transition-colors text-sm font-staatliches tracking-wider"
+              >
                 <span>+ New Assessment</span>
               </button>              
             </div>

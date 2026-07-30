@@ -17,7 +17,7 @@ interface QuestionModalProps {
     isSaving?: boolean;
 }
 
-export default function LegacyQuestionModal({isOpen, mode, question_id, questions, categories, onClose, onSubmit, isSaving = false}: QuestionModalProps) {
+export default function LegacyQuestionModal({isOpen, mode, question_id, questions, categories, onClose, onSubmit, isSaving = false}: Readonly<QuestionModalProps>) {
     
     const questionTargeted = 
     mode === "edit" && question_id !== null ?  
