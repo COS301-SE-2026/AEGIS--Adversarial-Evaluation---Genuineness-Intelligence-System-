@@ -720,10 +720,16 @@ def start_candidate_assessment(
             detail="Invalid access token",
         )
     if session.status == SessionStatus.IN_PROGRESS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Assessment has already been started",
-        )
+        if session.end_time <= datetime.now(timezone.utc):
+            session.status = SessionStatus.EXPIRED
+            db.commit()
+            db.refresh(session)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Assessment has already been started",
+            )
+        return session
+
     if session.status == SessionStatus.COMPLETED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
