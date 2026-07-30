@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
+from app.models.assessment_question import AssessmentQuestion
 from app.models.coding_test_cases import CodingTestCase
 from app.models.question_bank import QuestionBank, QuestionType
 from app.schema.adversarial import TestCaseResult
@@ -22,11 +23,13 @@ from app.services.adversarial_service import (
     _load_system_prompt_v2,
     _verify_generated_item,
     _verify_via_gemini,
+    delete_adversarial_question,
     generate_adversarial_question,
     get_adversarial_questions_for_assessment,
     get_all_adversarial_questions,
     get_all_draft_adversarial_questions,
     get_all_strategies,
+    get_every_adversarial_question,
     regenerate_adversarial_question,
     save_adversarial_question,
     validate_adversarial_question,
@@ -969,6 +972,88 @@ def test_get_all_draft_adversarial_questions_returns_list():
 
     mock_db.query.assert_called_once_with(AdversarialQuestion)
     assert result == questions
+
+
+def test_get_every_adversarial_question_returns_list_regardless_of_status():
+    questions = [
+        MagicMock(validation_status="draft"),
+        MagicMock(validation_status="validated"),
+    ]
+    mock_db = MagicMock()
+    mock_db.query.return_value.all.return_value = questions
+
+    result = get_every_adversarial_question(mock_db)
+
+    mock_db.query.assert_called_once_with(AdversarialQuestion)
+    mock_db.query.return_value.filter.assert_not_called()
+    assert result == questions
+
+
+def _mock_db_for_delete(
+    adv_question_result=None,
+    linked_assessment_questions=None,
+):
+    mock_db = MagicMock()
+
+    def query_side_effect(model):
+        mock_query = MagicMock()
+        if model is AdversarialQuestion:
+            mock_query.filter.return_value.first.return_value = (
+                adv_question_result
+            )
+        elif model is AssessmentQuestion:
+            mock_query.filter.return_value.all.return_value = (
+                linked_assessment_questions or []
+            )
+        return mock_query
+
+    mock_db.query.side_effect = query_side_effect
+    return mock_db
+
+
+def test_delete_adversarial_question_404_when_not_found():
+    mock_db = _mock_db_for_delete(adv_question_result=None)
+
+    with pytest.raises(HTTPException) as exc_info:
+        delete_adversarial_question(mock_db, adv_question_id=999)
+
+    assert exc_info.value.status_code == 404
+    assert (
+        exc_info.value.detail == "Adversarial question not found"
+    )
+
+
+def test_delete_adversarial_question_400_when_referenced_by_assessment():
+    adv_question = _mock_adv_question_full()
+    mock_db = _mock_db_for_delete(
+        adv_question_result=adv_question,
+        linked_assessment_questions=[MagicMock()],
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        delete_adversarial_question(mock_db, adv_question_id=5)
+
+    assert exc_info.value.status_code == 400
+    assert (
+        exc_info.value.detail
+        == "This adversarial question is used in an assessment"
+    )
+    mock_db.delete.assert_not_called()
+    mock_db.commit.assert_not_called()
+
+
+def test_delete_adversarial_question_success_when_unreferenced():
+    adv_question = _mock_adv_question_full()
+    mock_db = _mock_db_for_delete(
+        adv_question_result=adv_question,
+        linked_assessment_questions=[],
+    )
+
+    result = delete_adversarial_question(mock_db, adv_question_id=5)
+
+    assert result is None
+    mock_db.delete.assert_called_once_with(adv_question)
+    mock_db.commit.assert_called_once()
 
 
 def test_verify_assessment_exists_returns_assessment():
