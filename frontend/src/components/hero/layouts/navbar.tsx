@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Button from "../ui/button";
-import {ChevronDown} from "lucide-react"
+// import {ChevronDown} from "lucide-react"
 import Image from "next/image";
 
 const Navbar = () => {
