@@ -7,7 +7,7 @@ import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
-import LoadingSpinner from "@/components/ui/loading-spinner";
+import LoadingState from "@/components/ui/loading-state";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
@@ -286,11 +286,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
         />
 
         <main className="px-4 sm:px-6 lg:px-8 py-6">
-          {isLoading ? (
-            <div className="flex min-h-[60vh] items-center justify-center px-4">
-              <LoadingSpinner message="Loading..." />
-            </div>
-          ) : (
+          {isLoading ? <LoadingState /> : (
           <div className="p-4 py-6 sm:p-6 lg:px-8 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button
