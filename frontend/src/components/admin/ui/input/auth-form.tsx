@@ -8,7 +8,8 @@ import GoogleIcon from "@/components/hero/ui/google-icon";
 
 import { validateEmail, validatePassword, validatePasswordMatch } from "@/lib/validation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE = `${BASE_URL.replace(/\/$/, "")}/api/v1`
 
 interface AuthFormProps {
   startMode?: "login" | "register";

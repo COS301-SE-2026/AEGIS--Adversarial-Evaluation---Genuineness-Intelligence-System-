@@ -23,13 +23,17 @@ from app.api.routes.candidate_ass import router as candidate_assessment_router
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "https://aegis.vercel.app",
+]
+if getattr(settings, "FRONTEND_URL", None):
+    origins.append(settings.FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins= [
-        "http://localhost:3000",
-        "http://localhost:8000",
-        "https://aegis.vercel.app",
-    ],
+    allow_origins=origins,
     allow_origin_regex=r"^https://.[a-zA-Z0-9_-]+\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
