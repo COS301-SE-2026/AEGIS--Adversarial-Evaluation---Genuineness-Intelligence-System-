@@ -7,4 +7,4 @@ services:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: aegis_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
