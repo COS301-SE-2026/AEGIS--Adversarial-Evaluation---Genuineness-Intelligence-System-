@@ -1,6 +1,11 @@
 # FastAPI Framework
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn==0.24.0
+uvloop==0.22.1
+httptools==0.8.0
+watchfiles==1.2.0
+websockets==14.2
+pyyaml==6.0.3
 
 # Database ORM & Driver
 sqlalchemy==2.0.23
