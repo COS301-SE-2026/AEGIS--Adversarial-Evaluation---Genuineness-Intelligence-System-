@@ -109,7 +109,7 @@ function mapQuestionOptions(
          return ["A", "B", "C", "D"]
             .map((label) => record[label])
             .filter((option): option is unknown => option !== undefined && option !== null)
-            .map((option) => String(option));
+            .map(String);
       }
 
       return [];

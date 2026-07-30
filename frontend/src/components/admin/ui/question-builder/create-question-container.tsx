@@ -76,6 +76,7 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
                 if (!currentQuestion.functionSignature.trim()) {
                     missingFields.push("function signature");
                 }
+                break;
 
             case "MCQ":
                 if (currentQuestion.options.some((option) => !option.text.trim())) {
