@@ -26,7 +26,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "http://localhost:8000",
-    "https://aegis.vercel.app",
+    "https://aegis-cos301.vercel.app/",
 ]
 if getattr(settings, "FRONTEND_URL", None):
     origins.append(settings.FRONTEND_URL)
@@ -34,7 +34,7 @@ if getattr(settings, "FRONTEND_URL", None):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"^https://.[a-zA-Z0-9_-]+\.vercel\.app$",
+    allow_origin_regex="https://.*\\.vercel\\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
