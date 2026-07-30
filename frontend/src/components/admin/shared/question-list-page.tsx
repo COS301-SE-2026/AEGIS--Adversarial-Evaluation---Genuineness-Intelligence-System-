@@ -102,7 +102,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
     if (config.mode === "adversarial") {
       const [sourceResult, adversarialResult] = await Promise.all([
         loadSourceQuestions(),
-        apiGet<AdversarialQuestionResponse[]>("/api/v1/adversarial-questions/all", {
+        apiGet<AdversarialQuestionResponse[]>("/api/v1/adversarial-questions/", {
           headers: getAuthHeaders(),
         }),
       ]);

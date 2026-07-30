@@ -26,7 +26,7 @@ app = FastAPI()
 origins = [
     "http://localhost:3000",
     "http://localhost:8000",
-    "https://aegis-cos301.vercel.app/",
+    "https://aegis-cos301.vercel.app",
 ]
 if getattr(settings, "FRONTEND_URL", None):
     origins.append(settings.FRONTEND_URL)
