@@ -356,12 +356,14 @@ export default function ViewQuestionsPage() {
 
               <div className="flex items-center justify-center gap-2 sm:gap-3 order-3 sm:order-2 flex-wrap">
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors ">
                   «
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors">
@@ -373,6 +375,7 @@ export default function ViewQuestionsPage() {
                   return (pageNumber < totalNumberOfPages || pageNumber === totalNumberOfPages) ? pageNumber : null;
                 }).filter((pageNumber): pageNumber is number => pageNumber !== null).map((pageNumber) => (
                   <button
+                    type="button"
                     key={pageNumber}
                     onClick={() => setCurrentPage(pageNumber)}
                     className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transitions-colors
@@ -385,12 +388,14 @@ export default function ViewQuestionsPage() {
                 ))}
 
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(Math.min(totalNumberOfPages, currentPage + 1))}
                   disabled={currentPage === totalNumberOfPages || totalNumberOfPages === 0}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors">
                   ›
                 </button>
                 <button 
+                  type="button"
                   onClick={() => setCurrentPage(totalNumberOfPages)}
                   disabled={currentPage === totalNumberOfPages || totalNumberOfPages === 0}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors"

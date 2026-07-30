@@ -21,6 +21,7 @@ from app.schema.adversarial import (
     CodeExecutionComparison,
     TestCaseResult,
     ValidationResult,
+    PromptVersion,
 )
 
 _WEAPONISER_DIR = Path(__file__).parent.parent / "core" / "weaponiser"
@@ -42,8 +43,8 @@ _SYSTEM_PROMPT_V1: str = (
 )
 
 _SEED_LIBRARIES = {
-    "v1": _SEED_LIBRARY_V1_PATH,
-    "v2": _SEED_LIBRARY_V2_PATH,
+    PromptVersion.v1: _SEED_LIBRARY_V1_PATH,
+    PromptVersion.v2: _SEED_LIBRARY_V2_PATH,
 }
 
 _V2_MISSING_FILE_HINT = (
@@ -106,14 +107,14 @@ _VERIFICATION_SYSTEM_PROMPT = (
 
 
 def _load_few_shot_examples(
-    strategy_name: str, prompt_version: str = "v1"
+    strategy_name: str, prompt_version: PromptVersion = PromptVersion.v1
 ) -> list[dict]:
     seed_library_path = _SEED_LIBRARIES[prompt_version]
     try:
         with open(seed_library_path, encoding="utf-8") as seed_file:
             seed_library = json.load(seed_file)
     except FileNotFoundError as exc:
-        if prompt_version == "v2":
+        if prompt_version == PromptVersion.v2:
             raise FileNotFoundError(
                 "v2 seed library file not found at "
                 f"{seed_library_path} — {_V2_MISSING_FILE_HINT}."
@@ -246,9 +247,9 @@ def _parse_gemini_response(raw_text: str) -> dict:
 
 
 def _select_system_prompt(prompt_version: str) -> str:
-    if prompt_version == "v1":
+    if prompt_version == PromptVersion.v1:
         return _SYSTEM_PROMPT_V1
-    if prompt_version == "v2":
+    if prompt_version == PromptVersion.v2:
         return _load_system_prompt_v2()
     raise ValueError(
         f"Invalid prompt_version: {prompt_version!r}. "
@@ -260,7 +261,7 @@ def _call_gemini_and_parse(
     strategy: AdversarialStrategy,
     source_question: QuestionBank,
     use_few_shot: bool = False,
-    prompt_version: str = "v1",
+    prompt_version: PromptVersion = PromptVersion.v1,
 ) -> dict:
     system_prompt = _select_system_prompt(prompt_version)
     examples_block = ""
@@ -412,7 +413,7 @@ def generate_adversarial_question(
     source_question_id: int,
     strategy_id: int,
     verify: bool = True,
-    prompt_version: str = "v1",
+    prompt_version: PromptVersion = PromptVersion.v1,
 ) -> AdversarialQuestion:
     source_question = (
         db.query(QuestionBank)
@@ -464,7 +465,7 @@ def regenerate_adversarial_question(
     adv_question_id: int,
     strategy_id: int,
     verify: bool = True,
-    prompt_version: str = "v1",
+    prompt_version: PromptVersion = PromptVersion.v1,
 ) -> AdversarialQuestion:
     adversarial_question = (
         db.query(AdversarialQuestion)

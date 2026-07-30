@@ -54,7 +54,7 @@ export interface QuestionListPageConfig {
   mode?: "source" | "adversarial";
 }
 
-export default function QuestionListPage({ config }: { config: QuestionListPageConfig }) {
+export default function QuestionListPage({ config }: Readonly<{ config:Readonly<QuestionListPageConfig>}>) {
   const { ModalComponent } = config;
 
 
@@ -181,26 +181,41 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
     }, {} as Record<number, string>);
   }, [categories]);
 
+  const search = searchTerm.toLowerCase();
+
   const questionsFiltered = questions
     .filter((question) => {
-      const matchTag = Array.isArray(question.tags)
-        ? question.tags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-        : typeof question.tags === "string"
-        ? question.tags.toLowerCase().includes(searchTerm.toLowerCase())
-        : false;
+      
+      let matchTag = false;
 
-      const matchesSearch =
-        question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        question.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      if (Array.isArray(question.tags)) {
+        matchTag = question.tags.some((tag) => 
+          tag.toLowerCase().includes(search)
+        );
+      }
+      else if (typeof question.tags === "string") {
+        matchTag = question.tags.toLowerCase().includes(search);
+      }
+
+      const matchesSearch = 
+        question.title.toLowerCase().includes(search) || 
+        question.content.toLowerCase(). includes(search) ||
         matchTag;
 
-    const matchesCategory = categoryFilter === "all" || String(question.category_id) === categoryFilter;
-      const matchesDifficulty = difficultyFilter === "all" || question.difficulty === difficultyFilter;
+      const matchesCategory = 
+        categoryFilter === "all" ||
+        String(question.category_id) === categoryFilter;
+
+      const matchesDifficulty =
+        difficultyFilter === "all" ||
+        question.difficulty === difficultyFilter;
+
       return matchesSearch && matchesCategory && matchesDifficulty;
     })
     .sort((a, b) => {
       if (!sortColumn) return 0;
-    let aValue: string | number = "";
+
+      let aValue: string | number = "";
       let bValue: string | number = "";
 
       if (sortColumn === "title") {
@@ -211,16 +226,17 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
         bValue = (categoriesMap[b.category_id] || "").toLowerCase();
       } else {
         const difficultyOrder = { Easy: 1, Medium: 2, Hard: 3 };
+
         aValue = difficultyOrder[a.difficulty as keyof typeof difficultyOrder] || 0;
 
-    bValue = difficultyOrder[b.difficulty as keyof typeof difficultyOrder] || 0;
+        bValue = difficultyOrder[b.difficulty as keyof typeof difficultyOrder] || 0;
       }
 
       if (aValue < bValue) {
         return sortDirection === "asc" ? -1 : 1;
       }
 
-      if (bValue > aValue) {
+      if (aValue > bValue) {
         return sortDirection === "asc" ? 1 : -1;
       }
 
@@ -368,9 +384,14 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
               </button>
 
               {config.helpConfig && (
-                <button title="Open the help guide." type="button" onClick={()=>setIsHelpOpen(true)} className="inline-flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer">
+                <button 
+                  title="Open the help guide." 
+                  type="button" onClick={()=>setIsHelpOpen(true)} 
+                  className="inline-flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer"
+                >
                   <HelpCircle size={18}/>
                   <span>Help</span>
+
                 </button>
               )}
             </div>
@@ -448,6 +469,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
 
               <div className="flex items-center justify-center gap-2 sm:gap-3 order-3 sm:order-2 flex-wrap">
                 <button
+                  type="button"
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors "
@@ -455,6 +477,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
                   «
                 </button>
                 <button
+                  type = "button"
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors"
@@ -469,6 +492,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
                   .filter((pageNumber): pageNumber is number => pageNumber !== null)
                   .map((pageNumber) => (
                     <button
+                      type="button"
                       key={pageNumber}
                       onClick={() => setCurrentPage(pageNumber)}
                       className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transitions-colors
@@ -483,6 +507,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
                   ))}
 
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(Math.min(totalNumberOfPages, currentPage + 1))}
                   disabled={currentPage === totalNumberOfPages || totalNumberOfPages === 0}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors"
@@ -490,6 +515,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
                   ›
                 </button>
                 <button
+                  type="button"
                   onClick={() => setCurrentPage(totalNumberOfPages)}
                   disabled={currentPage === totalNumberOfPages || totalNumberOfPages === 0}
                   className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors"
@@ -499,7 +525,10 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
               </div>
 
               <div className="flex items-center gap-2 order-1 sm:order-3">
-                <label htmlFor="items-select" className="text-default-text text-xs sm:text-sm whitespace-nowrap">
+                <label 
+                  htmlFor="items-select" 
+                  className="text-default-text text-xs sm:text-sm whitespace-nowrap"
+                >
                   Per page:
                 </label>
                 <select

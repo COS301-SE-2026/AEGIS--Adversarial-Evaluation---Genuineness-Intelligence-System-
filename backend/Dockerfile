@@ -10,7 +10,11 @@ RUN useradd -m appuser
 # copy the requirements file and install the required depenencies
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install \
+    --no-cache-dir \
+    --only-binary=:all: \
+    --require-hashes \
+    -r requirements.txt
 
 # copy all of the required folders in the backend
 COPY app ./app

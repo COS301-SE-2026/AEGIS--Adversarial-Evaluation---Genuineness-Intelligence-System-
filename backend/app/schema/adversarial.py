@@ -1,7 +1,12 @@
 from datetime import datetime
 from typing import Optional
-
+from enum import Enum
 from pydantic import BaseModel, Field
+
+
+class PromptVersion(str, Enum):
+    v1 = "v1"
+    v2 = "v2"
 
 
 class StrategyResponse(BaseModel):

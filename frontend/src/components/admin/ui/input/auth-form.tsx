@@ -14,6 +14,9 @@ interface AuthFormProps {
   startMode?: "login" | "register";
 }
 
+function handleGoogle() {
+  window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
+}
 
 export default function AuthForm({startMode = "login"}: AuthFormProps) {
   const router = useRouter();
@@ -141,10 +144,6 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
 
   }
 
-  function handleGoogle() {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
-  }
-
   const togglePasswordIcon = (
     <button
       type="button"
@@ -165,6 +164,15 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
       )}
     </button>
   )
+
+  let submitButtonText: string;
+
+  if (loading) {
+    submitButtonText = mode === "login" ? "Signing in..." : "Creating account...";
+  }
+  else {
+    submitButtonText = mode === "login" ? "Sign In" : "Sign Up";
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
@@ -251,10 +259,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
           disabled={loading}
           className="w-full mt-8"
         >
-          {loading ?
-            (mode === "login" ? "Siging in..." : "Creating account...") :
-            (mode === "login" ? "Sign In" : "Sign Up")
-          }
+          {submitButtonText}
         </Button>
  
         <p className="text-center font-ibm-plex text-sm text-default-text mt-4">

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock,patch
 
 import pytest
@@ -739,16 +739,27 @@ def test_start_candidate_assessment_raises_404_when_token_not_found():
     assert exc_info.value.detail == "Invalid access token"
 
 
-def test_start_candidate_assessment_raises_400_when_in_progress():
+def test_start_candidate_assessment_returns_exisiting_session():
     mock_session = MagicMock()
     mock_session.status = SessionStatus.IN_PROGRESS
+    mock_session.end_time = datetime.now(timezone.utc) + timedelta(minutes=15)
+    mock_db = _make_mock_db_for_start(mock_session)
+    
+    result = start_candidate_assessment(mock_db, "some-token")
+    assert result is mock_session
+
+def test_start_candidate_assessment_raises_400_when_resuming_expired_session():
+    mock_session = MagicMock()
+    mock_session.status = SessionStatus.IN_PROGRESS
+    mock_session.start_time = datetime(2099, 12, 31, tzinfo=timezone.utc)
+    mock_session.end_time = datetime.now(timezone.utc)
     mock_db = _make_mock_db_for_start(mock_session)
     with pytest.raises(HTTPException) as exc_info:
         start_candidate_assessment(mock_db, "some-token")
     assert exc_info.value.status_code == 400
     assert exc_info.value.detail == "Assessment has already been started"
 
-
+    
 def test_start_candidate_assessment_raises_400_when_completed():
     mock_session = MagicMock()
     mock_session.status = SessionStatus.COMPLETED
