@@ -1,6 +1,6 @@
 "use client"
 
-import { Code2, ListChecks, FileText, BetweenHorizontalStart, X } from "lucide-react";
+import { Code2, ListChecks, BetweenHorizontalStart, X } from "lucide-react";
 import { QuestionType } from "@/app/(admin)/types/question-builder"
 
 interface QuestionTypeModalProps {
@@ -22,12 +22,12 @@ const Question_Types = [
         description: "Set a single or multiple correct answers from muliple selectable options",
         icon: ListChecks,
     },
-    {
-        type: "COMPREHENSION" as const,
-        title: "Comprehension and Reasoning",
-        description: "Long-form written response using rubrics and keywords.",
-        icon: FileText,
-    },
+    // {
+    //     type: "COMPREHENSION" as const,
+    //     title: "Comprehension and Reasoning",
+    //     description: "Long-form written response using rubrics and keywords.",
+    //     icon: FileText,
+    // },
     {
         type: "FILL_BLANKS" as const,
         title: "Fill in the Blanks",
