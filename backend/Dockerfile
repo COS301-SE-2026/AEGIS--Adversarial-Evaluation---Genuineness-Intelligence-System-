@@ -13,6 +13,7 @@ COPY requirements.txt .
 RUN pip install \
     --no-cache-dir \
     --only-binary :all: \
+    --require-hashes \
     -r requirements.txt
 
 # copy all of the required folders in the backend
