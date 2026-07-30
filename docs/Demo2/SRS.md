@@ -4,10 +4,10 @@
 ## Table of Contents
 
 ### 1. Introduction
-- 
+
 
 ### 2. User Stories / User Characteristics
-- [User Stories/User Characteristics PDF](pdfs/AEGIS%20-%20User%20Stories.pdf)
+- [User Stories/User Characteristics PDF](pdfs/)
 
 ### 3. Use Cases
 - [Use Case Diagram PDF](pdfs/AEGIS_Demo_2_Use_Cases.pdf)
