@@ -17,9 +17,9 @@ Contains the following:
 
 
 ### 3. Technology Requirements
-- [Technology Requirements PDF]()
+- [Technology Requirements PDF](pdfs/Technology%20Requirements.pdf)
 
 ### 4. API Contracts
-- [API Contracts PDF]()
+- [API Contracts PDF](pdfs/FastAPI%20-%20Swagger%20UI.pdf)
 
 ---

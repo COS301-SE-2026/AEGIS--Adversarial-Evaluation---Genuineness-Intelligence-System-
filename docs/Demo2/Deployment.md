@@ -11,10 +11,10 @@ Contains:
 
 
 ### 2. Deployment Diagram
-- [Production Deployment Diagram](pdfs/Deployment/AEGIS-Deployment-Diagram.png)
+- [Production Deployment Diagram Image](pdfs/Deployment/AEGIS-Deployment-Diagram.png)
 
 ### 3. CI/CD Pipeline
-- [CI/CD Diagram PDF](pdfs/Deployment/AEGIS-CICD-Deployment-Flowchart.png)
+- [CI/CD Diagram Image](pdfs/Deployment/AEGIS-CICD-Deployment-Flowchart.png)
 ---
 
 ## Complete Document
