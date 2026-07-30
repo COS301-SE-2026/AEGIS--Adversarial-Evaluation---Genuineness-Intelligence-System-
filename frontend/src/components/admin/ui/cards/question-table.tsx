@@ -32,6 +32,13 @@ export default function QuestionTable({
         }
     };
 
+    const validationStatusStyle = (validationStatus: string) => {
+        switch (validationStatus.toLowerCase()) {
+            case "validated": return "bg-status-success/20 text-status-success";
+            default: return "bg-status-warning/20 text-status-warning";
+        }
+    };
+
     return (
         <div className="bg-secondary-surface rounded-lg border border-default-border overflow-hidden">
             <div className="hidden sm:block overflow-x-auto">
@@ -64,7 +71,16 @@ export default function QuestionTable({
                     <tbody>
                         {questions.map((question) => (
                             <tr key={question.question_bank_id} className="border-b border-default-border hover:bg-tertiary-surface transition-colors">
-                                <td className="px-4 sm:px-6 py-3 sm:py-4 text-default-text font-medium text-sm">{question.title}</td>
+                                <td className="px-4 sm:px-6 py-3 sm:py-4 text-default-text font-medium text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <span>{question.title}</span>
+                                        {question.validation_status && (
+                                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${validationStatusStyle(question.validation_status)}`}>
+                                                {question.validation_status}
+                                            </span>
+                                        )}
+                                    </div>
+                                </td>
                                 <td className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm max-w-xs truncate">{question.content}</td>
                                 <td className="hidden lg:table-cell px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm">
                                     {categoryMap[question.category_id] || "Unassigned"}
@@ -76,6 +92,7 @@ export default function QuestionTable({
                                 </td>
                                 <td className="px-4 sm:px-6 py-3 sm:py-4 text-center relative">
                                     <button
+                                        aria-label="Row actions"
                                         onClick={() => setOpenMenuId(openMenuId === question.question_bank_id ? null : question.question_bank_id)}
                                         className="inline-flex items-center justify-center p-1 hover:bg-tertiary-surface rounded transistion-colors">
                                             <MoreVertical size={16} className="text-default-border"/>
