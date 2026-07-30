@@ -77,6 +77,12 @@ export default function CreateQuestionContainer({open, categories, onClose, onSu
                     missingFields.push("function signature");
                 }
 
+                if (!currentQuestion.starterCode.trim()) {
+                    missingFields.push("starter code");
+                }
+
+                break;
+
             case "MCQ":
                 if (currentQuestion.options.some((option) => !option.text.trim())) {
                     missingFields.push("all MCQ options");
