@@ -24,23 +24,42 @@ AEGIS is an adversarial AI-powered technical assessment platform focused on inve
 
 ## Project Aim
 
-To build an adversarial AI platform that weaponises prompt engineering to deliberately confuse, trick, and outsmart language models, creating assessment questions that humans can solve but AI cannot, while investigating how different AI models reason, fail, and can be manipulated through carefully crafted adversarial techniques.
+To build an adversarial AI platform that weaponises prompt engineering to deliberately confuse, trick, and outsmart language models, creating assessment questions that humans can solve but make the AI hallucinate, while investigating how different AI models reason, fail and can be manipulated through carefully crafted adversarial techniques.
 
 ---
 
 # Documentation
 
-## Functional Requirements / SRS
-- [Software Requirements Specification (SRS)](docs/SRS.md)
+## Requirements Specifications
+- [Software Requirements Specification (SRS)](docs/Demo2/SRS.md)
+- [Software Architecture Specification (SAS)](docs/Demo2/SAS.md)
 
 ---
 
-## Design Specifications
-- [Design styles](docs/DesignStyle.pdf)
-- [Wireframes](docs/pdfs/WIREFRAME.pdf)
+## Deployment
+- [Deployment Documentation](docs/Demo2/Deployment.md)
 
 ---
 
+## Brand Style Guide
+- [Brand Style Guide PDF](docs/BrandStyleGuide.pdf)
+
+---
+
+## Coding Standards
+- [Coding Standards PDF](docs/Demo2/pdfs/Coding%20Standards.pdf)
+
+---
+
+## User Manual Documentation
+- [User Manual PDF](docs/Demo2/pdfs)
+
+---
+
+## Quality Assurance
+- [Testing Policy PDF](docs/Demo2/pdfs)
+
+---
 
 # GitHub Project Board
 
