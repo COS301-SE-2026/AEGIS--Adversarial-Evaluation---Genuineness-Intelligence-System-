@@ -28,8 +28,6 @@ origins = [
     "http://localhost:8000",
     "https://aegis-cos301.vercel.app",
 ]
-if getattr(settings, "FRONTEND_URL", None):
-    origins.append(settings.FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
