@@ -182,6 +182,7 @@ function AssignDropdown({ assessmentId, assessmentTitle }: { assessmentId: numbe
                 const displayName = c.full_name ?? c.email;
                 return (
                   <button
+                    type="button"
                     key={c.user_id}
                     onClick={() => { handleAssign(c); }}
                     disabled={isAssigned}

@@ -165,7 +165,14 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
     </button>
   )
 
-  const submitButtonText = mode === "login" ? (loading ? "Signing in..." : "Sign In") : (loading ? "Creating account..." : "Sign Up");
+  let submitButtonText: string;
+
+  if (loading) {
+    submitButtonText = mode === "login" ? "Signing in..." : "Creating account...";
+  }
+  else {
+    submitButtonText = mode === "login" ? "Sign In" : "Sign Up";
+  }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4">

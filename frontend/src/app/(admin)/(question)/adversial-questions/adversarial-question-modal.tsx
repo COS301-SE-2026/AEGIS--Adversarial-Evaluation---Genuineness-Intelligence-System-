@@ -2,11 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { X, RefreshCw, Sparkles } from "lucide-react";
-import {
-  QuestionBank,
-  QuestionCategory,
-  QuestionPayload,
-} from "../../types/questions";
+import {QuestionBank, QuestionCategory,} from "../../types/questions";
 import { apiGet, apiPatch, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 

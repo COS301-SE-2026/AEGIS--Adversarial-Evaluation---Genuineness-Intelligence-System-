@@ -235,267 +235,259 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
 
   //will add the other sections later
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      className="fixed inset-0 bg-black/60 z-50 flex justify-end"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-      onKeyDown={(e) => {
-        if (
-          (e.target === e.currentTarget && e.key === "Enter") ||
-          e.key === " "
-        ) {
-          e.preventDefault();
-          onClose();
-        }
-      }}
-    >
-      <div className="w-180 max-w-[95vw] bg-secondary-surface border-l border-tertiary-surface flex flex-col h-full overflow-hidden">
-        {/* Header */}
-        <div className="px-7 py-5 border-b border-tertiary-surface flex items-center justify-between">
-          <div>
-            <div className="font-staatliches text-[22px] tracking-[0.07em] text-white-smoke">
-              CREATE ASSESSMENT
+    <>
+      <div
+        className="fixed inset-0 bg-black/60 z-50 flex justify-end"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onClose();
+          }
+        }}
+      >
+        <div className="w-180 max-w-[95vw] bg-secondary-surface border-l border-tertiary-surface flex flex-col h-full overflow-hidden">
+          {/* Header */}
+          <div className="px-7 py-5 border-b border-tertiary-surface flex items-center justify-between">
+            <div>
+              <div className="font-staatliches text-[22px] tracking-[0.07em] text-white-smoke">
+                CREATE ASSESSMENT
+              </div>
+              <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-0.5">
+                {" "}
+                starting with the basics
+              </div>
             </div>
-            <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-0.5">
-              {" "}
-              starting with the basics
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-white-smoke/40 hover:text-system-red"
+            >
+              <X size={24} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white-smoke/40 hover:text-system-red"
-          >
-            <X size={24} />
-          </button>
-        </div>
 
-        {/* Stepper for the wizard */}
-        <div className="flex px-7 py-4 border-b border-tertiary-surface gap-1">
-          {[
-            { id: 0, label: "Basic", sub: "details" },
-            { id: 1, label: "Questions", sub: "select" },
-            { id: 2, label: "Confirm", sub: "final" },
-          ].map((s) => {
-            let stepCircleClass = "border-default-border text-default-border";
+          {/* Stepper for the wizard */}
+          <div className="flex px-7 py-4 border-b border-tertiary-surface gap-1">
+            {[
+              { id: 0, label: "Basic", sub: "details" },
+              { id: 1, label: "Questions", sub: "select" },
+              { id: 2, label: "Confirm", sub: "final" },
+            ].map((s) => {
+              let stepCircleClass = "border-default-border text-default-border";
 
-            if (s.id < step) {
-              stepCircleClass = "bg-status-success-dim text-status-success";
-            } else if (s.id === step) {
-              stepCircleClass = "bg-default-text text-black";
-            }
+              if (s.id < step) {
+                stepCircleClass = "bg-status-success-dim text-status-success";
+              } else if (s.id === step) {
+                stepCircleClass = "bg-default-text text-black";
+              }
 
-            return (
-              <button
-                type="button"
-                key={s.id}
-                onClick={() => s.id <= step && setStep(s.id)}
-                className={`flex-1 flex items-center gap-3 ${s.id > step ? "opacity-40" : ""}`}
-              >
-                <div
-                  className={`w-7 h-7 rounded flex items-center justify-center border ${stepCircleClass}`}
+              return (
+                <button
+                  type="button"
+                  key={s.id}
+                  onClick={() => s.id <= step && setStep(s.id)}
+                  className={`flex-1 flex items-center gap-3 ${s.id > step ? "opacity-40" : ""}`}
                 >
-                  {s.id < step ? "✓" : s.id + 1}
-                </div>
-                <div>
                   <div
-                    className={`font-staatliches text-sm ${s.id === step ? "" : "text-white-smoke/60"}`}
+                    className={`w-7 h-7 rounded flex items-center justify-center border ${stepCircleClass}`}
                   >
-                    {s.label}
+                    {s.id < step ? "✓" : s.id + 1}
                   </div>
-                  <div className="text-[9px] text-white-smoke/30">{s.sub}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                  <div>
+                    <div
+                      className={`font-staatliches text-sm ${s.id === step ? "" : "text-white-smoke/60"}`}
+                    >
+                      {s.label}
+                    </div>
+                    <div className="text-[9px] text-white-smoke/30">{s.sub}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-        <div className="flex-1 overflow-y-auto px-7 py-6">
-          {/*Section 1*/}
-          {step === 0 && (
-            <div className="mb-6">
-              <div className={sectionTitleCls}>Assessment Identity</div>
+          <div className="flex-1 overflow-y-auto px-7 py-6">
+            {/*Section 1*/}
+            {step === 0 && (
+              <div className="mb-6">
+                <div className={sectionTitleCls}>Assessment Identity</div>
 
-              <div className="mb-3.5">
-                <label htmlFor="title" className={`${labelCls} block mb-1.5`}>
-                  Title *
-                </label>
-                <input
-                  id="title"
-                  className={inputCls}
-                  placeholder="Senior Backend Algorithm Sprint"
-                  value={formData.name}
-                  onChange={(e) => updateForm("name", e.target.value)}
-                />
-              </div>
-
-              <div className="mb-3.5">
-                <label
-                  htmlFor="description"
-                  className={`${labelCls} block mb-1.5`}
-                >
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  className={`${inputCls} resize-y min-h-20 leading-relaxed`}
-                  placeholder="Briefly describe the purpose..."
-                  value={formData.description}
-                  onChange={(e) => updateForm("description", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3.5">
-                <div>
-                  <label htmlFor="role" className={`${labelCls} block mb-1.5`}>
-                    Target Role
-                  </label>
-                  <select
-                    id="role"
-                    className={`${inputCls} cursor-pointer appearance-none`}
-                    value={formData.role}
-                    onChange={(e) => updateForm("role", e.target.value)}
-                  >
-                    {TARGET_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="timeLimit"
-                    className={`${labelCls} block mb-1.5`}
-                  >
-                    Time Limit (min)
+                <div className="mb-3.5">
+                  <label htmlFor="title" className={`${labelCls} block mb-1.5`}>
+                    Title *
                   </label>
                   <input
-                    id="timeLimit"
-                    type="number"
-                    min="15"
-                    max="180"
+                    id="title"
                     className={inputCls}
-                    value={formData.timeLimit}
-                    onChange={(e) =>
-                      updateForm("timeLimit", Number(e.target.value))
-                    }
+                    placeholder="Senior Backend Algorithm Sprint"
+                    value={formData.name}
+                    onChange={(e) => updateForm("name", e.target.value)}
                   />
                 </div>
-              </div>
-            </div>
-          )}
-          {/* Section 2 */}
-          {step === 1 && (
-            <div className="mb-6">
-              <div className={sectionTitleCls}>Pick Questions</div>
 
-              <div className="mb-4">
-                <label
-                  htmlFor="questionCount"
-                  className={`${labelCls} block mb-1.5`}
-                >
-                  Question count
-                </label>
-                <input
-                  id="questionCount"
-                  type="range"
-                  min="3"
-                  max="15"
-                  value={formData.questionCount}
-                  onChange={(e) =>
-                    updateForm("questionCount", Number(e.target.value))
-                  }
-                  className="w-full accent-system-red"
-                />
-                <div className="text-right font-staatliches text-system-red text-sm mt-1">
-                  {formData.questionCount} target
+                <div className="mb-3.5">
+                  <label
+                    htmlFor="description"
+                    className={`${labelCls} block mb-1.5`}
+                  >
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    className={`${inputCls} resize-y min-h-20 leading-relaxed`}
+                    placeholder="Briefly describe the purpose..."
+                    value={formData.description}
+                    onChange={(e) => updateForm("description", e.target.value)}
+                  />
                 </div>
-              </div>
 
-              <div className="max-h-[340px] overflow-y-auto pr-2 space-y-2">
-                {renderQuestionsList()}
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div>
+                    <label htmlFor="role" className={`${labelCls} block mb-1.5`}>
+                      Target Role
+                    </label>
+                    <select
+                      id="role"
+                      className={`${inputCls} cursor-pointer appearance-none`}
+                      value={formData.role}
+                      onChange={(e) => updateForm("role", e.target.value)}
+                    >
+                      {TARGET_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="timeLimit"
+                      className={`${labelCls} block mb-1.5`}
+                    >
+                      Time Limit (min)
+                    </label>
+                    <input
+                      id="timeLimit"
+                      type="number"
+                      min="15"
+                      max="180"
+                      className={inputCls}
+                      value={formData.timeLimit}
+                      onChange={(e) =>
+                        updateForm("timeLimit", Number(e.target.value))
+                      }
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            {/* Section 2 */}
+            {step === 1 && (
+              <div className="mb-6">
+                <div className={sectionTitleCls}>Pick Questions</div>
 
-          {/* Section 3 */}
-          {step === 2 && (
-            <div>
-              <div className="font-staatliches text-base tracking-[0.07em] mb-4 flex items-center gap-2">
-                READY TO GO
-                <div className="flex-1 h-px bg-default-border" />
-              </div>
-              <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4 space-y-2 text-sm">
-                <div>
-                  <span className="text-white-smoke/60">Title:</span>{" "}
-                  {formData.name || "Unititled"}
+                <div className="mb-4">
+                  <label
+                    htmlFor="questionCount"
+                    className={`${labelCls} block mb-1.5`}
+                  >
+                    Question count
+                  </label>
+                  <input
+                    id="questionCount"
+                    type="range"
+                    min="3"
+                    max="15"
+                    value={formData.questionCount}
+                    onChange={(e) =>
+                      updateForm("questionCount", Number(e.target.value))
+                    }
+                    className="w-full accent-system-red"
+                  />
+                  <div className="text-right font-staatliches text-system-red text-sm mt-1">
+                    {formData.questionCount} target
+                  </div>
                 </div>
-                <div>
-                  <span className="text-white-smoke/60">Role:</span>{" "}
-                  {formData.role}
-                </div>
-                <div>
-                  <span className="text-white-smoke/60">Time:</span>{" "}
-                  {formData.timeLimit} min
-                </div>
-                <div>
-                  <span className="text-white-smoke/60">Questions:</span>{" "}
-                  {selectedIds.length} (target {formData.questionCount})
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
-        {/* Basic Footer in the meantime*/}
-        <div className="px-7 py-4 border-t border-tertiary-surface flex flex-col gap-3 bg-secondary-surface">
-          {createError && (
-            <div className="font-ibm-plex text-[12px] text-system-red">
-              {createError}
-            </div>
-          )}
-          <div className="flex justify-end">
-            <div className="font-ibm-plex text-[12px] text-white-smoke/40 mr-auto">
-              {" "}
-              Step {step + 1}/3
-            </div>
-            <div className="flex gap-3">
-              {step > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setStep((s) => s - 1)}
-                  className="px-5 py-2 border border-default-border hover:text-white-smoke rounded-[5px] font-staatliches text-sm"
-                >
-                  BACK
-                </button>
-              )}
-              {step < 2 ? (
-                <button
-                  type="button"
-                  onClick={() => setStep((s) => s + 1)}
-                  className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white"
-                >
-                  CONTINUE
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={createIt}
-                  disabled={isCreating}
-                  className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white disabled:opacity-50"
-                >
-                  {isCreating ? "CREATING..." : "CREATE ASSESSMENT"}
-                </button>
-              )}
+                <div className="max-h-[340px] overflow-y-auto pr-2 space-y-2">
+                  {renderQuestionsList()}
+                </div>
+              </div>
+            )}
+
+            {/* Section 3 */}
+            {step === 2 && (
+              <div>
+                <div className="font-staatliches text-base tracking-[0.07em] mb-4 flex items-center gap-2">
+                  READY TO GO
+                  <div className="flex-1 h-px bg-default-border" />
+                </div>
+                <div className="bg-secondary-surface border border-default-border rounded-[5px] p-4 space-y-2 text-sm">
+                  <div>
+                    <span className="text-white-smoke/60">Title:</span>{" "}
+                    {formData.name || "Unititled"}
+                  </div>
+                  <div>
+                    <span className="text-white-smoke/60">Role:</span>{" "}
+                    {formData.role}
+                  </div>
+                  <div>
+                    <span className="text-white-smoke/60">Time:</span>{" "}
+                    {formData.timeLimit} min
+                  </div>
+                  <div>
+                    <span className="text-white-smoke/60">Questions:</span>{" "}
+                    {selectedIds.length} (target {formData.questionCount})
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Basic Footer in the meantime*/}
+          <div className="px-7 py-4 border-t border-tertiary-surface flex flex-col gap-3 bg-secondary-surface">
+            {createError && (
+              <div className="font-ibm-plex text-[12px] text-system-red">
+                {createError}
+              </div>
+            )}
+            <div className="flex justify-end">
+              <div className="font-ibm-plex text-[12px] text-white-smoke/40 mr-auto">
+                {" "}
+                Step {step + 1}/3
+              </div>
+              <div className="flex gap-3">
+                {step > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setStep((s) => s - 1)}
+                    className="px-5 py-2 border border-default-border hover:text-white-smoke rounded-[5px] font-staatliches text-sm"
+                  >
+                    BACK
+                  </button>
+                )}
+                {step < 2 ? (
+                  <button
+                    type="button"
+                    onClick={() => setStep((s) => s + 1)}
+                    className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white"
+                  >
+                    CONTINUE
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={createIt}
+                    disabled={isCreating}
+                    className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white disabled:opacity-50"
+                  >
+                    {isCreating ? "CREATING..." : "CREATE ASSESSMENT"}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
