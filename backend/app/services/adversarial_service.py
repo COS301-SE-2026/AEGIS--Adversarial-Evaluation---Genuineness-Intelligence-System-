@@ -68,6 +68,7 @@ def _load_system_prompt_v2() -> str:
 _GENERATOR_MODEL = "gemini-3.1-flash-lite"
 _VALIDATOR_MODEL = "gemini-3.1-flash-lite"
 _JSON_MIME_TYPE = "application/json"
+_ADVERSARIAL_QUESTION_NOT_FOUND = "Adversarial question not found"
 
 _logger = logging.getLogger(__name__)
 
@@ -477,7 +478,7 @@ def regenerate_adversarial_question(
     if adversarial_question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
         )
 
     if adversarial_question.validation_status != "draft":
@@ -598,7 +599,7 @@ def validate_adversarial_question(
     if adversarial_question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
         )
 
     if adversarial_question.validation_status != "draft":
@@ -720,7 +721,7 @@ def save_adversarial_question(
     if adversarial_question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
         )
 
     if adversarial_question.validation_status == "validated":
@@ -734,6 +735,42 @@ def save_adversarial_question(
     db.commit()
     db.refresh(adversarial_question)
     return adversarial_question
+
+
+def delete_adversarial_question(
+    db: Session,
+    adv_question_id: int,
+) -> None:
+    adversarial_question = (
+        db.query(AdversarialQuestion)
+        .filter(
+            AdversarialQuestion.adv_question_id == adv_question_id
+        )
+        .first()
+    )
+    if adversarial_question is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
+        )
+
+    linked_assessment_questions = (
+        db.query(AssessmentQuestion)
+        .filter(
+            AssessmentQuestion.adv_question_id == adv_question_id
+        )
+        .all()
+    )
+    if linked_assessment_questions:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "This adversarial question is used in an assessment"
+            ),
+        )
+
+    db.delete(adversarial_question)
+    db.commit()
 
 
 def get_all_strategies(db: Session) -> list:
@@ -750,6 +787,10 @@ def get_all_draft_adversarial_questions(db: Session) -> list:
     return db.query(AdversarialQuestion).filter(
         AdversarialQuestion.validation_status == "draft"
     ).all()
+
+
+def get_every_adversarial_question(db: Session) -> list:
+    return db.query(AdversarialQuestion).all()
 
 
 def verify_assessment_exists(db: Session, assessment_id: int) -> Assessment:

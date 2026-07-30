@@ -14,6 +14,7 @@ export default function AdversarialQuestionsPage() {
           "This action cannot be undone. The question will be permanently removed from the adversarial question bank.",
         ModalComponent: AdversarialQuestionModal,
         helpConfig: PAGE_HELP_CONTENT["/adversarial-questions"],
+        mode: "adversarial",
       }}
     />
   );
