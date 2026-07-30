@@ -13,8 +13,8 @@ const Navbar = () => {
         </Link>
         <div className="hidden lg:flex items-center gap-6 xl:gap-8 2xl:gap-10">
           <Link href="/" className={linkClass}>Home</Link>
-          <Link href="/about" className={linkClass}>About</Link>
-          <div className="relative group">
+          <Link href="/help" className={linkClass}>About</Link>
+          {/* <div className="relative group">
             <button className="flex items-center gap-1 text-xs lg:text-sm xl:text-base tracking-widest uppercase text-default-text hover:text-system-red transition-colors duration-200 cursor-pointer">
               Resources
               <ChevronDown size={14} className="mt-0.5" />
@@ -33,7 +33,7 @@ const Navbar = () => {
               Guides
               </Link>
             </div>
-          </div>          
+          </div>           */}
         </div>
       </div>
       <div className="flex items-center gap-3 lg:gap-4 xl:gap-6 2xl:gap-7 3xl:gap-8">
