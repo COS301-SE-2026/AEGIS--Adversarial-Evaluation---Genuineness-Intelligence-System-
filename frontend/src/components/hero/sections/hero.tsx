@@ -32,9 +32,8 @@ const Hero = () => {
                         <Button variant="solid">Get Started</Button>                
                     </Link>
                     <Link 
-                        href="/resources/guides"
+                        href="/help"
                         className="w-full sm:w-auto"
-                    
                     >
                         <Button variant="outline">Learn More</Button>                
                     </Link>
