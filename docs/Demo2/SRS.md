@@ -20,6 +20,6 @@ AEGIS is an adversarial assessment platform designed to close this gap. The syst
 - [Non-Functional Requirements PDF](pdfs/NON%20FUNCTIONAL%20REQUIREMENTS.pdf)
 
 ### 6. Domain Model
-- [Domain Model PDF](pdfs/)
+- [Domain Model PDF](pdfs/Domain%20Model.pdf)
 
 ---
