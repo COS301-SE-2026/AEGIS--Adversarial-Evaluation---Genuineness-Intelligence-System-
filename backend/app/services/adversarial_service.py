@@ -68,6 +68,7 @@ def _load_system_prompt_v2() -> str:
 _GENERATOR_MODEL = "gemini-3.1-flash-lite"
 _VALIDATOR_MODEL = "gemini-3.1-flash-lite"
 _JSON_MIME_TYPE = "application/json"
+_ADVERSARIAL_QUESTION_NOT_FOUND = "Adversarial question not found"
 
 _logger = logging.getLogger(__name__)
 
@@ -477,7 +478,7 @@ def regenerate_adversarial_question(
     if adversarial_question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
         )
 
     if adversarial_question.validation_status != "draft":
@@ -598,7 +599,7 @@ def validate_adversarial_question(
     if adversarial_question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
         )
 
     if adversarial_question.validation_status != "draft":
@@ -720,7 +721,7 @@ def save_adversarial_question(
     if adversarial_question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
         )
 
     if adversarial_question.validation_status == "validated":
@@ -750,7 +751,7 @@ def delete_adversarial_question(
     if adversarial_question is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Adversarial question not found",
+            detail=_ADVERSARIAL_QUESTION_NOT_FOUND,
         )
 
     linked_assessment_questions = (
