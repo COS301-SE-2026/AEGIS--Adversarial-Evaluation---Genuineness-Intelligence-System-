@@ -12,15 +12,15 @@ COPY requirements.txt .
 
 RUN pip install \
     --no-cache-dir \
-    --only-binary :all: \
+    --only-binary=:all: \
     --require-hashes \
     -r requirements.txt
 
 # copy all of the required folders in the backend
-COPY --chown=appuser: app ./app
-COPY --chown=appuser: alembic ./alembic
-COPY --chown=appuser: alembic.ini .
-COPY --chown=appuser: database_setup.py .
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini .
+COPY database_setup.py .
 
 # give the ownership to the non-root user
 RUN chown -R appuser:appuser /app

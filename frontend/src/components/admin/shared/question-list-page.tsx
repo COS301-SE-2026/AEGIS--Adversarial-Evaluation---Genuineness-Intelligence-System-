@@ -39,7 +39,7 @@ export interface QuestionListPageConfig {
   helpConfig?: PageHelpConfig;
 }
 
-export default function QuestionListPage({ config }: { config: Readonly<QuestionListPageConfig> }) {
+export default function QuestionListPage({ config }: Readonly<{ config:Readonly<QuestionListPageConfig>}>) {
   const { ModalComponent } = config;
 
 
