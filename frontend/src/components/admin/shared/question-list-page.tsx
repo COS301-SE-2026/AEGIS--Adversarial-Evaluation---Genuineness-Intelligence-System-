@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo, useEffect, ComponentType } from "react";
+import { useState, useMemo, useEffect, useCallback, ComponentType } from "react";
 import { apiDelete, apiGet, apiPost, apiPatch } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
@@ -25,18 +25,33 @@ export interface QuestionListModalProps {
   isSaving?: boolean;
 }
 
+interface AdversarialQuestionResponse {
+  adv_question_id: number;
+  source_question_id: number;
+  content: string;
+  strategy_id: number;
+  llm: string | null;
+  generated_at: string;
+  correct_answer: string | null;
+  predicted_wrong_answer: string | null;
+  trap_mechanism: string | null;
+  pattern_used: string | null;
+  validation_status: string;
+}
+
 export interface QuestionListPageConfig {
-   //Text for the "create new" button 
+   //Text for the "create new" button
   newButtonLabel: string;
   //Text for the "create new" button on small screens
   newButtonLabelShort?: string;
- 
+
   deleteHeaderText: string;
   deleteTitle: string;
   deleteDescription: string;
   //chooses which modal to render
   ModalComponent: ComponentType<QuestionListModalProps>;
   helpConfig?: PageHelpConfig;
+  mode?: "source" | "adversarial";
 }
 
 export default function QuestionListPage({ config }: Readonly<{ config:Readonly<QuestionListPageConfig>}>) {
@@ -56,6 +71,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuestionBank[]>([]);
+  const [sourceQuestions, setSourceQuestions] = useState<QuestionBank[]>([]);
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,6 +83,61 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+
+  const loadSourceQuestions = useCallback(async (): Promise<QuestionBank[]> => {
+    const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
+      headers: getAuthHeaders(),
+    });
+    return response.map((question) => ({
+      ...question,
+      category_id: question.category_id ?? 0,
+      difficulty: question.difficulty ?? "Easy",
+    }));
+  }, []);
+
+  const fetchQuestions = useCallback(async (): Promise<{
+    source: QuestionBank[];
+    table: QuestionBank[];
+  }> => {
+    if (config.mode === "adversarial") {
+      const [sourceResult, adversarialResult] = await Promise.all([
+        loadSourceQuestions(),
+        apiGet<AdversarialQuestionResponse[]>("/api/v1/adversarial-questions/", {
+          headers: getAuthHeaders(),
+        }),
+      ]);
+
+      const table = adversarialResult.map((adversarialQuestion) => {
+        const sourceQuestion = sourceResult.find(
+          (question) => question.question_bank_id === adversarialQuestion.source_question_id
+        );
+        return {
+          question_bank_id: adversarialQuestion.adv_question_id,
+          title: sourceQuestion?.title ?? "Unknown source question",
+          content: adversarialQuestion.content,
+          tags: sourceQuestion?.tags ?? [],
+          category_id: sourceQuestion?.category_id ?? 0,
+          difficulty: sourceQuestion?.difficulty ?? "Easy",
+          validation_status: adversarialQuestion.validation_status,
+        };
+      });
+
+      return { source: sourceResult, table };
+    }
+
+    const sourceResult = await loadSourceQuestions();
+    return { source: sourceResult, table: sourceResult };
+  }, [config.mode, loadSourceQuestions]);
+
+  const refetchQuestions = async () => {
+    try {
+      const { source, table } = await fetchQuestions();
+      setSourceQuestions(source);
+      setQuestions(table);
+    } catch (error) {
+      console.error("Failed to load questions:", error);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -85,18 +156,10 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
 
     const loadQuestions = async () => {
       try {
-         const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
-          headers: getAuthHeaders(),
-        });
-
+        const { source, table } = await fetchQuestions();
         if (isMounted) {
-          setQuestions(
-            response.map((question) => ({
-              ...question,
-              category_id: question.category_id ?? 0,
-              difficulty: question.difficulty ?? "Easy",
-            }))
-          );
+          setSourceQuestions(source);
+          setQuestions(table);
         }
       } catch (error) {
         console.error("Failed to load questions:", error);
@@ -109,7 +172,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [fetchQuestions]);
 
   const categoriesMap = useMemo(() => {
     return categories.reduce((accumulator, currentCategory) => {
@@ -265,7 +328,11 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
     if (deleteTargetId === null) return;
     setDeleteError(null);
     try {
-      await apiDelete(`/api/v1/questions/${deleteTargetId}`, {
+      const deleteUrl =
+        config.mode === "adversarial"
+          ? `/api/v1/adversarial-questions/${deleteTargetId}`
+          : `/api/v1/questions/${deleteTargetId}`;
+      await apiDelete(deleteUrl, {
         headers: getAuthHeaders(),
       });
       const remainingQuestions = questions.filter((question) => question.question_bank_id !== deleteTargetId);
@@ -490,11 +557,14 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
         mode={isCreateOpen ? "create" : "edit"}
         isSaving={isSaving}
         question_id={editQuestionId}
-        questions={questions}
+        questions={sourceQuestions}
         categories={categories}
         onClose={() => {
           setIsCreateOpen(false);
           setEditQuestionId(null);
+          if (config.mode === "adversarial") {
+            void refetchQuestions();
+          }
         }}
         onSubmit={(payload) => {
           if (isCreateOpen) {

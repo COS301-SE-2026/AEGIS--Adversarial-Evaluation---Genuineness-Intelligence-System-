@@ -4,18 +4,18 @@ import { useRouter } from "next/navigation";
 import Input from "@/components/hero/ui/input";
 import Button from "@/components/hero/ui/button";
 import GoogleIcon from "@/components/hero/ui/google-icon";
+import { apiPost, ApiError, API_BASE_URL } from "@/lib/apiClient";
 // import GithubIcon from "@/components/hero/ui/github-icon";
 
 import { validateEmail, validatePassword, validatePasswordMatch } from "@/lib/validation";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 interface AuthFormProps {
   startMode?: "login" | "register";
 }
 
 function handleGoogle() {
-  window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"}/api/v1/auth/google/login`;
+  window.location.href = `${API_BASE_URL}/api/v1/auth/google/login`;
 }
 
 export default function AuthForm({startMode = "login"}: AuthFormProps) {
@@ -96,33 +96,32 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
     const targetEndpoint = mode === "login" ? "/auth/login" : "/auth/register";
 
     try{
-      const response = await fetch(`${API_BASE}${targetEndpoint}`, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(
-          mode === "login" ?
+      const data = await apiPost<
+        {
+          access_token: string; 
+          role: string;   
+        },
+        {
+          email: string;
+          password: string;
+          full_name?: string;
+        }
+      >(
+        mode === "login" ?
+          "/api/v1/auth/login" :
+          "/api/v1/auth/register",
+
+        mode === "login" ?
           {
             email: formData.email,
-            password: formData.password
+            password: formData.password,
           } :
           {
             full_name: formData.fullName,
             email: formData.email,
             password: formData.password,
           }
-        ),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        const detail = data.detail;
-        if (Array.isArray(detail)) {
-          setServerError(detail.map((e: { msg: string }) => e.msg).join(" "));
-        } else {
-          setServerError(detail ?? `${mode === "login" ? "Login" : "Registration"} failed. Please try again.`);
-        }
-        return;
-      }
+      );
 
       localStorage.setItem("aegis_token", data.access_token);
       localStorage.setItem("aegis_role", data.role);
@@ -136,8 +135,17 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
       else {
         router.push("/auth/login");
       }
-    } catch {
-      setServerError("Server unreachable.");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        const detail = (error.data as {detail?: unknown})?.detail;
+
+        if (Array.isArray(detail)) {
+          setServerError(detail.map((e: { message: string }) => e.message).join(" "));
+        }
+      }
+      else {
+        setServerError("Server unreachable.");
+      }
     } finally {
       setLoading(false);
     }

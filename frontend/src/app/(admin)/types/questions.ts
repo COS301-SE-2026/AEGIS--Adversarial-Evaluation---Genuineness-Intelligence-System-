@@ -12,7 +12,8 @@ export interface QuestionBank {
     created_at?: string,
     updated_at?: string,
     category_id: number,
-    difficulty: string
+    difficulty: string,
+    validation_status?: string
 }
 
 export interface QuestionCategory {

@@ -549,3 +549,138 @@ def test_get_all_adversarial_questions_200_with_list(mock_get):
     body = response.json()
     assert len(body) == 1
     assert body[0]["adv_question_id"] == 5
+
+
+EVERY_QUESTION_URL = "/api/v1/adversarial-questions/all"
+
+
+def test_get_every_adversarial_question_401_when_no_jwt():
+    app.dependency_overrides[get_db] = _db_override
+    response = client.get(EVERY_QUESTION_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+
+
+@patch("app.api.routes.adversarial.get_every_adversarial_question")
+def test_get_every_adversarial_question_200_includes_all_statuses(
+    mock_get,
+):
+    mock_get.return_value = [
+        MagicMock(
+            adv_question_id=5,
+            source_question_id=1,
+            content="What does f(6) return?",
+            strategy_id=2,
+            llm="gemini-2.5-flash",
+            generated_at=datetime.now(timezone.utc),
+            correct_answer=None,
+            predicted_wrong_answer=None,
+            trap_mechanism=None,
+            pattern_used=None,
+            validation_status="draft",
+        ),
+        MagicMock(
+            adv_question_id=6,
+            source_question_id=1,
+            content="What does f(7) return?",
+            strategy_id=2,
+            llm="gemini-2.5-flash",
+            generated_at=datetime.now(timezone.utc),
+            correct_answer=None,
+            predicted_wrong_answer=None,
+            trap_mechanism=None,
+            pattern_used=None,
+            validation_status="validated",
+        ),
+    ]
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.get(EVERY_QUESTION_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 2
+    statuses = {item["validation_status"] for item in body}
+    assert statuses == {"draft", "validated"}
+    mock_get.assert_called_once()
+
+
+DELETE_URL = "/api/v1/adversarial-questions/5"
+
+
+def test_delete_adversarial_401_when_no_jwt():
+    app.dependency_overrides[get_db] = _db_override
+    response = client.delete(DELETE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+
+
+@patch("app.api.routes.adversarial.delete_adversarial_question")
+def test_delete_adversarial_403_when_not_recruiter(mock_delete):
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.delete(DELETE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    mock_delete.assert_not_called()
+
+
+@patch("app.api.routes.adversarial.delete_adversarial_question")
+def test_delete_adversarial_404_when_not_found(mock_delete):
+    mock_delete.side_effect = HTTPException(
+        status_code=404, detail="Adversarial question not found"
+    )
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.delete(DELETE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 404
+
+
+@patch("app.api.routes.adversarial.delete_adversarial_question")
+def test_delete_adversarial_400_when_referenced_by_assessment(
+    mock_delete,
+):
+    mock_delete.side_effect = HTTPException(
+        status_code=400,
+        detail="This adversarial question is used in an assessment",
+    )
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.delete(DELETE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 400
+
+
+@patch("app.api.routes.adversarial.delete_adversarial_question")
+def test_delete_adversarial_204_on_success(mock_delete):
+    mock_delete.return_value = None
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.delete(DELETE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 204
+    mock_delete.assert_called_once()
+    call_args = mock_delete.call_args[0]
+    assert call_args[1] == 5
