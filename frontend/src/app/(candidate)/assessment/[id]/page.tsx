@@ -312,7 +312,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       } finally {
          setIsSubmitting(false);
       }
-   }, [candidateAssessId, isSubmitting, saveCurrentAnswer]);
+   }, [candidateAssessId, isSubmitting, router, saveCurrentAnswer]);
 
    useEffect(()=>{
       if (!endTime || isSubmitted || isSubmitting) return;

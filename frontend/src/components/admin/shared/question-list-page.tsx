@@ -7,6 +7,7 @@ import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import MobileSidebar from "../layouts/mobile-sidebar";
@@ -59,6 +60,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
   const [deleteSuccess, setDeleteSuccess] = useState<string | null>(null);
   const [updateSuccess, setUpdateSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId, setEditQuestionId] = useState<number | null>(null);
@@ -70,28 +72,22 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
 
   useEffect(() => {
     let isMounted = true;
-    const loadCategories = async () => {
+    const loadData = async () => {
+      setIsLoading(true);
       try {
-        const response = await apiGet<QuestionCategory[]>("/api/v1/categories/", {
+        const [categoriesResponse, questionsResponse] = await Promise.all([
+          apiGet<QuestionCategory[]>("/api/v1/categories/", {
           headers: getAuthHeaders(),
-        });
-        if (isMounted) {
-          setCategories(response);
-        }
-      } catch (error) {
-        console.error("Failed to load categories:", error);
-      }
-    };
-
-    const loadQuestions = async () => {
-      try {
-         const response = await apiGet<QuestionBank[]>("/api/v1/questions/", {
+          }),
+          apiGet<QuestionBank[]>("/api/v1/questions/", {
           headers: getAuthHeaders(),
-        });
+          }),
+        ]);
 
         if (isMounted) {
+          setCategories(categoriesResponse);
           setQuestions(
-            response.map((question) => ({
+            questionsResponse.map((question) => ({
               ...question,
               category_id: question.category_id ?? 0,
               difficulty: question.difficulty ?? "Easy",
@@ -100,11 +96,14 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
         }
       } catch (error) {
         console.error("Failed to load questions:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
-    void loadCategories();
-    void loadQuestions();
+    void loadData();
 
     return () => {
       isMounted = false;
@@ -287,6 +286,11 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
         />
 
         <main className="px-4 sm:px-6 lg:px-8 py-6">
+          {isLoading ? (
+            <div className="flex min-h-[60vh] items-center justify-center px-4">
+              <LoadingSpinner message="Loading..." />
+            </div>
+          ) : (
           <div className="p-4 py-6 sm:p-6 lg:px-8 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button
@@ -452,6 +456,7 @@ export default function QuestionListPage({ config }: { config: QuestionListPageC
               </div>
             </div>
           </div>
+          )}
         </main>
       </div>
 

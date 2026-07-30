@@ -9,6 +9,7 @@ import QuestionTable from "@/components/admin/ui/cards/question-table";
 import LegacyQuestionModal from "./legacy-question-modal";
 import CreateQuestionContainer from "@/components/admin/ui/question-builder/create-question-container";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
+import LoadingSpinner from "@/components/ui/loading-spinner";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "../../types/questions";
 import { buildSourceQuestionPayload, updateSavedQuestionList } from "@/lib/question-payload";
@@ -17,6 +18,7 @@ import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content"
 
 export default function ViewQuestionsPage() {
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [difficultyFilter, setDifficultyFilter] = useState("all");
@@ -42,6 +44,7 @@ export default function ViewQuestionsPage() {
     let mounted = true;
 
     const loadData = async () => {
+      setIsLoading(true);
       try {
         const [categories, questions] = await Promise.all([
           apiGet<QuestionCategory[]>("/api/v1/categories/", {
@@ -66,6 +69,10 @@ export default function ViewQuestionsPage() {
       }
       catch(err) {
         console.error(err);
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -289,6 +296,11 @@ export default function ViewQuestionsPage() {
         <AdminTopbar/>
 
         <main className="flex-1 overflow-auto">
+          {isLoading ? (
+            <div className="flex min-h-[60vh] items-center justify-center px-4">
+              <LoadingSpinner message="Loading..." />
+            </div>
+          ) : (
           <div className="p-4 sm:p-6 md:p-8">
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button title="Create a new custom source question" onClick={() => setIsCreateOpen(true)} className="flex items-center gap-2 bg-default-text text-background border border-transparent hover:bg-transparent hover:text-system-red  hover:border-system-red hover:boarder-2 px-4 py-2 rounded transition-colors text-sm sm:text-base duration-300 cursor-pointer">
@@ -420,6 +432,7 @@ export default function ViewQuestionsPage() {
               </div>
             </div>
           </div>
+          )}
         </main> 
       </div>
 
