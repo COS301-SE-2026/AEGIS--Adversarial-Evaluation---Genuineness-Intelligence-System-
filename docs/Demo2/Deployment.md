@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-### 1. Deployment Documentation (pdfs/Deployment/AEGIS-Deployment%20Doc.pdf)
+### 1. Deployment Documentation [PDF](pdfs/Deployment/AEGIS-Deployment%20Doc.pdf)
 Contains:
 - Environment Parity
 - Infrastructure / Containerisation
