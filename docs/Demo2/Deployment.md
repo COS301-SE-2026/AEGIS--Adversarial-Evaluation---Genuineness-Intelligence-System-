@@ -7,7 +7,7 @@ Contains:
 - Environment Parity
 - Infrastructure / Containerisation
 - Rollback Strategy
-[Deployment Documentation (PDF)](pdfs/Deployment/AEGIS-Deployment%20Doc.pdf)
+- [Deployment Documentation (PDF)](pdfs/Deployment/AEGIS-Deployment%20Doc.pdf)
 
 
 ### 2. Deployment Diagram
