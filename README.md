@@ -42,7 +42,7 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 ---
 
 ## Brand Style Guide
-- [Brand Style Guide PDF](docs/BrandStyleGuide.pdf)
+- [Brand Style Guide PDF](docs/Demo2/pdfs/AEGIS%20Brand%20Style%20Guide%20v3.0.pdf)
 
 ---
 
@@ -52,12 +52,12 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 ---
 
 ## User Manual Documentation
-- [User Manual PDF](docs/Demo2/pdfs)
+- [User Manual PDF](docs/Demo2/pdfs/User%20Manual.pdf)
 
 ---
 
 ## Quality Assurance
-- [Testing Policy PDF](docs/Demo2/pdfs)
+- [Testing Policy PDF](docs/Demo2/pdfs/Testing%20Policy.pdf)
 
 ---
 
