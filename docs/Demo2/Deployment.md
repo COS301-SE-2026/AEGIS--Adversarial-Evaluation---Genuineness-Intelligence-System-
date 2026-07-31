@@ -4,7 +4,7 @@
 
 ### 1. Deployment Documentation
 [Deployment Documentation PDF](pdfs/Deployment/AEGIS-Deployment%20Doc.pdf)
-Contains:
+- Contains:
 - Environment Parity
 - Infrastructure / Containerisation
 - Rollback Strategy
