@@ -4,6 +4,7 @@ export interface ConnectedAccount {
     description: string;
     icon: React.ReactNode;
     conencted: boolean;
+    account?: string;
 }
 
 export interface UserProfile {
