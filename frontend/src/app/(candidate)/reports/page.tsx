@@ -1,4 +1,4 @@
-import { ReportInfoCard } from "@/components/candidate/ui/cards/report-info-card"
+import { InfoCard } from "@/components/candidate/ui/cards/report-info-card"
 import { ReportTable } from "@/components/candidate/ui/tables/report-table"
 
 export default function ReportsPage() {
@@ -10,11 +10,11 @@ export default function ReportsPage() {
                 </h1>
                 <p className="mt-4">View your assessment results.</p>
             </div>
-            <div className="flex flex-row items-center justify-between gap-8 mt-8">
-               <ReportInfoCard title="Total Assessments" value={10} />
-               <ReportInfoCard title="Passed" value={8} />
-               <ReportInfoCard title="Failed" value={2} />
-               <ReportInfoCard title="AI Flagged" value={1} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+               <InfoCard title="Total Assessments" value={10} />
+               <InfoCard title="Passed" value={8} />
+               <InfoCard title="Failed" value={2} />
+               <InfoCard title="AI Flagged" value={1} />
             </div>
             <h2 className="text-2xl text-default-text mt-8 mb-4">
                 Assessments

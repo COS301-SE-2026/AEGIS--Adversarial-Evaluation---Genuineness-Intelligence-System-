@@ -358,19 +358,10 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
   return (
     <div className="flex min-h-screen bg-background">
       
-      <AdminSidebar />
-      <MobileSidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
-      
       <div className="flex-1 min-w-0">
-        <AdminTopbar 
-          onOpenSideBar={() => setSidebarOpen(true)}
-        />
 
         <main className="px-4 sm:px-6 lg:px-8 py-6">
-          <div className="p-4 py-6 sm:p-6 lg:px-8 md:p-8">
+         
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button
                 title={config.newButtonLabel.toLowerCase().includes("adverserial") ? "Use AI to weaponise a source question." : config.newButtonLabel}
@@ -547,7 +538,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
                 </select>
               </div>
             </div>
-          </div>
+         
         </main>
       </div>
 

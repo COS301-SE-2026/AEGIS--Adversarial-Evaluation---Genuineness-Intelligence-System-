@@ -1,11 +1,25 @@
-export function ReportInfoCard({ title, value }: { title: string; value: number }) {
+
+interface InfoCardProps {
+    title: string,
+    value: number,
+    topCandidates?: Record<string, number>,
+}
+export function InfoCard({ title, value, topCandidates }: Readonly<InfoCardProps>) {
     return (
-        <div className="flex flex-col w-72 h-23 tracking-wider rounded-md bg-secondary-surface/50 border border-default-border p-4 relative">
-            <div className="flex flex-row items-center">
-                <p className="font-medium">{title}</p>
-                <div className="absolute top-4 right-4 w-8 h-8 border rounded-full border-blue-300"></div>
+        <div className="flex flex-col relative p-3 sm:p-4 tracking-wider rounded-md bg-secondary-surface/50 border border-default-border ">
+            
+            <div className="flex items-center justify-between gap-4">
+
+                <p className="font-medium text-sm sm:text-base truncate">
+                    {title}
+                </p>
+
+                <div className="shrink-0 w-6 h-6 sm:w-8 sm:h-8 border rounded-full border-blue-300"/>
+
             </div>
-            <p className="text-xl mt-auto">{value}</p>
+
+            <p className="text-lg sm:text-xl mt-auto">{value}</p>
+
         </div>
     )
 }

@@ -90,10 +90,9 @@ export default function AssessmentsPage() {
 
   return (
     <div className="flex min-h-screen bg-background text-white-smoke">
-      <AdminSidebar />
+
 
       <div className="flex flex-col flex-1 min-w-0">
-        <AdminTopbar/>
 
         <main className="flex-1 overflow-y-auto px-7 py-6">
           <div className="flex items-start justify-between mb-5">
@@ -101,9 +100,6 @@ export default function AssessmentsPage() {
               <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-default-text">
                 ASSESSMENT ARSENAL
               </h1>
-              <p className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.42)] mt-1">
-                {"// manage, deploy, and monitor adversarial assessment sets"}
-              </p>
             </div>
 
             <div className="flex items-center gap-4">

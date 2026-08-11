@@ -13,7 +13,7 @@ export default function AdminTopbar({onOpenSideBar}: Readonly<AdminTopbarProps>)
   const title = activePage ? activePage.label : ""
 
   return (
-    <div className="flex items-center justify-between bg-secondary-surface border-b border-tertiary-surface px-4 py-4 sm:px-6 lg:px-8 shrink-0">
+    <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8 h-16 bg-secondary-surface border-b border-tertiary-surface ">
       
       <div className="flex items-center gap-3">
         <button 
