@@ -22,4 +22,3 @@ class DashboardSummaryResponse(BaseModel):
     top_performers: list[TopPerformer]
     total_assessments: int
     ai_usage_rate: AIUsageRate
-    
