@@ -48,7 +48,7 @@ def _get_top_performers(
     )
 
     return [
-        TopPerformer(candidate_name=row.name,
+        TopPerformer(candidate_name=row.candidate_name,
                      score_percent=round(row.score_percent, 2))
         for row in rows
     ]
