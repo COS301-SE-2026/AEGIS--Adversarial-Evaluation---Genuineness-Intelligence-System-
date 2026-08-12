@@ -16,6 +16,15 @@ export type KeyboardTelemetryEvent = {
 	timestamp: number;
 };
 
+export type PasteTelemetryTarget = "code-editor";
+
+export type PasteTelemetryEvent = {
+  type: "paste";
+  target: PasteTelemetryTarget;
+  length: number;
+  timestamp: number;
+};
+
 const ALNUM_KEY_PATTERN = /^[a-z0-9]$/i;
 const PUNCTUATION_KEY_PATTERN = /^[.,;:'"(){}\[\]\-+=*/\\`~<>!?@#$%^&|]$/;
 
@@ -53,6 +62,17 @@ export function createKeyboardTelemetryEvent(
   return {
     type: "keyboard",
     category: classifyKeyboardKey(event.key),
+    timestamp: Date.now(),
+  };
+}
+
+export function createPasteTelemetryEvent(
+  pastedText: string,
+  target: PasteTelemetryTarget = "code-editor"): PasteTelemetryEvent {
+  return {
+    type: "paste",
+    target,
+    length: pastedText.length,
     timestamp: Date.now(),
   };
 }
