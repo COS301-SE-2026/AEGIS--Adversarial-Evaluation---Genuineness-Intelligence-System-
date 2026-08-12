@@ -16,7 +16,7 @@ export type KeyboardTelemetryEvent = {
 	timestamp: number;
 };
 
-export type PasteTelemetryTarget = "code-editor";
+export type PasteTelemetryTarget = "code-editor" | "fill-in-the-blank";
 
 export type PasteTelemetryEvent = {
   type: "paste";
@@ -32,6 +32,19 @@ export type CopyTelemetryEvent = {
   type: "copy";
   copiedLength: number;
   source: CopyTelemetrySource;
+  timestamp: number;
+};
+
+export type ClickTelemetryTarget =
+  "run-code-button"
+  | "next-question-button"
+  | "submit-button"
+  | "start-assessment-button"
+  | "other";
+
+export type ClickTelemetryEvent = {
+  type: "click";
+  target: ClickTelemetryTarget;
   timestamp: number;
 };
 
@@ -95,6 +108,39 @@ export function createCopyTelemetryEvent(
     type: "copy",
     copiedLength: copiedText.length,
     source,
+    timestamp: Date.now(),
+  };
+}
+
+function normalizeTelemetryLabel(label: string): string {
+  return label.trim().toLowerCase();
+}
+
+export function classifyClickTarget(label: string): ClickTelemetryTarget {
+  const normalizedLabel = normalizeTelemetryLabel(label);
+
+  switch (normalizedLabel) {
+  case "run-code":
+    return "run-code-button";
+
+  case "next-question":
+    return "next-question-button";
+
+  case "submit-assessment":
+    return "submit-button";
+
+  case "start-assessment":
+    return "start-assessment-button";
+
+  default:
+    return "other";
+}
+}
+
+export function createClickTelemetryEvent(label: string): ClickTelemetryEvent {
+  return {
+    type: "click",
+    target: classifyClickTarget(label),
     timestamp: Date.now(),
   };
 }
