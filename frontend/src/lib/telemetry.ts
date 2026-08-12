@@ -25,6 +25,17 @@ export type PasteTelemetryEvent = {
   timestamp: number;
 };
 
+
+export type CopyTelemetrySource = "question" | "answer";
+
+export type CopyTelemetryEvent = {
+  type: "copy";
+  copiedLength: number;
+  source: CopyTelemetrySource;
+  timestamp: number;
+};
+
+
 const ALNUM_KEY_PATTERN = /^[a-z0-9]$/i;
 const PUNCTUATION_KEY_PATTERN = /^[.,;:'"(){}\[\]\-+=*/\\`~<>!?@#$%^&|]$/;
 
@@ -73,6 +84,17 @@ export function createPasteTelemetryEvent(
     type: "paste",
     target,
     length: pastedText.length,
+    timestamp: Date.now(),
+  };
+}
+
+export function createCopyTelemetryEvent(
+  copiedText: string,
+  source: CopyTelemetrySource): CopyTelemetryEvent {
+  return {
+    type: "copy",
+    copiedLength: copiedText.length,
+    source,
     timestamp: Date.now(),
   };
 }
