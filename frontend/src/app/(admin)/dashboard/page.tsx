@@ -1,5 +1,6 @@
 import { InfoCard } from "@/components/candidate/ui/cards/report-info-card";
 import { AssessmentBarChartContainer } from "@/components/admin/ui/dashboard/assessment-bar-chart-container";
+import { AssessmentAnalyticsTableContainer } from "@/components/admin/ui/dashboard/assessment-analytics-table-container";
 
 export default function DashboardPage() {
   return (
@@ -13,11 +14,15 @@ export default function DashboardPage() {
 
       </div>
 
-      <div className="rounded-xl mt-8">
+      <div className="flex flex-col justify-between gap-12 rounded-xl mt-8">
 
         <AssessmentBarChartContainer/>
 
+        <AssessmentAnalyticsTableContainer/>
+
       </div>
+
+      
 
     </section>
   );

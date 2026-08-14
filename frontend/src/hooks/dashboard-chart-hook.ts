@@ -25,36 +25,8 @@ const MOCK_BAR_CHART_DATA: BarChartData[] = [
         average_score_percent: 50.72
     },
     {
-        assessment_name: "Algorithms",
-        average_score_percent: 50.72
-    },
-    {
-        assessment_name: "Algorithms",
-        average_score_percent: 50.72
-    },
-    {
-        assessment_name: "Algorithms",
-        average_score_percent: 50.72
-    },
-    {
-        assessment_name: "Algorithms",
-        average_score_percent: 50.72
-    },
-    {
-        assessment_name: "Algorithms",
-        average_score_percent: 50.72
-    },
-    {
-        assessment_name: "Algorithms",
-        average_score_percent: 50.72
-    },
-    {
-        assessment_name: "Lets see",
+        assessment_name: "Random Assessment",
         average_score_percent: 51.72
-    },
-    {
-        assessment_name: "Algorithms",
-        average_score_percent: 50.72
     },
 ]
 
