@@ -5,6 +5,8 @@ from app.schema.dashboard import (
     TopPerformer,
     AIUsageRate,
     AIUsageLevel,
+    DashboardGraphResponse,
+    AverageScore,
 )
 from app.models.user import User
 from app.models.assessment import Assessment
@@ -117,6 +119,43 @@ def _get_ai_usage_rate(
     )
 
 
+def _get_average_score_per_assessment(
+        db: Session,
+        recruiter_id: int
+        ) -> list[AverageScore]:
+    percent_expr = (
+        (CandidateAssessment.candidate_score /
+         CandidateAssessment.total_score) * 100
+    )
+
+    rows = (
+        db.query(
+            Assessment.title.label("assessment_name"),
+            func.avg(percent_expr).label("average_score_percent"),
+        )
+        .join(
+            CandidateAssessment,
+            CandidateAssessment.assessment_id == Assessment.assessment_id,
+        )
+        .filter(
+            Assessment.creator_id == recruiter_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+            CandidateAssessment.total_score.isnot(None),
+            CandidateAssessment.total_score > 0,
+            CandidateAssessment.candidate_score.isnot(None),
+        )
+        .group_by(Assessment.assessment_id, Assessment.title)
+        .order_by(Assessment.title)
+        .all()
+    )
+
+    return [
+        AverageScore(assessment_name=row.assessment_name,
+                     average_score=round(row.average_score_percent, 2))
+        for row in rows
+    ]
+
+
 def get_dashboard_summary(
         db: Session,
         recruiter_id: int
@@ -125,4 +164,13 @@ def get_dashboard_summary(
         top_performers=_get_top_performers(db, recruiter_id),
         total_assessments=_get_total_assessments(db, recruiter_id),
         ai_usage_rate=_get_ai_usage_rate(db, recruiter_id)
+    )
+
+
+def get_graph_values(
+        db: Session,
+        recruiter_id: int
+        ) -> DashboardGraphResponse:
+    return DashboardGraphResponse(
+        bars=_get_average_score_per_assessment(db, recruiter_id)
     )

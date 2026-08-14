@@ -1,6 +1,11 @@
 from unittest.mock import MagicMock
 
-from app.schema.dashboard import AIUsageLevel, TopPerformer
+from app.schema.dashboard import (
+    AIUsageLevel,
+    TopPerformer,
+    AverageScore,
+    DashboardGraphResponse
+)
 from app.services import dashboard as dashboard_service
 
 
@@ -8,6 +13,7 @@ def _make_query(rows=None, *, count_value=0, scalar_value=0):
     query = MagicMock()
     query.join.return_value = query
     query.filter.return_value = query
+    query.group_by.return_value = query
     query.order_by.return_value = query
     query.limit.return_value = query
     query.all.return_value = rows or []
@@ -81,3 +87,42 @@ def test_get_dashboard_summary_builds_response(monkeypatch):
     assert result.top_performers[0].candidate_name == "Bob"
     assert result.ai_usage_rate.level == AIUsageLevel.MEDIUM
     assert result.ai_usage_rate.percent == 40.0
+
+def test_get_average_score_per_assessment_returns_values():
+    row = MagicMock()
+    row.assessment_name = "Assessment A"
+    row.average_score_percent = 88.5
+
+    mock_db = MagicMock()
+    mock_db.query.return_value = _make_query([row])
+
+    result = dashboard_service._get_average_score_per_assessment(mock_db, 7)
+
+    assert len(result) == 1
+    assert result[0].assessment_name == "Assessment A"
+    assert result[0].average_score == 88.5
+
+def test_get_average_score_per_assessment_returns_empty_list():
+    mock_db = MagicMock()
+    mock_db.query.return_value = _make_query([])
+
+    result = dashboard_service._get_average_score_per_assessment(mock_db, 7)
+
+    assert result == []
+
+def test_get_graph_values_wraps_bars(monkeypatch):
+    monkeypatch.setattr(
+        dashboard_service,
+        "_get_average_score_per_assessment",
+        lambda db, recruiter_id: [
+            AverageScore(assessment_name="Assessment A", average_score=81.5),
+            AverageScore(assessment_name="Assessment B", average_score=92.0),
+        ],
+    )
+
+    result = dashboard_service.get_graph_values(MagicMock(), 7)
+
+    assert isinstance(result, DashboardGraphResponse)
+    assert len(result.bars) == 2
+    assert result.bars[0].assessment_name == "Assessment A"
+    assert result.bars[1].average_score == 92.0
