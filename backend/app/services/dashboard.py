@@ -118,6 +118,7 @@ def _get_ai_usage_rate(
         percent=round(percent, 2)
     )
 
+
 def _get_average_score_per_assessment(
         db: Session,
         recruiter_id: int
@@ -164,6 +165,7 @@ def get_dashboard_summary(
         total_assessments=_get_total_assessments(db, recruiter_id),
         ai_usage_rate=_get_ai_usage_rate(db, recruiter_id)
     )
+
 
 def get_graph_values(
         db: Session,

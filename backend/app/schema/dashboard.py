@@ -28,5 +28,6 @@ class DashboardSummaryResponse(BaseModel):
     total_assessments: int
     ai_usage_rate: AIUsageRate
 
+
 class DashboardGraphResponse(BaseModel):
     bars: list[AverageScore]
