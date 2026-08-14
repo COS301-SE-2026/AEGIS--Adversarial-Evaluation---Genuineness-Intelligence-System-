@@ -38,11 +38,12 @@ export function AssessmentBarChartContainer() {
     }
 
     return (
-        <div className="relative">
+        <div className="relative mt-16">
+
             <AssessmentBarChart data={data} />
 
             {isFetching && (
-                <span className="absolute right-2 top-2 text-xs text-default-text">
+                <span className="absolute right-2 top-2 text-xs text-default-border">
                     Updating
                 </span>
             )}
