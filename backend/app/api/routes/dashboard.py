@@ -27,6 +27,7 @@ def get_score_distribution(
 ) -> DashboardGraphResponse:
     return dashboard.get_graph_values(db, recruiter_id)
 
+
 @router.get("/assessments")
 def get_assessments_summary(
     recruiter_id: int,

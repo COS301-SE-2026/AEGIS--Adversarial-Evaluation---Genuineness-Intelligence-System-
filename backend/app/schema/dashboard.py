@@ -26,7 +26,7 @@ class AverageScore(BaseModel):
 class TableItem(BaseModel):
     assessment_id: int
     name: str
-    average_score_percentage: float
+    average_score_percent: float
     top_candidate_name: str
 
 

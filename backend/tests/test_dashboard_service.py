@@ -4,7 +4,9 @@ from app.schema.dashboard import (
     AIUsageLevel,
     TopPerformer,
     AverageScore,
-    DashboardGraphResponse
+    DashboardGraphResponse,
+    TableItem,
+    DashboardTableResponse
 )
 from app.services import dashboard as dashboard_service
 
@@ -126,3 +128,74 @@ def test_get_graph_values_wraps_bars(monkeypatch):
     assert len(result.bars) == 2
     assert result.bars[0].assessment_name == "Assessment A"
     assert result.bars[1].average_score == 92.0
+
+
+def test_get_table_items_returns_paginated_items():
+    row = MagicMock()
+    row.assessment_id = 101
+    row.name = "Python Assessment"
+    row.average_score_percent = 87.456
+    row.top_candidate_name = "Alice"
+
+    mock_db = MagicMock()
+    mock_db.query.return_value = MagicMock()
+    mock_db.query.return_value.join.return_value = mock_db.query.return_value
+    mock_db.query.return_value.filter.return_value = mock_db.query.return_value
+    mock_db.query.return_value.group_by.return_value = mock_db.query.return_value
+    mock_db.query.return_value.order_by.return_value = mock_db.query.return_value
+    mock_db.query.return_value.offset.return_value = mock_db.query.return_value
+    mock_db.query.return_value.limit.return_value = mock_db.query.return_value
+    mock_db.query.return_value.all.return_value = [row]
+
+    result = dashboard_service._get_table_items(mock_db, 7, page=1, page_size=8)
+
+    assert len(result) == 1
+    assert result[0].assessment_id == 101
+    assert result[0].name == "Python Assessment"
+    assert result[0].average_score_percent == 87.46
+    assert result[0].top_candidate_name == "Alice"
+
+
+def test_get_table_items_returns_empty_list_when_no_rows():
+    mock_db = MagicMock()
+    mock_db.query.return_value = MagicMock()
+    mock_db.query.return_value.join.return_value = mock_db.query.return_value
+    mock_db.query.return_value.filter.return_value = mock_db.query.return_value
+    mock_db.query.return_value.group_by.return_value = mock_db.query.return_value
+    mock_db.query.return_value.order_by.return_value = mock_db.query.return_value
+    mock_db.query.return_value.offset.return_value = mock_db.query.return_value
+    mock_db.query.return_value.limit.return_value = mock_db.query.return_value
+    mock_db.query.return_value.all.return_value = []
+
+    result = dashboard_service._get_table_items(mock_db, 7, page=1, page_size=8)
+
+    assert result == []
+
+
+def test_get_assessment_summary_builds_table_response(monkeypatch):
+    monkeypatch.setattr(
+        dashboard_service,
+        "_get_table_items",
+        lambda db, recruiter_id, page, page_size: [
+            TableItem(
+                assessment_id=101,
+                name="Python Assessment",
+                average_score_percent=88.5,
+                top_candidate_name="Alice",
+            )
+        ],
+    )
+
+    result = dashboard_service.get_assessment_summary(
+        recruiter_id=7,
+        db=MagicMock(),
+        page=1,
+        page_size=8,
+    )
+
+    assert isinstance(result, DashboardTableResponse)
+    assert result.page == 1
+    assert result.page_size == 8
+    assert result.items[0].assessment_id == 101
+    assert result.items[0].name == "Python Assessment"
+    assert result.items[0].average_score_percent == 88.5
