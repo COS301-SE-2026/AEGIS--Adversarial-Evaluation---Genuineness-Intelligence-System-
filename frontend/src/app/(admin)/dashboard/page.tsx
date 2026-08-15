@@ -18,11 +18,11 @@ export default function DashboardPage() {
 
         <AssessmentBarChartContainer/>
 
-        <AssessmentAnalyticsTableContainer/>
+        <div className="mb-4">
+          <AssessmentAnalyticsTableContainer/>
+        </div>
 
       </div>
-
-      
 
     </section>
   );

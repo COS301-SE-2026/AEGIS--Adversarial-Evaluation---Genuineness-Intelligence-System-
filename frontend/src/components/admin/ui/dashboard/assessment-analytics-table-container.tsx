@@ -31,6 +31,12 @@ export function AssessmentAnalyticsTableContainer() {
 
     return (
         <div className="w-full">
+            
+            <div className="mb-4">
+                <h2 className="text-xl tracking-wide">
+                Assessment Performance Table
+                </h2>
+            </div>
             <AssessmentAnalyticsTable items={data.items}/>
         </div>
     )
