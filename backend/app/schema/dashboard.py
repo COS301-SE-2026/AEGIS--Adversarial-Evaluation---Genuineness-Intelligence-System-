@@ -23,6 +23,13 @@ class AverageScore(BaseModel):
     average_score: float
 
 
+class TableItem(BaseModel):
+    assessment_id: int
+    name: str
+    average_score_percent: float
+    top_candidate_name: str
+
+
 class DashboardSummaryResponse(BaseModel):
     top_performers: list[TopPerformer]
     total_assessments: int
@@ -31,3 +38,9 @@ class DashboardSummaryResponse(BaseModel):
 
 class DashboardGraphResponse(BaseModel):
     bars: list[AverageScore]
+
+
+class DashboardTableResponse(BaseModel):
+    items: list[TableItem]
+    page: int
+    page_size: int

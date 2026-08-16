@@ -7,6 +7,8 @@ from app.schema.dashboard import (
     AIUsageLevel,
     DashboardGraphResponse,
     AverageScore,
+    DashboardTableResponse,
+    TableItem,
 )
 from app.models.user import User
 from app.models.assessment import Assessment
@@ -59,7 +61,7 @@ def _get_top_performers(
 def _get_total_assessments(
         db: Session,
         recruiter_id: int
-        ) -> int:
+) -> int:
     return (
         db.query(Assessment)
         .filter(Assessment.creator_id == recruiter_id)
@@ -70,7 +72,7 @@ def _get_total_assessments(
 def _get_ai_usage_rate(
         db: Session,
         recruiter_id: int
-        ) -> AIUsageRate:
+) -> AIUsageRate:
     total_sessions = (
         db.query(CandidateAssessment)
         .join(Assessment, CandidateAssessment.assessment_id
@@ -122,7 +124,7 @@ def _get_ai_usage_rate(
 def _get_average_score_per_assessment(
         db: Session,
         recruiter_id: int
-        ) -> list[AverageScore]:
+) -> list[AverageScore]:
     percent_expr = (
         (CandidateAssessment.candidate_score /
          CandidateAssessment.total_score) * 100
@@ -156,10 +158,74 @@ def _get_average_score_per_assessment(
     ]
 
 
+def _get_table_items(
+        db: Session,
+        recruiter_id: int,
+        page: int,
+        page_size: int,
+) -> list[TableItem]:
+    percentage_expr = (
+        (CandidateAssessment.candidate_score /
+         CandidateAssessment.total_score) * 100
+    )
+
+    top_candidate_name = (
+        db.query(User.full_name)
+        .join(
+            CandidateAssessment,
+            CandidateAssessment.candidate_id == User.user_id
+        )
+        .filter(
+            CandidateAssessment.assessment_id == Assessment.assessment_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+            CandidateAssessment.total_score.isnot(None),
+            CandidateAssessment.total_score > 0,
+            CandidateAssessment.candidate_score.isnot(None),
+        )
+        .order_by(percentage_expr.desc())
+        .limit(1)
+        .correlate(Assessment)
+        .scalar_subquery()
+    )
+
+    rows = (
+        db.query(
+            Assessment.assessment_id,
+            Assessment.title.label("name"),
+            func.avg(percentage_expr).label("average_score_percent"),
+            top_candidate_name.label("top_candidate_name"),
+        )
+        .join(
+            CandidateAssessment,
+            CandidateAssessment.assessment_id == Assessment.assessment_id,
+        )
+        .filter(
+            Assessment.creator_id == recruiter_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+            CandidateAssessment.total_score.isnot(None),
+            CandidateAssessment.total_score > 0,
+            CandidateAssessment.candidate_score.isnot(None),
+        )
+        .group_by(Assessment.assessment_id, Assessment.title)
+        .order_by(Assessment.title)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    return [
+        TableItem(assessment_id=row.assessment_id,
+                  name=row.name,
+                  average_score_percent=round(row.average_score_percent, 2),
+                  top_candidate_name=row.top_candidate_name)
+        for row in rows
+    ]
+
+
 def get_dashboard_summary(
         db: Session,
         recruiter_id: int
-        ) -> DashboardSummaryResponse:
+) -> DashboardSummaryResponse:
     return DashboardSummaryResponse(
         top_performers=_get_top_performers(db, recruiter_id),
         total_assessments=_get_total_assessments(db, recruiter_id),
@@ -170,7 +236,20 @@ def get_dashboard_summary(
 def get_graph_values(
         db: Session,
         recruiter_id: int
-        ) -> DashboardGraphResponse:
+) -> DashboardGraphResponse:
     return DashboardGraphResponse(
         bars=_get_average_score_per_assessment(db, recruiter_id)
+    )
+
+
+def get_assessment_summary(
+        recruiter_id: int,
+        db: Session,
+        page: int,
+        page_size: int,
+) -> DashboardTableResponse:
+    return DashboardTableResponse(
+        items=_get_table_items(db, recruiter_id, page, page_size),
+        page=page,
+        page_size=page_size,
     )
