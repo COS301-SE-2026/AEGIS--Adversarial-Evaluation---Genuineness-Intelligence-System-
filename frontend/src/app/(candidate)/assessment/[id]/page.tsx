@@ -9,6 +9,7 @@ import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-
 import { TestSubmitButton } from "@/components/candidate/ui/buttons/test-submit-button";
 import type { Question } from "@/components/candidate/ui/cards/question.type";
 import { useAssessmentTimer } from '@/components/candidate/context/assessment-timer';
+import { useAssessmentTelemetry } from "@/components/candidate/hooks/use-assessment-telemetry";
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 
@@ -152,6 +153,8 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [error, setError] = useState<string | null>(null);
    const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
    const {endTime, setEndTime} = useAssessmentTimer();
+
+   useAssessmentTelemetry();
 
    useEffect(() => {
       params.then(p => setCandidateAssessId(p.id));
