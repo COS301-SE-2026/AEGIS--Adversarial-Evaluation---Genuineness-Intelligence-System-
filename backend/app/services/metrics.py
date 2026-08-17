@@ -27,7 +27,7 @@ def get_metrics_for_assessment(
         candidate_assessment_id: int
 ) -> list[CandidateMetricsResponse]:
     return [
-        get_metrics_for_response(1),
-        get_metrics_for_response(2),
-        get_metrics_for_response(3),
+        get_metrics_for_response(db, 1),
+        get_metrics_for_response(db, 2),
+        get_metrics_for_response(db, 3),
     ]
