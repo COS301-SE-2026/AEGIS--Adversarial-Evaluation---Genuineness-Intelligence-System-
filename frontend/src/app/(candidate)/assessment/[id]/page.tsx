@@ -154,7 +154,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
    const {endTime, setEndTime} = useAssessmentTimer();
 
-   useAssessmentTelemetry();
+   const { flushTelemetry } = useAssessmentTelemetry(candidateAssessId);
 
    useEffect(() => {
       params.then(p => setCandidateAssessId(p.id));
@@ -283,6 +283,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       try {
          setIsSaving(true);
          await saveCurrentAnswer();
+         flushTelemetry();
          setCurrentQuestionIndex(currentQuestionIndex + 1);
       } finally {
          setIsSaving(false);
