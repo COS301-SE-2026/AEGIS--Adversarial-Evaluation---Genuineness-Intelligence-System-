@@ -44,3 +44,12 @@ class DashboardTableResponse(BaseModel):
     items: list[TableItem]
     page: int
     page_size: int
+
+
+class AssessmentDetailCardResponse(BaseModel):
+    assessment_id: int
+    assessment_name: str
+    top_performers: list[TopPerformer]
+    average_total_percent: float
+    average_completion_time: float
+    ai_usage: AIUsageRate

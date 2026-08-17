@@ -9,6 +9,7 @@ from app.schema.dashboard import (
     AverageScore,
     DashboardTableResponse,
     TableItem,
+    AssessmentDetailCardResponse
 )
 from app.models.user import User
 from app.models.assessment import Assessment
@@ -221,6 +222,154 @@ def _get_table_items(
         for row in rows
     ]
 
+def _get_assessment_card_details(
+        db: Session,
+        assessment_id: int
+) -> AssessmentDetailCardResponse:
+    _assessment_name = (
+        db.query(
+            Assessment.title
+        )
+        .filter(
+            Assessment.assessment_id == assessment_id
+        )
+        .scalar()
+    )
+
+    _top_performers_assessment = (
+        db.query(
+            User.full_name.label("candidate_name"),
+            ((CandidateAssessment.candidate_score /
+            CandidateAssessment.total_score) * 100).label("score_percent"),
+        )
+        .join(
+            CandidateAssessment,
+            CandidateAssessment.candidate_id == User.user_id,
+        )
+        .join(
+            Assessment,
+            CandidateAssessment.assessment_id == Assessment.assessment_id,
+        )
+        .filter(
+            Assessment.assessment_id == assessment_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+            CandidateAssessment.total_score.isnot(None),
+            CandidateAssessment.total_score > 0,
+            CandidateAssessment.candidate_score.isnot(None),
+        )
+        .order_by(
+            ((CandidateAssessment.candidate_score /
+            CandidateAssessment.total_score) * 100).desc()
+        )
+        .limit(3)
+        .all()
+    )
+
+    _top_performers_assessment = [
+        TopPerformer(candidate_name=row.candidate_name,
+                    score_percent=round(row.score_percent, 2))
+        for row in _top_performers_assessment
+    ]
+
+    _average_score_for_assessment = (
+        db.query(
+            func.avg(
+                (CandidateAssessment.candidate_score /
+                CandidateAssessment.total_score) * 100
+            ).label("average_score_percent")
+        )
+        .join(
+            Assessment,
+            CandidateAssessment.assessment_id == Assessment.assessment_id,
+        )
+        .filter(
+            Assessment.assessment_id == assessment_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+            CandidateAssessment.total_score.isnot(None),
+            CandidateAssessment.total_score > 0,
+            CandidateAssessment.candidate_score.isnot(None),
+        )
+        .scalar()
+    )
+
+    _average_score_for_assessment = round(_average_score_for_assessment, 2) if _average_score_for_assessment else 0.0
+
+
+    _average_completion_time = (
+        db.query(
+            func.avg(
+                func.extract('epoch', CandidateAssessment.end_time - CandidateAssessment.start_time)
+            ).label("average_completion_time")
+        )
+        .filter(
+            CandidateAssessment.assessment_id == assessment_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+            CandidateAssessment.end_time.isnot(None),
+            CandidateAssessment.start_time.isnot(None),
+        )
+        .scalar()
+    )
+
+    _average_completion_time = round(_average_completion_time, 2) if _average_completion_time else 0.0
+
+
+    _ai_usage_rate = (
+        db.query(AIAnalysis)
+        .join(
+            CandidateResponse,
+            AIAnalysis.response_id == CandidateResponse.response_id
+        )
+        .join(
+            CandidateAssessment,
+            CandidateResponse.candidate_assessment_id
+            == CandidateAssessment.candidate_assess_id
+        )
+        .join(
+            Assessment,
+            CandidateAssessment.assessment_id == Assessment.assessment_id
+        )
+        .filter(
+            Assessment.assessment_id == assessment_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+        )
+        .count()
+    )
+
+    _total_sessions_for_assessment = (
+        db.query(CandidateAssessment)
+        .filter(
+            CandidateAssessment.assessment_id == assessment_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED
+        )
+        .count()
+    )
+
+    _ai_percent = (_ai_usage_rate / _total_sessions_for_assessment * 100) if _total_sessions_for_assessment else 0.0
+
+    if _ai_percent >= 70:
+        _ai_level = AIUsageLevel.HIGH
+    elif _ai_percent >= 35:
+        _ai_level = AIUsageLevel.MEDIUM
+    else:
+        _ai_level = AIUsageLevel.LOW
+
+    _ai_usage_rate = AIUsageRate(
+        level=_ai_level,
+        percent=round(_ai_percent, 2)
+    )
+
+
+    return AssessmentDetailCardResponse(
+        assessment_id=assessment_id,
+        assessment_name=_assessment_name,
+        top_performers=_top_performers_assessment,
+        average_total_percent=_average_score_for_assessment,
+        average_completion_time=_average_completion_time,
+        ai_usage=_ai_usage_rate
+    )
+
+    
+
 
 def get_dashboard_summary(
         db: Session,
@@ -253,3 +402,10 @@ def get_assessment_summary(
         page=page,
         page_size=page_size,
     )
+
+# assessment detail 
+def get_assessment_detail_cards(
+        assessment_id: int,
+        db: Session
+) -> AssessmentDetailCardResponse:
+    return _get_assessment_card_details(db, assessment_id)
