@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import AdminSidebar from "../../../../components/admin/layouts/sidebar";
-import AdminTopbar from "../../../../components/admin/layouts/topbar";
 import AssessmentCard from "../../../../components/admin/ui/cards/assessment-card";
 import AssessmentFilterBar from "../../../../components/admin/ui/buttons/assessment-filter-bar";
 import CreateAssessmentPanel from "../../../../components/admin/ui/cards/create-assessment-panel";

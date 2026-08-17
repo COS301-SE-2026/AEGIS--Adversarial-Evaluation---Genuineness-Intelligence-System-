@@ -1,3 +1,5 @@
+
+
 export interface TopPerformer {
     candidate_name: string,
     score_percent: number;
@@ -7,6 +9,35 @@ export interface AIUsageRate {
     level: "LOW" | "MEDIUM" | "HIGH",
     percent: number;
 }
+
+export interface InfoCardRankingItem {
+    name: string,
+    value: number;
+}
+
+export type InfoCardIcon = "trophy" | "chart" | "users" | "clock" | "ai";
+
+export type InfoCardProps = 
+    |   {
+            type: "metric";
+            title: string;
+            value: number | string;
+            suffix?: string;
+            icon: InfoCardIcon;
+        }
+    |   {
+            type: "percentage";
+            title: string;
+            value: number;
+            label?: "LOW" | "MEDIUM" | "HIGH";
+            icon: InfoCardIcon;
+        }
+    |   {
+            type: "ranking";
+            title: string;
+            items: InfoCardRankingItem[];
+            icon: InfoCardIcon;
+        }
 
 export interface BarChartData {
     assessment_name: string,

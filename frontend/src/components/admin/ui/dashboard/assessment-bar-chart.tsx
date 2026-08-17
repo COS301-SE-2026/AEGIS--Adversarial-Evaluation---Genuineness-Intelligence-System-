@@ -65,11 +65,7 @@ export function AssessmentBarChart({
 
         </div>
 
-          
-        
-      
-
-      <div className="h-80 w-full">
+      <div className="h-80 w-full  border-l-2 border-r-2 border-system-red px-3">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={visibleData}
