@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.api.routes.question_management import router as question_router
 from app.api.routes.candidate_ass import router as candidate_assessment_router
 from app.api.routes.dashboard import router as dashboard_router
+from app.api.routes.metrics import router as metrics_router
 
 app = FastAPI()
 
@@ -52,6 +53,7 @@ app.include_router(assessment_adversarial_router, prefix="/api/v1")
 app.include_router(question_adversarial_router, prefix="/api/v1")
 app.include_router(adversarial_questions_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(metrics_router, prefix="/api/v1")
 
 
 @app.on_event("startup")

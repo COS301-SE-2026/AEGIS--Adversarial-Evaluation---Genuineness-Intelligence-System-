@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class CandidateMetricsResponse(BaseModel):
     candidate_response_id: int
     candidate_assessment_id: int
