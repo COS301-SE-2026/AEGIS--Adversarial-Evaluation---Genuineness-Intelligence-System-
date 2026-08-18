@@ -4,6 +4,24 @@ interface MetricsTableProps {
     metrics: CandidateMetrics[];
 }
 
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  const formatted = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  return formatted;
+}
+
+function isPasteHeavy(metric: CandidateMetrics): boolean {
+  const totalChars = metric.chars_alnum + metric.paste_char_count;
+  if (totalChars == 0) return false;
+  return metric.paste_char_count / totalChars > 0.5;
+}
+
+function isFrequentTabSwitching(metric: CandidateMetrics): boolean {
+  return metric.focus_loss_count >= 3 || metric.focus_loss_time_ms > 60000;
+}
+
 const MetricsTable = ({
     metrics,
 }: Readonly<MetricsTableProps>) => {
@@ -44,7 +62,10 @@ const MetricsTable = ({
                 Focus Loss
               </th>
               <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-default-text font-semibold text-xs sm:text-sm">
-                Loss Time (ms)
+                Loss Time
+              </th>
+              <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-default-text font-semibold text-xs sm:text-sm">
+                Flags
               </th>
             </tr>
           </thead>
@@ -85,8 +106,29 @@ const MetricsTable = ({
                   {metric.focus_loss_count}
                 </td>
                 <td className="px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm">
-                  {metric.focus_loss_time_ms}
+                  {formatDuration(metric.focus_loss_time_ms)}
                 </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm">
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    {isPasteHeavy(metric) && (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-system-red/20 text-system-red mr-1">
+                        Paste Heavy
+                      </span>
+                    )}
+                    {isFrequentTabSwitching(metric) && (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-status-warning/20 text-status-warning">
+                        Frequent tab switching
+                      </span>
+                    )}
+
+                    {!isPasteHeavy(metric) && !isFrequentTabSwitching(metric) && (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-status-success/20 text-status-success">
+                        No flags
+                      </span>
+                    )}
+                  </div>
+                </td>
+
               </tr>
             ))}
           </tbody>

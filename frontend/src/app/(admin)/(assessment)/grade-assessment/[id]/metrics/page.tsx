@@ -58,8 +58,10 @@ const GradeAssessmentMetricsPage = () => {
 
     return (
         <div>
-            <h1>Behavioural Metrics</h1>
-            <MetricsTable metrics={metrics} />
+        <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-default-text mb-4">
+            Behavioural Metrics
+        </h1>
+        <MetricsTable metrics={metrics} />
         </div>
     );
 }
