@@ -38,6 +38,7 @@ def get_assessments_summary(
 ) -> DashboardTableResponse:
     return dashboard.get_assessment_summary(recruiter_id, db, page, page_size)
 
+
 @router.get("/assessments/{assessment_id}")
 def get_assessment_detail_cards(
     assessment_id: int,

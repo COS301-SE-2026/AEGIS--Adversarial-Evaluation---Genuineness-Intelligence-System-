@@ -222,6 +222,7 @@ def _get_table_items(
         for row in rows
     ]
 
+
 def _get_assessment_card_details(
         db: Session,
         assessment_id: int
@@ -240,7 +241,7 @@ def _get_assessment_card_details(
         db.query(
             User.full_name.label("candidate_name"),
             ((CandidateAssessment.candidate_score /
-            CandidateAssessment.total_score) * 100).label("score_percent"),
+              CandidateAssessment.total_score) * 100).label("score_percent"),
         )
         .join(
             CandidateAssessment,
@@ -259,7 +260,7 @@ def _get_assessment_card_details(
         )
         .order_by(
             ((CandidateAssessment.candidate_score /
-            CandidateAssessment.total_score) * 100).desc()
+              CandidateAssessment.total_score) * 100).desc()
         )
         .limit(3)
         .all()
@@ -267,7 +268,7 @@ def _get_assessment_card_details(
 
     _top_performers_assessment = [
         TopPerformer(candidate_name=row.candidate_name,
-                    score_percent=round(row.score_percent, 2))
+                     score_percent=round(row.score_percent, 2))
         for row in _top_performers_assessment
     ]
 
@@ -275,7 +276,7 @@ def _get_assessment_card_details(
         db.query(
             func.avg(
                 (CandidateAssessment.candidate_score /
-                CandidateAssessment.total_score) * 100
+                 CandidateAssessment.total_score) * 100
             ).label("average_score_percent")
         )
         .join(
@@ -292,13 +293,16 @@ def _get_assessment_card_details(
         .scalar()
     )
 
-    _average_score_for_assessment = round(_average_score_for_assessment, 2) if _average_score_for_assessment else 0.0
-
+    _average_score_for_assessment = round(
+        _average_score_for_assessment,
+        2) if _average_score_for_assessment else 0.0
 
     _average_completion_time = (
         db.query(
             func.avg(
-                func.extract('epoch', CandidateAssessment.end_time - CandidateAssessment.start_time)
+                func.extract('epoch',
+                             CandidateAssessment.end_time -
+                             CandidateAssessment.start_time)
             ).label("average_completion_time")
         )
         .filter(
@@ -310,8 +314,9 @@ def _get_assessment_card_details(
         .scalar()
     )
 
-    _average_completion_time = round(_average_completion_time, 2) if _average_completion_time else 0.0
-
+    _average_completion_time = round(
+        _average_completion_time,
+        2) if _average_completion_time else 0.0
 
     _ai_usage_rate = (
         db.query(AIAnalysis)
@@ -344,7 +349,8 @@ def _get_assessment_card_details(
         .count()
     )
 
-    _ai_percent = (_ai_usage_rate / _total_sessions_for_assessment * 100) if _total_sessions_for_assessment else 0.0
+    _ai_percent = (_ai_usage_rate / _total_sessions_for_assessment
+                   * 100) if _total_sessions_for_assessment else 0.0
 
     if _ai_percent >= 70:
         _ai_level = AIUsageLevel.HIGH
@@ -358,7 +364,6 @@ def _get_assessment_card_details(
         percent=round(_ai_percent, 2)
     )
 
-
     return AssessmentDetailCardResponse(
         assessment_id=assessment_id,
         assessment_name=_assessment_name,
@@ -367,8 +372,6 @@ def _get_assessment_card_details(
         average_completion_time=_average_completion_time,
         ai_usage=_ai_usage_rate
     )
-
-    
 
 
 def get_dashboard_summary(
@@ -403,7 +406,8 @@ def get_assessment_summary(
         page_size=page_size,
     )
 
-# assessment detail 
+
+# assessment detail
 def get_assessment_detail_cards(
         assessment_id: int,
         db: Session
