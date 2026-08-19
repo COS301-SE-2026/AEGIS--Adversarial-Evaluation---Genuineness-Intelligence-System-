@@ -216,7 +216,65 @@ const filtered = useMemo(() => {
     setTimeout(() => setLinksCopied(false), 1500);
   };
 
-  return (
-    <div>Modal content</div>
+    return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] p-4"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="w-full max-w-2xl max-h-[85vh] flex flex-col bg-secondary-surface border border-tertiary-surface rounded-[5px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-tertiary-surface">
+          <div className="min-w-0">
+            <div className="font-staatliches text-[20px] tracking-[0.06em] leading-none text-white-smoke">
+              ASSIGN CANDIDATES
+            </div>
+            <div className="font-jetbrains text-[10px] text-white-smoke/40 mt-1 truncate">
+              {assessmentTitle}
+            </div>
+          </div>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="text-white-smoke/40 hover:text-system-red transition-colors duration-150 cursor-pointer shrink-0"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2.5 px-5 py-3 border-b border-tertiary-surface flex-wrap">
+          <div className="relative flex-1 min-w-50">
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-white-smoke/40"
+              size={14}
+            />
+            <input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-background border border-default-border text-default-text pl-9 pr-3 py-2 font-jetbrains text-[11px] tracking-[0.04em] rounded-[5px] outline-none placeholder:text-white-smoke/40 transition-colors duration-150 hover:bg-tertiary-surface focus:border-system-red focus:bg-background"
+            />
+          </div>
+
+          <div className="flex gap-1.5">
+            {FILTERS.map((f) => (
+              <button
+                type="button"
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                className={`font-jetbrains text-[10px] tracking-wider px-3 py-1.25 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
+                  statusFilter === f.key
+                    ? "bg-system-red/15 border-system-red text-system-red"
+                    : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
