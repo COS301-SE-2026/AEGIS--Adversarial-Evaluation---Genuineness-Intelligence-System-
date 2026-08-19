@@ -109,6 +109,7 @@ export function useAssessmentTelemetry(
   const activityStateRef = useRef<TelemetryActivityState>("paused");
   const activeStartedAtMsRef = useRef<number | null>(null);
   const hasWindowFocusRef = useRef<boolean>(true);
+  const focusLossStartedAtMsRef = useRef<number | null>(null);
 
   const pauseActiveTimeTracking = useCallback(() => {
     if (activityStateRef.current !== "active") {
@@ -256,9 +257,31 @@ export function useAssessmentTelemetry(
       }
     };
 
-    const handlePaste = () => logTelemetryEvent("paste");
+    const handlePaste = (event: ClipboardEvent) => {
+      logTelemetryEvent("paste");
+
+      const pastedText = event.clipboardData?.getData("text/plain") ?? "";
+      accumulatorRef.current.paste_event_count += 1;
+      accumulatorRef.current.paste_char_count += pastedText.length;
+};
+
     const handleVisibilityChange = () => {
       logTelemetryEvent("visibilitychange");
+
+      if (document.hidden){
+        if(focusLossStartedAtMsRef.current === null){
+          focusLossStartedAtMsRef.current = Date.now();
+          accumulatorRef.current.focus_loss_count += 1;
+        }
+        reconcileActiveTimeState();
+        return;
+      }
+
+      const startedAt = focusLossStartedAtMsRef.current;
+      if (startedAt !== null){
+        accumulatorRef.current.focus_loss_time_ms = Math.max(Date.now() - startedAt,0);
+        focusLossStartedAtMsRef.current = null;
+      }
       reconcileActiveTimeState();
     };
     const handleWindowFocus = () => {
