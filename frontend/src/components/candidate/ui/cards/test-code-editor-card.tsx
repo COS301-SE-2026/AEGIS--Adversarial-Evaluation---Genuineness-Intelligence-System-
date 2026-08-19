@@ -8,7 +8,7 @@ interface CodeEditorProps {
     code: string;
     setCode: React.Dispatch<React.SetStateAction<string>>;
     questionId: number;
-    candidateAssessId?: string | null;
+    candidateAssessId?: number | null;
     questionTitle?: string;
     functionSignature?: string;
 }
@@ -75,15 +75,6 @@ export default function CodeEditorCard({
             return;
         }
 
-        const assessmentId = Number(candidateAssessId);
-        if (Number.isNaN(assessmentId)) {
-            setRunSummary({
-                status: "error",
-                message: "Invalid candidate assessment id.",
-            });
-            return;
-        }
-
         try {
             setIsRunning(true);
             setRunSummary({
@@ -98,7 +89,7 @@ export default function CodeEditorCard({
             }>(
                 "/api/v1/assessments/execute",
                 {
-                    candidate_assessment_id: assessmentId,
+                    candidate_assessment_id: candidateAssessId,
                     assessment_question_id: questionId,
                     code,
                 }

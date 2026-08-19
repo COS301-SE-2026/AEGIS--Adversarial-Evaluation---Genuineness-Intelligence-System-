@@ -8,7 +8,7 @@ type TestAnswerCardProps = {
     question: Question;
     value?: string;
     onChange?: (value: string) => void;
-    candidateAssessId?: string | null;
+    candidateAssessId?: number | null;
 };
 
 export function TestAnswerCard({ question, value, onChange, candidateAssessId }: TestAnswerCardProps) {

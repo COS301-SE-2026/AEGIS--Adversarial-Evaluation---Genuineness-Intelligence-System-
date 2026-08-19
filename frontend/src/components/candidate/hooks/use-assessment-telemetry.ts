@@ -18,7 +18,7 @@ type TelemetryAccumulator = {
 };
 
 type TelemetryFlushPayload = {
-  candidate_assessment_id: string;
+  candidate_assessment_id: number;
   delta: Omit<TelemetryAccumulator, "unique_keys_count">;
   cumulative: Pick<TelemetryAccumulator, "unique_keys_count">;
 };
@@ -83,7 +83,7 @@ function getDeleteCharacterCount(event: InputEvent): number {
 }
 
 function createTelemetryFlushPayload(
-  candidateAssessmentId: string,
+  candidateAssessmentId: number,
   accumulator: TelemetryAccumulator,
 ): TelemetryFlushPayload {
   return {
@@ -110,8 +110,8 @@ function logTelemetryEvent(eventType: string) {
 }
 
 export function useAssessmentTelemetry(
-  candidateAssessmentId: string | null,
-  candidateResponseId: string | null,
+  candidateAssessmentId: number | null,
+  candidateResponseId: number | null,
   activeQuestionId: number | null,
 ) {
   const accumulatorRef = useRef<TelemetryAccumulator>(createEmptyTelemetryAccumulator());
@@ -219,6 +219,27 @@ export function useAssessmentTelemetry(
 
     const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
     console.log(payload);
+
+     const authToken = getToken() ?? undefined;
+
+    try {
+      await apiPost<{
+        candidate_response_id: number;
+        updated_at: string;
+      }, typeof payload>(
+        `/api/v1/candidate-responses/${candidateResponseId}/metrics/flush`,
+        payload,
+        authToken ? { authToken } : {},
+      );
+
+      clearDeltaState();
+
+      if (activityStateRef.current === "active") {
+        activeStartedAtMsRef.current = Date.now();
+      }
+    } catch (error) {
+      console.error("Failed to flush telemetry", error);
+    }
   }, [candidateAssessmentId, candidateResponseId, clearDeltaState]);
 
   useEffect(() => {

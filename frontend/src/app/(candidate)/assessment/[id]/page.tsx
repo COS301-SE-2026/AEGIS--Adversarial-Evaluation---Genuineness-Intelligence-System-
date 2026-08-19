@@ -143,9 +143,9 @@ function mapFunctionSignature(
 
 export default function AssessmentCompletionPage({ params }: { params: Promise<{ id: string }> }) {
    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-   const [candidateAssessId, setCandidateAssessId] = useState<string | null>(null);
+   const [candidateAssessId, setCandidateAssessId] = useState<number | null>(null);
    const [questions, setQuestions] = useState<Question[]>([]);
-   const [responseIdByQuestionId, setResponseIdByQuestionId] = useState<Record<number, string>>({});
+   const [responseIdByQuestionId, setResponseIdByQuestionId] = useState<Record<number, number>>({});
    const [isLoading, setIsLoading] = useState(true);
    const [isSaving, setIsSaving] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
@@ -160,7 +160,15 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const { flushTelemetry } = useAssessmentTelemetry(candidateAssessId, activeQuestionResponseId, activeQuestionId);
 
    useEffect(() => {
-      params.then(p => setCandidateAssessId(p.id));
+      params.then((p) => {
+         const parsedId = Number(p.id);
+         if (Number.isNaN(parsedId)) {
+            setError("Invalid candidate assessment id.");
+            return;
+         }
+
+         setCandidateAssessId(parsedId);
+      });
    }, [params]);
 
    useEffect(() => {
@@ -222,9 +230,9 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                {}
             );
 
-            const existingResponseIds = responseData.reduce<Record<number, string>>(
+            const existingResponseIds = responseData.reduce<Record<number, number>>(
                (acc, response) => {
-                  acc[response.assessment_question_id] = String(response.response_id);
+                  acc[response.assessment_question_id] = response.response_id;
                   return acc;
                },
                {}
