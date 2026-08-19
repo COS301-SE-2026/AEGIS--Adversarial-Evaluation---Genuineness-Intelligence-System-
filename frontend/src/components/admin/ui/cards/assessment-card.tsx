@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
+import CandidateAssignmentModal from "@/components/admin/ui/modals/candidate-assignment-modal";
 
 export interface AdminCardAssessment {
   assessment_id: number;
@@ -220,9 +221,11 @@ function AssignDropdown({ assessmentId, assessmentTitle }: { assessmentId: numbe
 
 interface AssessmentCardProps {
   assessment: AdminCardAssessment;
+  onAssigned?: (assessmentId: number, count: number) => void;
 }
 
-export default function AssessmentCard({ assessment: a }: AssessmentCardProps) {
+export default function AssessmentCard({ assessment: a, onAssigned }: AssessmentCardProps) {
+  const [assignOpen, setAssignOpen] = useState(false);
   const candidates = a.candidates ?? 0;
   const completed = a.completed ?? 0;
   const completionPct = candidates > 0 ? Math.round((completed / candidates) * 100) : 0;
