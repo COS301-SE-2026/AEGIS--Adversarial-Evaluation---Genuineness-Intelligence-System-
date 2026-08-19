@@ -23,6 +23,9 @@ type TelemetryFlushPayload = {
 
 type TelemetryActivityState = "active" | "paused";
 
+const ALNUM_TEXT_PATTERN = /^[a-z0-9]$/i;
+const SPECIAL_TEXT_PATTERN = /^[.,;:'"(){}\[\]\-+=*/\\`~<>!?@#$%^&|]$/;
+
 function createEmptyTelemetryAccumulator(): TelemetryAccumulator {
   return {
     active_time_ms: 0,
@@ -36,6 +39,18 @@ function createEmptyTelemetryAccumulator(): TelemetryAccumulator {
     focus_loss_count: 0,
     focus_loss_time_ms: 0,
   };
+}
+
+function classifyInsertedTextCharacter(character: string): "alnum" | "special" | "other" {
+  if (ALNUM_TEXT_PATTERN.test(character)) {
+    return "alnum";
+  }
+
+  if (SPECIAL_TEXT_PATTERN.test(character)) {
+    return "special";
+  }
+
+  return "other";
 }
 
 function createTelemetryFlushPayload(
@@ -142,7 +157,31 @@ export function useAssessmentTelemetry(
     reconcileActiveTimeState();
 
     const handleKeyDown = () => logTelemetryEvent("keydown");
-    const handleBeforeInput = () => logTelemetryEvent("beforeinput");
+    const handleBeforeInput = (event: InputEvent) => {
+      logTelemetryEvent("beforeinput");
+
+      if (event.inputType !== "insertText") {
+        return;
+      }
+
+      const insertedText = event.data ?? "";
+      if (!insertedText) {
+        return;
+      }
+
+      for (const character of insertedText) {
+        const category = classifyInsertedTextCharacter(character);
+
+        if (category === "alnum") {
+          accumulatorRef.current.chars_alnum += 1;
+          continue;
+        }
+
+        if (category === "special") {
+          accumulatorRef.current.chars_special += 1;
+        }
+      }
+    };
     const handleCopy = () => logTelemetryEvent("copy");
     const handlePaste = () => logTelemetryEvent("paste");
     const handleVisibilityChange = () => {
