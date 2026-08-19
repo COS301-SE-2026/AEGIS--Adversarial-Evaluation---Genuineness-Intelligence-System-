@@ -149,6 +149,63 @@ const filtered = useMemo(() => {
     });
   };
 
+    const handleBulkAssign = async () => {
+    const targets = Array.from(selected).filter((id) => !assignedIds.has(id));
+    if (targets.length === 0) return;
+
+    setAssigning(true);
+    setLinksCopied(false);
+    setRowStatus((prev) => {
+      const next = { ...prev };
+      targets.forEach((id) => (next[id] = "pending"));
+      return next;
+    });
+
+    const results = await Promise.allSettled(
+      targets.map((id) =>
+        apiPost<InviteResponse, { candidate_id: number }>(
+          `/api/v1/assessments/${assessmentId}/invite`,
+          { candidate_id: id },
+          { headers: getAuthHeaders() }
+        ).then((res) => ({ id, res }))
+      )
+    );
+
+    let successCount = 0;
+    const nextStatus: Record<number, RowStatus> = {};
+    const nextError: Record<number, string> = {};
+    const nextLinks: Record<number, string> = {};
+    const nextAssigned = new Set(assignedIds);
+
+    results.forEach((result, i) => {
+      const id = targets[i];
+      if (result.status === "fulfilled") {
+        successCount += 1;
+        nextStatus[id] = "success";
+        nextLinks[id] = result.value.res.access_link;
+        nextAssigned.add(id);
+      } else {
+        nextStatus[id] = "error";
+        nextError[id] =
+          result.reason instanceof Error ? result.reason.message : "Failed to assign.";
+      }
+    });
+
+    setRowStatus((prev) => ({ ...prev, ...nextStatus }));
+    setRowError((prev) => ({ ...prev, ...nextError }));
+    setAccessLinks((prev) => ({ ...prev, ...nextLinks }));
+    setAssignedIds(nextAssigned);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      Object.entries(nextStatus).forEach(([id, status]) => {
+        if (status === "success") next.delete(Number(id));
+      });
+      return next;
+    });
+    setAssigning(false);
+    if (successCount > 0) onAssigned?.(successCount);
+  };
+
   return (
     <div>Modal content</div>
   );
