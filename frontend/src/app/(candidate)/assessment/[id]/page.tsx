@@ -157,7 +157,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const activeQuestionId = questions[currentQuestionIndex]?.questionId ?? null;
    const activeQuestionResponseId = activeQuestionId !== null ? responseIdByQuestionId[activeQuestionId] ?? null : null;
 
-   const { flushTelemetry } = useAssessmentTelemetry(candidateAssessId, activeQuestionResponseId, activeQuestionId);
+   const { flushTelemetry, flushTelemetryKeepAlive } = useAssessmentTelemetry(candidateAssessId, activeQuestionResponseId, activeQuestionId);
 
    useEffect(() => {
       params.then((p) => {
@@ -323,9 +323,8 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       try {
          setSubmitError(null);
          setIsSubmitting(true);
-         // ensure last answer is saved
          await saveCurrentAnswer();
-         await flushTelemetry();
+         await flushTelemetryKeepAlive();
 
          const authToken = getToken() ?? undefined;
          await apiPost(`/api/v1/candidate-assessments/${candidateAssessId}/submit`, undefined, authToken ? { authToken } : {});
@@ -338,7 +337,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       } finally {
          setIsSubmitting(false);
       }
-   }, [candidateAssessId, flushTelemetry, isSubmitting, router, saveCurrentAnswer]);
+   }, [candidateAssessId, flushTelemetryKeepAlive, isSubmitting, router, saveCurrentAnswer]);
 
    useEffect(()=>{
       if (!endTime || isSubmitted || isSubmitting) return;

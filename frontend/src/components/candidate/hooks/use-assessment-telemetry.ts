@@ -105,6 +105,23 @@ function createTelemetryFlushPayload(
   };
 }
 
+function buildTelemetrySnapshot(
+  accumulator: TelemetryAccumulator,
+  activeStartedAtMs: number | null,
+  isActive: boolean,
+  uniqueKeysCount: number,
+): TelemetryAccumulator {
+  const inFlightActiveTime = isActive && activeStartedAtMs !== null
+    ? Math.max(Date.now() - activeStartedAtMs, 0)
+    : 0;
+
+  return {
+    ...accumulator,
+    active_time_ms: accumulator.active_time_ms + inFlightActiveTime,
+    unique_keys_count: uniqueKeysCount,
+  };
+}
+
 function logTelemetryEvent(eventType: string) {
   console.log(eventType);
 }
@@ -121,6 +138,7 @@ export function useAssessmentTelemetry(
   const hasWindowFocusRef = useRef<boolean>(true);
   const focusLossStartedAtMsRef = useRef<number | null>(null);
   const questionContextRef = useRef<string | null>(null);
+  const hasFlushedFinalStateRef = useRef<boolean>(false);
 
   const clearDeltaState = useCallback(() => {
     accumulatorRef.current = createEmptyDeltaAccumulator();
@@ -133,6 +151,7 @@ export function useAssessmentTelemetry(
     activityStateRef.current = "paused";
     activeStartedAtMsRef.current = null;
     focusLossStartedAtMsRef.current = null;
+    hasFlushedFinalStateRef.current = false;
   }, []);
 
   const pauseActiveTimeTracking = useCallback(() => {
@@ -205,17 +224,12 @@ export function useAssessmentTelemetry(
       return;
     }
 
-    const inFlightActiveTime =
-      activityStateRef.current === "active" && activeStartedAtMsRef.current !== null
-        ? Math.max(Date.now() - activeStartedAtMsRef.current, 0)
-        : 0;
-
-    const snapshot: TelemetryAccumulator = {
-      ...accumulatorRef.current,
-      active_time_ms: accumulatorRef.current.active_time_ms + inFlightActiveTime,
-    };
-
-    snapshot.unique_keys_count = uniqueKeysRef.current.size;
+    const snapshot = buildTelemetrySnapshot(
+      accumulatorRef.current,
+      activeStartedAtMsRef.current,
+      activityStateRef.current === "active",
+      uniqueKeysRef.current.size,
+    );
 
     const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
     console.log(payload);
@@ -241,6 +255,52 @@ export function useAssessmentTelemetry(
       console.error("Failed to flush telemetry", error);
     }
   }, [candidateAssessmentId, candidateResponseId, clearDeltaState]);
+
+  const flushTelemetryKeepAlive = useCallback(async () => {
+    if (!candidateAssessmentId || candidateResponseId === null) {
+      return;
+    }
+
+    if (hasFlushedFinalStateRef.current) {
+      return;
+    }
+
+    pauseActiveTimeTracking();
+
+    const snapshot = buildTelemetrySnapshot(
+      accumulatorRef.current,
+      activeStartedAtMsRef.current,
+      false,
+      uniqueKeysRef.current.size,
+    );
+
+    const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
+    const authToken = getToken() ?? undefined;
+
+    try {
+      await apiPost<{
+        candidate_response_id: number;
+        updated_at: string;
+      }, typeof payload>(
+        `/api/v1/candidate-responses/${candidateResponseId}/metrics/flush`,
+        payload,
+        {
+          authToken,
+          keepalive: true,
+        },
+      );
+
+      clearDeltaState();
+      hasFlushedFinalStateRef.current = true;
+    } catch (error) {
+      console.error("Failed to flush telemetry keepalive", error);
+    }
+  }, [
+    candidateAssessmentId,
+    candidateResponseId,
+    clearDeltaState,
+    pauseActiveTimeTracking,
+  ]);
 
   useEffect(() => {
     if (!candidateAssessmentId) {
@@ -326,7 +386,7 @@ export function useAssessmentTelemetry(
           focusLossStartedAtMsRef.current = Date.now();
           accumulatorRef.current.focus_loss_count += 1;
         }
-        reconcileActiveTimeState();
+        void flushTelemetryKeepAlive();
         return;
       }
 
@@ -337,6 +397,12 @@ export function useAssessmentTelemetry(
       }
       reconcileActiveTimeState();
     };
+
+    const handlePageHide = () => {
+      logTelemetryEvent("pagehide");
+      void flushTelemetryKeepAlive();
+    };
+
     const handleWindowFocus = () => {
       hasWindowFocusRef.current = true;
       reconcileActiveTimeState();
@@ -351,6 +417,7 @@ export function useAssessmentTelemetry(
     document.addEventListener("copy", handleCopy);
     document.addEventListener("paste", handlePaste);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
     window.addEventListener("focus", handleWindowFocus);
     window.addEventListener("blur", handleWindowBlur);
 
@@ -366,6 +433,7 @@ export function useAssessmentTelemetry(
       document.removeEventListener("copy", handleCopy);
       document.removeEventListener("paste", handlePaste);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
       window.removeEventListener("focus", handleWindowFocus);
       window.removeEventListener("blur", handleWindowBlur);
     };
@@ -374,10 +442,11 @@ export function useAssessmentTelemetry(
     candidateAssessmentId,
     candidateResponseId,
     clearQuestionState,
+    flushTelemetryKeepAlive,
     flushTelemetry,
     pauseActiveTimeTracking,
     reconcileActiveTimeState,
   ]);
 
-  return { flushTelemetry, uniqueKeysRef, accumulatorRef };
+  return { flushTelemetry, flushTelemetryKeepAlive, uniqueKeysRef, accumulatorRef };
 }
