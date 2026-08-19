@@ -107,6 +107,27 @@ useEffect(() => {
 }, [onClose]);
 
 
+const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return candidates.filter((c) => {
+      const matchesSearch =
+        !q ||
+        c.email.toLowerCase().includes(q) ||
+        (c.full_name ?? "").toLowerCase().includes(q);
+      const isAssigned = assignedIds.has(c.user_id);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "assigned" && isAssigned) ||
+        (statusFilter === "unassigned" && !isAssigned);
+      return matchesSearch && matchesStatus;
+    });
+  }, [candidates, search, statusFilter, assignedIds]);
+
+  const selectableVisible = filtered.filter((c) => !assignedIds.has(c.user_id));
+  const allVisibleSelected =
+    selectableVisible.length > 0 && selectableVisible.every((c) => selected.has(c.user_id));
+
+
   return (
     <div>Modal content</div>
   );
