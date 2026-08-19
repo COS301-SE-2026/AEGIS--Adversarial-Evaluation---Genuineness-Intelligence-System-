@@ -149,6 +149,32 @@ export function useAssessmentTelemetry(
     pauseActiveTimeTracking();
   }, [activeQuestionId, candidateAssessmentId, pauseActiveTimeTracking, startActiveTimeTracking]);
 
+  function getCopiedText(event: ClipboardEvent): string {
+    const clipboardText = event.clipboardData?.getData("text/plain");
+
+      if (clipboardText && clipboardText.length > 0) {
+        return clipboardText;
+      }
+
+      return window.getSelection()?.toString() ?? "";
+    }
+
+  function isInsideCodeEditor(event: ClipboardEvent): boolean {
+    const target = event.target;
+    
+    if (!(target instanceof Node)) {
+      return false;
+    }
+
+    const element =
+      target instanceof Element ? target : target.parentElement;
+
+    if (!element) {
+      return false;
+    }
+
+    return Boolean(element.closest(".monaco-editor"));
+  }
   const flushTelemetry = useCallback(() => {
     if (!candidateAssessmentId) {
       return;
@@ -176,7 +202,16 @@ export function useAssessmentTelemetry(
     hasWindowFocusRef.current = document.hasFocus();
     reconcileActiveTimeState();
 
-    const handleKeyDown = () => logTelemetryEvent("keydown");
+    const handleKeyDown = (event: KeyboardEvent) => {
+      logTelemetryEvent("keydown");
+
+      const key = event.key.toLowerCase();
+      uniqueKeysRef.current.add(key);
+
+      accumulatorRef.current.unique_keys_count = uniqueKeysRef.current.size;
+    }
+
+    
     const handleBeforeInput = (event: InputEvent) => {
       logTelemetryEvent("beforeinput");
 
@@ -206,7 +241,21 @@ export function useAssessmentTelemetry(
         }
       }
     };
-    const handleCopy = () => logTelemetryEvent("copy");
+    
+    const handleCopy = (event: ClipboardEvent) => {
+      logTelemetryEvent("copy");
+
+      if (isInsideCodeEditor(event)) {
+        return;
+      }
+
+      const copiedText = getCopiedText(event);
+
+      if (copiedText.includes("\n")) {
+        accumulatorRef.current.copy_event_count += 1;
+      }
+    };
+
     const handlePaste = () => logTelemetryEvent("paste");
     const handleVisibilityChange = () => {
       logTelemetryEvent("visibilitychange");
