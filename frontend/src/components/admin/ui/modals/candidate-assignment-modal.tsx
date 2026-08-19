@@ -30,3 +30,29 @@ const FILTERS: { key: StatusFilter; label: string }[] = [
   { key: "unassigned", label: "Unassigned" },
   { key: "assigned", label: "Assigned" },
 ];
+
+export default function CandidateAssignmentModal({
+  assessmentId,
+  assessmentTitle,
+  onClose,
+  onAssigned,
+}: CandidateAssignmentModalProps) {
+  const [candidates, setCandidates] = useState<ApiCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [assignedIds, setAssignedIds] = useState<Set<number>>(new Set());
+  const [rowStatus, setRowStatus] = useState<Record<number, RowStatus>>({});
+  const [rowError, setRowError] = useState<Record<number, string>>({});
+  const [accessLinks, setAccessLinks] = useState<Record<number, string>>({});
+  const [assigning, setAssigning] = useState(false);
+  const [linksCopied, setLinksCopied] = useState(false);
+
+  return (
+    <div>Modal content</div>
+  );
+}
