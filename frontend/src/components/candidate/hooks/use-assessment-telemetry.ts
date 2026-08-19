@@ -21,6 +21,8 @@ type TelemetryFlushPayload = {
   cumulative: Pick<TelemetryAccumulator, "unique_keys_count">;
 };
 
+type TelemetryActivityState = "active" | "paused";
+
 function createEmptyTelemetryAccumulator(): TelemetryAccumulator {
   return {
     active_time_ms: 0,
@@ -63,16 +65,71 @@ function logTelemetryEvent(eventType: string) {
   console.log(eventType);
 }
 
-export function useAssessmentTelemetry(candidateAssessmentId: string | null) {
+export function useAssessmentTelemetry(
+  candidateAssessmentId: string | null,
+  activeQuestionId: number | null,
+) {
   const accumulatorRef = useRef<TelemetryAccumulator>(createEmptyTelemetryAccumulator());
   const uniqueKeysRef = useRef<Set<string>>(new Set());
+  const activityStateRef = useRef<TelemetryActivityState>("paused");
+  const activeStartedAtMsRef = useRef<number | null>(null);
+  const hasWindowFocusRef = useRef<boolean>(true);
+
+  const pauseActiveTimeTracking = useCallback(() => {
+    if (activityStateRef.current !== "active") {
+      return;
+    }
+
+    const startedAt = activeStartedAtMsRef.current;
+    if (startedAt !== null) {
+      accumulatorRef.current.active_time_ms += Math.max(Date.now() - startedAt, 0);
+    }
+
+    activeStartedAtMsRef.current = null;
+    activityStateRef.current = "paused";
+  }, []);
+
+  const startActiveTimeTracking = useCallback(() => {
+    if (activityStateRef.current === "active") {
+      return;
+    }
+
+    activeStartedAtMsRef.current = Date.now();
+    activityStateRef.current = "active";
+  }, []);
+
+  const reconcileActiveTimeState = useCallback(() => {
+    if (!candidateAssessmentId || activeQuestionId === null) {
+      pauseActiveTimeTracking();
+      return;
+    }
+
+    const shouldBeActive = !document.hidden && hasWindowFocusRef.current;
+
+    if (shouldBeActive) {
+      startActiveTimeTracking();
+      return;
+    }
+
+    pauseActiveTimeTracking();
+  }, [activeQuestionId, candidateAssessmentId, pauseActiveTimeTracking, startActiveTimeTracking]);
 
   const flushTelemetry = useCallback(() => {
     if (!candidateAssessmentId) {
       return;
     }
 
-    const payload = createTelemetryFlushPayload(candidateAssessmentId, accumulatorRef.current);
+    const inFlightActiveTime =
+      activityStateRef.current === "active" && activeStartedAtMsRef.current !== null
+        ? Math.max(Date.now() - activeStartedAtMsRef.current, 0)
+        : 0;
+
+    const snapshot: TelemetryAccumulator = {
+      ...accumulatorRef.current,
+      active_time_ms: accumulatorRef.current.active_time_ms + inFlightActiveTime,
+    };
+
+    const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
     console.log(payload);
   }, [candidateAssessmentId]);
 
@@ -81,31 +138,50 @@ export function useAssessmentTelemetry(candidateAssessmentId: string | null) {
       return;
     }
 
+    hasWindowFocusRef.current = document.hasFocus();
+    reconcileActiveTimeState();
+
     const handleKeyDown = () => logTelemetryEvent("keydown");
     const handleBeforeInput = () => logTelemetryEvent("beforeinput");
     const handleCopy = () => logTelemetryEvent("copy");
     const handlePaste = () => logTelemetryEvent("paste");
-    const handleVisibilityChange = () => logTelemetryEvent("visibilitychange");
+    const handleVisibilityChange = () => {
+      logTelemetryEvent("visibilitychange");
+      reconcileActiveTimeState();
+    };
+    const handleWindowFocus = () => {
+      hasWindowFocusRef.current = true;
+      reconcileActiveTimeState();
+    };
+    const handleWindowBlur = () => {
+      hasWindowFocusRef.current = false;
+      reconcileActiveTimeState();
+    };
 
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("beforeinput", handleBeforeInput);
     document.addEventListener("copy", handleCopy);
     document.addEventListener("paste", handlePaste);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleWindowFocus);
+    window.addEventListener("blur", handleWindowBlur);
 
     const intervalId = window.setInterval(() => {
       flushTelemetry();
     }, 5000);
 
     return () => {
+      pauseActiveTimeTracking();
       window.clearInterval(intervalId);
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("beforeinput", handleBeforeInput);
       document.removeEventListener("copy", handleCopy);
       document.removeEventListener("paste", handlePaste);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener("blur", handleWindowBlur);
     };
-  }, [candidateAssessmentId, flushTelemetry]);
+  }, [candidateAssessmentId, flushTelemetry, pauseActiveTimeTracking, reconcileActiveTimeState]);
 
   return { flushTelemetry, uniqueKeysRef, accumulatorRef };
 }

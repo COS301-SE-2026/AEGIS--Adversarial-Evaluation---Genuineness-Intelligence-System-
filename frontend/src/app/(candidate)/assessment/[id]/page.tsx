@@ -153,8 +153,9 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [error, setError] = useState<string | null>(null);
    const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
    const {endTime, setEndTime} = useAssessmentTimer();
+   const activeQuestionId = questions[currentQuestionIndex]?.questionId ?? null;
 
-   const { flushTelemetry } = useAssessmentTelemetry(candidateAssessId);
+   const { flushTelemetry } = useAssessmentTelemetry(candidateAssessId, activeQuestionId);
 
    useEffect(() => {
       params.then(p => setCandidateAssessId(p.id));
