@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
+import { apiPost } from "@/lib/apiClient";
+import { getToken } from "@/lib/auth";
 
 type TelemetryAccumulator = {
   active_time_ms: number;
@@ -38,6 +40,13 @@ function createEmptyTelemetryAccumulator(): TelemetryAccumulator {
     paste_char_count: 0,
     focus_loss_count: 0,
     focus_loss_time_ms: 0,
+  };
+}
+
+function createEmptyDeltaAccumulator(): TelemetryAccumulator {
+  return {
+    ...createEmptyTelemetryAccumulator(),
+    unique_keys_count: 0,
   };
 }
 
@@ -102,6 +111,7 @@ function logTelemetryEvent(eventType: string) {
 
 export function useAssessmentTelemetry(
   candidateAssessmentId: string | null,
+  candidateResponseId: string | null,
   activeQuestionId: number | null,
 ) {
   const accumulatorRef = useRef<TelemetryAccumulator>(createEmptyTelemetryAccumulator());
@@ -110,6 +120,20 @@ export function useAssessmentTelemetry(
   const activeStartedAtMsRef = useRef<number | null>(null);
   const hasWindowFocusRef = useRef<boolean>(true);
   const focusLossStartedAtMsRef = useRef<number | null>(null);
+  const questionContextRef = useRef<string | null>(null);
+
+  const clearDeltaState = useCallback(() => {
+    accumulatorRef.current = createEmptyDeltaAccumulator();
+    accumulatorRef.current.unique_keys_count = uniqueKeysRef.current.size;
+  }, []);
+
+  const clearQuestionState = useCallback(() => {
+    uniqueKeysRef.current = new Set();
+    accumulatorRef.current = createEmptyTelemetryAccumulator();
+    activityStateRef.current = "paused";
+    activeStartedAtMsRef.current = null;
+    focusLossStartedAtMsRef.current = null;
+  }, []);
 
   const pauseActiveTimeTracking = useCallback(() => {
     if (activityStateRef.current !== "active") {
@@ -135,7 +159,7 @@ export function useAssessmentTelemetry(
   }, []);
 
   const reconcileActiveTimeState = useCallback(() => {
-    if (!candidateAssessmentId || activeQuestionId === null) {
+    if (!candidateAssessmentId || candidateResponseId === null || activeQuestionId === null) {
       pauseActiveTimeTracking();
       return;
     }
@@ -148,7 +172,7 @@ export function useAssessmentTelemetry(
     }
 
     pauseActiveTimeTracking();
-  }, [activeQuestionId, candidateAssessmentId, pauseActiveTimeTracking, startActiveTimeTracking]);
+  }, [activeQuestionId, candidateAssessmentId, candidateResponseId, pauseActiveTimeTracking, startActiveTimeTracking]);
 
   function getCopiedText(event: ClipboardEvent): string {
     const clipboardText = event.clipboardData?.getData("text/plain");
@@ -176,8 +200,8 @@ export function useAssessmentTelemetry(
 
     return Boolean(element.closest(".monaco-editor"));
   }
-  const flushTelemetry = useCallback(() => {
-    if (!candidateAssessmentId) {
+  const flushTelemetry = useCallback(async () => {
+    if (!candidateAssessmentId || candidateResponseId === null) {
       return;
     }
 
@@ -191,13 +215,21 @@ export function useAssessmentTelemetry(
       active_time_ms: accumulatorRef.current.active_time_ms + inFlightActiveTime,
     };
 
+    snapshot.unique_keys_count = uniqueKeysRef.current.size;
+
     const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
     console.log(payload);
-  }, [candidateAssessmentId]);
+  }, [candidateAssessmentId, candidateResponseId, clearDeltaState]);
 
   useEffect(() => {
     if (!candidateAssessmentId) {
       return;
+    }
+
+    const questionContext = `${activeQuestionId ?? "none"}:${candidateResponseId ?? "none"}`;
+    if (questionContextRef.current !== questionContext) {
+      questionContextRef.current = questionContext;
+      clearQuestionState();
     }
 
     hasWindowFocusRef.current = document.hasFocus();
@@ -210,7 +242,7 @@ export function useAssessmentTelemetry(
       uniqueKeysRef.current.add(key);
 
       accumulatorRef.current.unique_keys_count = uniqueKeysRef.current.size;
-    }
+    };
 
     
     const handleBeforeInput = (event: InputEvent) => {
@@ -268,8 +300,8 @@ export function useAssessmentTelemetry(
     const handleVisibilityChange = () => {
       logTelemetryEvent("visibilitychange");
 
-      if (document.hidden){
-        if(focusLossStartedAtMsRef.current === null){
+      if (document.hidden) {
+        if (focusLossStartedAtMsRef.current === null) {
           focusLossStartedAtMsRef.current = Date.now();
           accumulatorRef.current.focus_loss_count += 1;
         }
@@ -278,8 +310,8 @@ export function useAssessmentTelemetry(
       }
 
       const startedAt = focusLossStartedAtMsRef.current;
-      if (startedAt !== null){
-        accumulatorRef.current.focus_loss_time_ms = Math.max(Date.now() - startedAt,0);
+      if (startedAt !== null) {
+        accumulatorRef.current.focus_loss_time_ms += Math.max(Date.now() - startedAt, 0);
         focusLossStartedAtMsRef.current = null;
       }
       reconcileActiveTimeState();
@@ -302,7 +334,7 @@ export function useAssessmentTelemetry(
     window.addEventListener("blur", handleWindowBlur);
 
     const intervalId = window.setInterval(() => {
-      flushTelemetry();
+      void flushTelemetry();
     }, 5000);
 
     return () => {
@@ -316,7 +348,15 @@ export function useAssessmentTelemetry(
       window.removeEventListener("focus", handleWindowFocus);
       window.removeEventListener("blur", handleWindowBlur);
     };
-  }, [candidateAssessmentId, flushTelemetry, pauseActiveTimeTracking, reconcileActiveTimeState]);
+  }, [
+    activeQuestionId,
+    candidateAssessmentId,
+    candidateResponseId,
+    clearQuestionState,
+    flushTelemetry,
+    pauseActiveTimeTracking,
+    reconcileActiveTimeState,
+  ]);
 
   return { flushTelemetry, uniqueKeysRef, accumulatorRef };
 }

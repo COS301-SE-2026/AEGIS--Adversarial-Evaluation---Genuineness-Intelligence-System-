@@ -145,6 +145,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
    const [candidateAssessId, setCandidateAssessId] = useState<string | null>(null);
    const [questions, setQuestions] = useState<Question[]>([]);
+   const [responseIdByQuestionId, setResponseIdByQuestionId] = useState<Record<number, string>>({});
    const [isLoading, setIsLoading] = useState(true);
    const [isSaving, setIsSaving] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
@@ -154,8 +155,9 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
    const {endTime, setEndTime} = useAssessmentTimer();
    const activeQuestionId = questions[currentQuestionIndex]?.questionId ?? null;
+   const activeQuestionResponseId = activeQuestionId !== null ? responseIdByQuestionId[activeQuestionId] ?? null : null;
 
-   const { flushTelemetry } = useAssessmentTelemetry(candidateAssessId, activeQuestionId);
+   const { flushTelemetry } = useAssessmentTelemetry(candidateAssessId, activeQuestionResponseId, activeQuestionId);
 
    useEffect(() => {
       params.then(p => setCandidateAssessId(p.id));
@@ -220,10 +222,19 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                {}
             );
 
+            const existingResponseIds = responseData.reduce<Record<number, string>>(
+               (acc, response) => {
+                  acc[response.assessment_question_id] = String(response.response_id);
+                  return acc;
+               },
+               {}
+            );
+
             if (isMounted) {
                setQuestions(mapped);
                setCurrentQuestionIndex(0);
                setAnswersByQuestionId(existingAnswers);
+               setResponseIdByQuestionId(existingResponseIds);
                
                if (sessionData.end_time) {
                   setEndTime(sessionData.end_time);
@@ -284,15 +295,16 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       try {
          setIsSaving(true);
          await saveCurrentAnswer();
-         flushTelemetry();
+         await flushTelemetry();
          setCurrentQuestionIndex(currentQuestionIndex + 1);
       } finally {
          setIsSaving(false);
       }
    };
 
-   const handlePrevious = () => {
+   const handlePrevious = async () => {
       if (currentQuestionIndex > 0) {
+         await flushTelemetry();
          setCurrentQuestionIndex(currentQuestionIndex - 1);
       }
    };
@@ -305,6 +317,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
          setIsSubmitting(true);
          // ensure last answer is saved
          await saveCurrentAnswer();
+         await flushTelemetry();
 
          const authToken = getToken() ?? undefined;
          await apiPost(`/api/v1/candidate-assessments/${candidateAssessId}/submit`, undefined, authToken ? { authToken } : {});
@@ -317,7 +330,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       } finally {
          setIsSubmitting(false);
       }
-   }, [candidateAssessId, isSubmitting, router, saveCurrentAnswer]);
+   }, [candidateAssessId, flushTelemetry, isSubmitting, router, saveCurrentAnswer]);
 
    useEffect(()=>{
       if (!endTime || isSubmitted || isSubmitting) return;
