@@ -46,6 +46,33 @@ def _make_response_record(response_id=77, candidate_id=5):
     return response_record
 
 
+def _make_existing_metrics(unique_keys_count=5):
+    metrics = MagicMock()
+    metrics.candidate_response_id = 77
+    metrics.active_time_ms = 1000
+    metrics.chars_alnum = 10
+    metrics.chars_special = 2
+    metrics.backspace_count = 1
+    metrics.copy_event_count = 0
+    metrics.paste_event_count = 0
+    metrics.paste_char_count = 0
+    metrics.focus_loss_count = 0
+    metrics.focus_loss_time_ms = 0
+    metrics.unique_keys_count = unique_keys_count
+    return metrics
+
+
+def _stub_lookup_queries(mock_db, response_record, metrics_record):
+    mock_db.query.side_effect = [
+        MagicMock(
+            **{"filter.return_value.first.return_value": response_record}
+        ),
+        MagicMock(
+            **{"filter.return_value.first.return_value": metrics_record}
+        ),
+    ]
+
+
 def _flush_payload(**delta_overrides):
     delta = dict(
         active_time_ms=1000,
@@ -70,12 +97,7 @@ def test_first_flush_creates_row_with_starting_values(
     candidate_client, mock_db
 ):
     response_record = _make_response_record()
-    mock_db.query.side_effect = [
-        MagicMock(
-            **{"filter.return_value.first.return_value": response_record}
-        ),
-        MagicMock(**{"filter.return_value.first.return_value": None}),
-    ]
+    _stub_lookup_queries(mock_db, response_record, None)
 
     created = {}
 
@@ -112,28 +134,8 @@ def test_second_flush_adds_delta_onto_existing_values(
     candidate_client, mock_db
 ):
     response_record = _make_response_record()
-
-    existing_metrics = MagicMock()
-    existing_metrics.candidate_response_id = 77
-    existing_metrics.active_time_ms = 1000
-    existing_metrics.chars_alnum = 10
-    existing_metrics.chars_special = 2
-    existing_metrics.backspace_count = 1
-    existing_metrics.copy_event_count = 0
-    existing_metrics.paste_event_count = 0
-    existing_metrics.paste_char_count = 0
-    existing_metrics.focus_loss_count = 0
-    existing_metrics.focus_loss_time_ms = 0
-    existing_metrics.unique_keys_count = 5
-
-    mock_db.query.side_effect = [
-        MagicMock(
-            **{"filter.return_value.first.return_value": response_record}
-        ),
-        MagicMock(
-            **{"filter.return_value.first.return_value": existing_metrics}
-        ),
-    ]
+    existing_metrics = _make_existing_metrics()
+    _stub_lookup_queries(mock_db, response_record, existing_metrics)
 
     response = candidate_client.post(
         "/api/v1/candidate-responses/77/metrics/flush",
@@ -153,28 +155,8 @@ def test_flush_with_lower_unique_keys_count_does_not_decrease_it(
     candidate_client, mock_db
 ):
     response_record = _make_response_record()
-
-    existing_metrics = MagicMock()
-    existing_metrics.candidate_response_id = 77
-    existing_metrics.active_time_ms = 1000
-    existing_metrics.chars_alnum = 10
-    existing_metrics.chars_special = 2
-    existing_metrics.backspace_count = 1
-    existing_metrics.copy_event_count = 0
-    existing_metrics.paste_event_count = 0
-    existing_metrics.paste_char_count = 0
-    existing_metrics.focus_loss_count = 0
-    existing_metrics.focus_loss_time_ms = 0
-    existing_metrics.unique_keys_count = 20
-
-    mock_db.query.side_effect = [
-        MagicMock(
-            **{"filter.return_value.first.return_value": response_record}
-        ),
-        MagicMock(
-            **{"filter.return_value.first.return_value": existing_metrics}
-        ),
-    ]
+    existing_metrics = _make_existing_metrics(unique_keys_count=20)
+    _stub_lookup_queries(mock_db, response_record, existing_metrics)
 
     payload = _flush_payload()
     payload["cumulative"]["unique_keys_count"] = 3
