@@ -127,6 +127,27 @@ const filtered = useMemo(() => {
   const allVisibleSelected =
     selectableVisible.length > 0 && selectableVisible.every((c) => selected.has(c.user_id));
 
+  const toggleCandidate = (id: number) => {
+    if (assignedIds.has(id)) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        selectableVisible.forEach((c) => next.delete(c.user_id));
+      } else {
+        selectableVisible.forEach((c) => next.add(c.user_id));
+      }
+      return next;
+    });
+  };
 
   return (
     <div>Modal content</div>
