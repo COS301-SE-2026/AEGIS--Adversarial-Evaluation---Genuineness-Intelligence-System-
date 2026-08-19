@@ -145,6 +145,15 @@ export function useAssessmentTelemetry(
     accumulatorRef.current.unique_keys_count = uniqueKeysRef.current.size;
   }, []);
 
+  const recordPasteEvent = useCallback((pastedText: string) => {
+    accumulatorRef.current.paste_event_count += 1;
+    accumulatorRef.current.paste_char_count += pastedText.length;
+  }, []);
+
+  const recordDeleteEvent = useCallback((deletedCharacterCount: number) => {
+    accumulatorRef.current.backspace_count += Math.max(deletedCharacterCount, 1);
+  }, []);
+
   const clearQuestionState = useCallback(() => {
     uniqueKeysRef.current = new Set();
     accumulatorRef.current = createEmptyTelemetryAccumulator();
@@ -331,7 +340,7 @@ export function useAssessmentTelemetry(
 
       if (event.inputType !== "insertText") {
         if (event.inputType.startsWith("delete")) {
-          accumulatorRef.current.backspace_count += getDeleteCharacterCount(event);
+          recordDeleteEvent(getDeleteCharacterCount(event));
         }
 
         return;
@@ -374,8 +383,7 @@ export function useAssessmentTelemetry(
       logTelemetryEvent("paste");
 
       const pastedText = event.clipboardData?.getData("text/plain") ?? "";
-      accumulatorRef.current.paste_event_count += 1;
-      accumulatorRef.current.paste_char_count += pastedText.length;
+      recordPasteEvent(pastedText);
 };
 
     const handleVisibilityChange = () => {
@@ -446,7 +454,16 @@ export function useAssessmentTelemetry(
     flushTelemetry,
     pauseActiveTimeTracking,
     reconcileActiveTimeState,
+    recordDeleteEvent,
+    recordPasteEvent,
   ]);
 
-  return { flushTelemetry, flushTelemetryKeepAlive, uniqueKeysRef, accumulatorRef };
+  return {
+    flushTelemetry,
+    flushTelemetryKeepAlive,
+    recordDeleteEvent,
+    recordPasteEvent,
+    uniqueKeysRef,
+    accumulatorRef,
+  };
 }

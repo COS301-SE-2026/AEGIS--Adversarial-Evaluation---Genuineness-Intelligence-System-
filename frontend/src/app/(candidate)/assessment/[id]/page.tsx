@@ -157,7 +157,12 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const activeQuestionId = questions[currentQuestionIndex]?.questionId ?? null;
    const activeQuestionResponseId = activeQuestionId !== null ? responseIdByQuestionId[activeQuestionId] ?? null : null;
 
-   const { flushTelemetry, flushTelemetryKeepAlive } = useAssessmentTelemetry(candidateAssessId, activeQuestionResponseId, activeQuestionId);
+   const {
+      flushTelemetry,
+      flushTelemetryKeepAlive,
+      recordPasteEvent,
+      recordDeleteEvent,
+   } = useAssessmentTelemetry(candidateAssessId, activeQuestionResponseId, activeQuestionId);
 
    useEffect(() => {
       params.then((p) => {
@@ -398,6 +403,10 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                         question={currentQuestion}
                         value={answersByQuestionId[currentQuestion.questionId] ?? ""}
                         candidateAssessId={candidateAssessId}
+                        telemetry={{
+                           recordPasteEvent,
+                           recordDeleteEvent,
+                        }}
                         onChange={(value) => {
                            setAnswersByQuestionId((prev) => ({
                               ...prev,
