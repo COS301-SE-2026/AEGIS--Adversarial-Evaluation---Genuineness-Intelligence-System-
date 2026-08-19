@@ -364,6 +364,44 @@ const filtered = useMemo(() => {
           )}
         </div>
 
+                <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-tertiary-surface flex-wrap">
+          <div className="font-jetbrains text-[10px] text-white-smoke/40">
+            TARGETS SELECTED: {String(selected.size).padStart(2, "0")}
+            {failedCount > 0 && (
+              <span className="text-system-red ml-2">{failedCount} failed</span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {successfulLinks.length > 0 && (
+              <button
+                type="button"
+                onClick={copyAllLinks}
+                className="flex items-center gap-1.5 font-jetbrains text-[10px] tracking-wider text-default-text bg-background border border-default-border px-3 py-2 rounded-[5px] cursor-pointer transition-colors duration-150 hover:bg-tertiary-surface"
+              >
+                <Copy size={12} />
+                {linksCopied ? "COPIED" : `COPY LINKS (${successfulLinks.length})`}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="font-jetbrains text-[10px] tracking-wider text-default-text bg-background border border-default-border px-4 py-2 rounded-[5px] cursor-pointer transition-colors duration-150 hover:bg-tertiary-surface"
+            >
+              CLOSE
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkAssign}
+              disabled={assigning || selected.size === 0}
+              className="flex items-center gap-1.5 font-staatliches tracking-wider text-[13px] bg-default-text text-background border border-transparent px-4 py-2 rounded-[5px] cursor-pointer transition-colors duration-150 hover:bg-transparent hover:text-system-red hover:border-system-red disabled:opacity-40 disabled:cursor-default disabled:hover:bg-default-text disabled:hover:text-background disabled:hover:border-transparent"
+            >
+              {assigning && <Loader2 size={14} className="animate-spin" />}
+              ASSIGN SELECTED
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );
