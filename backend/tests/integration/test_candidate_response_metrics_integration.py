@@ -48,7 +48,7 @@ def _make_question_bank(db, category, title):
     question = QuestionBank(
         title=title,
         content="What is 2 + 2?",
-        type=QuestionType.TEXT,
+        type=QuestionType.FILL_IN_THE_BLANK,
         maximum_score=1.0,
         category_id=category.category_id,
     )
