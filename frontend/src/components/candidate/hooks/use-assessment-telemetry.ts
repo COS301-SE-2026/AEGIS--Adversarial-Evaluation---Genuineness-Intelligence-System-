@@ -53,6 +53,26 @@ function classifyInsertedTextCharacter(character: string): "alnum" | "special" |
   return "other";
 }
 
+function getDeleteCharacterCount(event: InputEvent): number {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+    return 0;
+  }
+
+  const selectionStart = target.selectionStart;
+  const selectionEnd = target.selectionEnd;
+
+  if (
+    typeof selectionStart === "number" &&
+    typeof selectionEnd === "number" &&
+    selectionStart !== selectionEnd
+  ) {
+    return Math.max(selectionEnd - selectionStart, 1);
+  }
+
+  return 1;
+}
+
 function createTelemetryFlushPayload(
   candidateAssessmentId: string,
   accumulator: TelemetryAccumulator,
@@ -161,6 +181,10 @@ export function useAssessmentTelemetry(
       logTelemetryEvent("beforeinput");
 
       if (event.inputType !== "insertText") {
+        if (event.inputType.startsWith("delete")) {
+          accumulatorRef.current.backspace_count += getDeleteCharacterCount(event);
+        }
+
         return;
       }
 
