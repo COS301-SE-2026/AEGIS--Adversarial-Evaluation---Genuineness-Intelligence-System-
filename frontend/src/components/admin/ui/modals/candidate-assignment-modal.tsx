@@ -206,6 +206,16 @@ const filtered = useMemo(() => {
     if (successCount > 0) onAssigned?.(successCount);
   };
 
+  const successfulLinks = Object.values(accessLinks);
+  const failedCount = Object.values(rowStatus).filter((s) => s === "error").length;
+
+  const copyAllLinks = () => {
+    if (successfulLinks.length === 0) return;
+    navigator.clipboard.writeText(successfulLinks.join("\n"));
+    setLinksCopied(true);
+    setTimeout(() => setLinksCopied(false), 1500);
+  };
+
   return (
     <div>Modal content</div>
   );
