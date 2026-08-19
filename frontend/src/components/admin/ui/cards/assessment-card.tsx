@@ -334,8 +334,16 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
             </svg>
           </button>
 
-        </div>
+        </div>        
       </div>
+      {assignOpen && (
+        <CandidateAssignmentModal
+          assessmentId={a.assessment_id}
+          assessmentTitle={a.title}
+          onClose={() => setAssignOpen(false)}
+          onAssigned={(count) => onAssigned?.(a.assessment_id, count)}
+        />
+      )}
     </div>
   );
 }
