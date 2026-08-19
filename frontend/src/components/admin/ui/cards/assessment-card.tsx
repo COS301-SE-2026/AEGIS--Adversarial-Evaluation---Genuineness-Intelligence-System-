@@ -182,7 +182,7 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
           assessmentId={a.assessment_id}
           assessmentTitle={a.title}
           onClose={() => setAssignOpen(false)}
-          onAssigned={(count) => onAssigned?.(a.assessment_id, count)}
+          onAssigned={(count: number) => onAssigned?.(a.assessment_id, count)}
         />
       )}
     </div>
