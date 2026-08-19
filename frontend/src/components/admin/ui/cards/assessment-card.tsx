@@ -304,6 +304,7 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
           {createdLabel}
         </div>
         <div className="flex gap-1.5">
+          
           <button
             type="button"
             aria-label="Edit assessment"
@@ -314,7 +315,25 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           </button>
-          <AssignDropdown assessmentId={a.assessment_id} assessmentTitle={a.title} />
+
+          <button
+            type="button"
+            aria-label="Assign to candidates"
+            onClick={(e) => {
+              e.stopPropagation();
+              setAssignOpen(true);
+            }}
+            className="bg-transparent border border-system-red/30 text-system-red/70 p-1 px-2 rounded-[5px] cursor-pointer transition-all duration-150 flex items-center gap-1 hover:border-system-red hover:text-system-red"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="18" cy="5" r="3"/>
+              <circle cx="6" cy="12" r="3"/>
+              <circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+          </button>
+
         </div>
       </div>
     </div>
