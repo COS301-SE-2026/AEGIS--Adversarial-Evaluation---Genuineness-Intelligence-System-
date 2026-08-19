@@ -199,3 +199,166 @@ def test_get_assessment_summary_builds_table_response(monkeypatch):
     assert result.items[0].assessment_id == 101
     assert result.items[0].name == "Python Assessment"
     assert result.items[0].average_score_percent == 88.5
+
+
+def test_get_assessment_card_details_with_no_performers():
+    mock_db = MagicMock()
+    mock_query = MagicMock()
+    mock_db.query.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.join.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.all.return_value = []
+    
+    call_count = [0]
+    def scalar_side_effect():
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return "New Assessment"
+        elif call_count[0] == 2:
+            return None
+        elif call_count[0] == 3:
+            return None
+        return None
+    
+    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.count.return_value = 0
+
+    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+
+    assert result.assessment_id == 1
+    assert result.assessment_name == "New Assessment"
+    assert result.top_performers == []
+    assert result.average_total_percent == 0.0
+    assert result.average_completion_time == 0.0
+    assert result.ai_usage.percent == 0.0
+    assert result.ai_usage.level == AIUsageLevel.LOW
+
+
+def test_get_assessment_card_details_ai_usage_level_low():
+    """Test AI usage level when percent is below 35%"""
+    mock_db = MagicMock()
+    mock_query = MagicMock()
+    mock_db.query.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.join.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.all.return_value = []
+    
+    call_count = [0]
+    def scalar_side_effect():
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return "Test Assessment"
+        elif call_count[0] == 2:
+            return 50.0
+        elif call_count[0] == 3:
+            return 1200.0
+        return None
+    
+    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.count.side_effect = [2, 10]
+
+    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+
+    assert result.ai_usage.level == AIUsageLevel.LOW
+    assert result.ai_usage.percent == 20.0
+
+
+def test_get_assessment_card_details_ai_usage_level_medium():
+    """Test AI usage level when percent is 35-70%"""
+    mock_db = MagicMock()
+    mock_query = MagicMock()
+    mock_db.query.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.join.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.all.return_value = []
+    
+    call_count = [0]
+    def scalar_side_effect():
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return "Test Assessment"
+        elif call_count[0] == 2:
+            return 60.0
+        elif call_count[0] == 3:
+            return 1200.0
+        return None
+    
+    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.count.side_effect = [5, 10]
+
+    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+
+    assert result.ai_usage.level == AIUsageLevel.MEDIUM
+    assert result.ai_usage.percent == 50.0
+
+
+def test_get_assessment_card_details_ai_usage_level_high():
+    """Test AI usage level when percent is 70% or above"""
+    mock_db = MagicMock()
+    mock_query = MagicMock()
+    mock_db.query.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.join.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.all.return_value = []
+    
+    call_count = [0]
+    def scalar_side_effect():
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return "Test Assessment"
+        elif call_count[0] == 2:
+            return 75.0
+        elif call_count[0] == 3:
+            return 1200.0
+        return None
+    
+    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.count.side_effect = [7, 10]
+
+    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+
+    assert result.ai_usage.level == AIUsageLevel.HIGH
+    assert result.ai_usage.percent == 70.0
+
+
+def test_get_assessment_detail_cards_service_function():
+    """Test the public get_assessment_detail_cards function"""
+    mock_db = MagicMock()
+    mock_query = MagicMock()
+    mock_db.query.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.join.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+    mock_query.all.return_value = []
+    
+    call_count = [0]
+    def scalar_side_effect():
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return "Test Assessment"
+        elif call_count[0] == 2:
+            return 85.0
+        elif call_count[0] == 3:
+            return 1500.0
+        return None
+    
+    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.count.return_value = 0
+
+    result = dashboard_service.get_assessment_detail_cards(
+        assessment_id=42,
+        db=mock_db
+    )
+
+    assert isinstance(result, dashboard_service.AssessmentDetailCardResponse)
+    assert result.assessment_id == 42
+    assert result.assessment_name == "Test Assessment"
