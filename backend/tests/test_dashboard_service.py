@@ -6,7 +6,10 @@ from app.schema.dashboard import (
     AverageScore,
     DashboardGraphResponse,
     TableItem,
-    DashboardTableResponse
+    DashboardTableResponse,
+    CandidateResultStatus,
+    AssessmentDetailTableResponse,
+    FilterableTableItem
 )
 from app.services import dashboard as dashboard_service
 
@@ -14,9 +17,13 @@ from app.services import dashboard as dashboard_service
 def _make_query(rows=None, *, count_value=0, scalar_value=0):
     query = MagicMock()
     query.join.return_value = query
+    query.join.return_value = query
+    query.outerjoin.return_value = query
+    query.having.return_value = query
     query.filter.return_value = query
     query.group_by.return_value = query
     query.order_by.return_value = query
+    query.offset.return_value = query
     query.limit.return_value = query
     query.all.return_value = rows or []
     query.count.return_value = count_value
@@ -362,3 +369,116 @@ def test_get_assessment_detail_cards_service_function():
     assert isinstance(result, dashboard_service.AssessmentDetailCardResponse)
     assert result.assessment_id == 42
     assert result.assessment_name == "Test Assessment"
+
+
+def test_get_assessment_detail_table_items_returns_candidate_rows():
+    row = MagicMock()
+    row.candidate_id = 12
+    row.candidate_name = "Alice"
+    row.total_score_percent = 87.456
+    row.status = "PASS"
+    row.ai_rating_percent = 91.234
+
+    mock_db = MagicMock()
+    mock_db.query.return_value = _make_query([row])
+
+    result = dashboard_service._get_assessment_detail_table_items(
+        db=mock_db,
+        assessment_id=101,
+        status=None,
+        search=None,
+        page=1,
+        page_size=8,
+    )
+
+    assert isinstance(result, AssessmentDetailTableResponse)
+    assert result.page == 1
+    assert result.page_size == 8
+    assert len(result.items) == 1
+
+    item = result.items[0]
+    assert isinstance(item, FilterableTableItem)
+    assert item.candidate_id == 12
+    assert item.candidate_name == "Alice"
+    assert item.total_score_percent == 87.46
+    assert item.status == "PASS"
+    assert item.ai_rating_percent == 91.23
+
+
+def test_get_assessment_detail_table_items_returns_empty_list():
+    mock_db = MagicMock()
+    mock_db.query.return_value = _make_query([])
+
+    result = dashboard_service._get_assessment_detail_table_items(
+        db=mock_db,
+        assessment_id=101,
+        status=None,
+        search=None,
+        page=1,
+        page_size=8,
+    )
+
+    assert result.items == []
+    assert result.page == 1
+    assert result.page_size == 8
+
+
+def test_get_assessment_detail_table_items_supports_filters_and_pagination():
+    row = MagicMock()
+    row.candidate_id = 12
+    row.candidate_name = "Alice"
+    row.total_score_percent = 55.0
+    row.status = "PASS"
+    row.ai_rating_percent = 80.0
+
+    mock_db = MagicMock()
+    query = _make_query([row])
+    mock_db.query.return_value = query
+
+    result = dashboard_service._get_assessment_detail_table_items(
+        db=mock_db,
+        assessment_id=101,
+        status="pass",
+        search="alice",
+        page=2,
+        page_size=4,
+    )
+
+    assert result.items[0].status == "PASS"
+    query.offset.assert_called_once_with(4)
+    query.limit.assert_called_once_with(4)
+    query.having.assert_called_once()
+
+
+def test_get_assessment_detail_table_info_delegates_to_helper(monkeypatch):
+    expected = AssessmentDetailTableResponse(
+        items=[],
+        page=2,
+        page_size=4,
+    )
+
+    helper = MagicMock(return_value=expected)
+    monkeypatch.setattr(
+        dashboard_service,
+        "_get_assessment_detail_table_items",
+        helper,
+    )
+
+    result = dashboard_service.get_assessment_detail_table_info(
+        db=MagicMock(),
+        assessment_id=101,
+        status="FAIL",
+        search="bob",
+        page=2,
+        page_size=4,
+    )
+
+    assert result is expected
+    helper.assert_called_once_with(
+        db=helper.call_args.kwargs["db"],
+        assessment_id=101,
+        status="FAIL",
+        search="bob",
+        page=2,
+        page_size=4,
+    )
