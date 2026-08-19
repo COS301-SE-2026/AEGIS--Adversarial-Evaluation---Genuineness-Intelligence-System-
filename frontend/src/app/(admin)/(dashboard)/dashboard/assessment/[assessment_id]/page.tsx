@@ -1,7 +1,16 @@
 import { InfoCard } from "@/components/candidate/ui/cards/report-info-card";
-import { AssessmentAnalyticsTableContainer } from "@/components/admin/ui/dashboard/assessment-analytics-table-container";
+import { AssessmentCandidateTableContainer } from "@/components/admin/ui/dashboard/assessment-candidate-table-container";
 
-export default function DashboardPage() {
+interface AssessmentPageProps {
+  params: Promise<{
+    assessment_id: string;
+  }>;
+}
+
+export default async function AssessmentPage( { params, }: AssessmentPageProps ) {
+  const { assessment_id } = await params;
+  const assessmentId = Number(assessment_id);
+  
   return (
     <section>
 
@@ -14,7 +23,7 @@ export default function DashboardPage() {
       <div className="flex flex-col justify-between gap-12 rounded-xl mt-8">
 
         <div className="mb-4">
-          <AssessmentAnalyticsTableContainer/>
+          <AssessmentCandidateTableContainer assessmentId={assessmentId}/>
         </div>
 
       </div>

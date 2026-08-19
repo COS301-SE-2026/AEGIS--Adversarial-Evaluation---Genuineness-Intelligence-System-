@@ -1,13 +1,15 @@
 "use client"
 
 import { AssessmentAnalyticsTable } from "./assessment-analytics-table";
-import { useDashboardTable } from "@/hooks/dashboard-table-hook";
-import { assessmentColumns } from "./assessment-analytics-table-columns";
+import { candidateColumns } from "./assessment-candidates-table-columns";
+import { useAssessmentCandidate } from "@/hooks/dashboard-assessment-candidates-hook"
 
+interface AssessmentCandidateTableContainerProps {
+    assessmentId: number;
+}
 
-export function AssessmentAnalyticsTableContainer() {
-    const {data, isLoading, isError, error} = useDashboardTable();
-
+export function AssessmentCandidateTableContainer({ assessmentId }: Readonly<AssessmentCandidateTableContainerProps>) {
+    const { data, isLoading, isError, error } = useAssessmentCandidate(assessmentId);
 
     if (isLoading) {
         return (
@@ -18,10 +20,10 @@ export function AssessmentAnalyticsTableContainer() {
     if (isError) {
         return (
             <div className="border border-system-red p-6">
-                <p className="text text-sm text-system-red">
+                <p className="text-sm text-system-red">
                     {error instanceof Error
                         ? error.message
-                        : "Failed to load assessment analytics."
+                        : "Failed to load candidate results"
                     }
                 </p>
             </div>
@@ -34,17 +36,19 @@ export function AssessmentAnalyticsTableContainer() {
 
     return (
         <div className="w-full">
-            
+
             <div className="mb-4">
                 <h2 className="text-xl tracking-wide">
-                    Assessment Performance Table
+                    Candidate Results
                 </h2>
             </div>
-            <AssessmentAnalyticsTable 
+
+            <AssessmentAnalyticsTable
                 items={data.items}
-                columns={assessmentColumns}
-                emptyMessage="No assessment analytics available"
+                columns={candidateColumns}
+                emptyMessage="No candidates have completed this assessment"
             />
+
         </div>
     )
 }

@@ -1,4 +1,4 @@
-
+import type { ReactNode } from "react";
 
 export interface TopPerformer {
     candidate_name: string,
@@ -61,4 +61,30 @@ export interface AssessmentAnalyticsTable {
     items: AssessmentAnalyticsTableItems[]
     page: number,
     page_size: number
+}
+
+export interface AnalyticsTableColumn<T> {
+    key: string;
+    header: string;
+    render: (item: T) => ReactNode;
+    className?: string;
+}
+
+export interface AnalyticsTableProps<T> {
+    items: T[];
+    columns: AnalyticsTableColumn<T>[];
+    emptyMessage?: string;
+}
+
+export interface AssessmentCandidateResult {
+    candidate_id: number;
+    candidate_name: string;
+    total_score_percent: number;
+    status: "PASS" | "FAIL";
+    ai_rating_percent: number;
+}
+
+export interface AssessmentCandidatesResponse {
+    items: AssessmentCandidateResult[];
+    total: number;
 }
