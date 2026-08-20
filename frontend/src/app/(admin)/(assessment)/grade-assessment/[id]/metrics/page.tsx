@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { apiGet, ApiError } from "@/lib/apiClient";
+import { getAuthHeaders } from "@/lib/auth";
 import { CandidateMetrics } from "@/app/(admin)/types/metrics";
+import Button from "@/components/hero/ui/button";
 import MetricsTable from "@/components/admin/ui/cards/metrics-table";
 
 const GradeAssessmentMetricsPage = () => {
@@ -19,7 +21,8 @@ const GradeAssessmentMetricsPage = () => {
             try {
                 setIsLoading(true);
                 const data = await apiGet<CandidateMetrics[]>(
-                    `/api/v1/candidate-assessments/${params.id}/metrics`
+                    `/api/v1/candidate-assessments/${params.id}/metrics`,
+                    { headers: getAuthHeaders()}
                 );
 
                 if (isMounted) {
@@ -58,10 +61,16 @@ const GradeAssessmentMetricsPage = () => {
 
     return (
         <div>
-        <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-default-text mb-4">
-            Behavioural Metrics
-        </h1>
-        <MetricsTable metrics={metrics} />
+            <div className="mb-4 flex items-center justify-between gap-4 pt-2">
+                <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-default-text">
+                    Behavioural Metrics
+                </h1>
+
+                <Button variant="solid" className="px-4 py-2 text-sm">
+                    Back
+                </Button>
+            </div>
+            <MetricsTable metrics={metrics} />
         </div>
     );
 }
