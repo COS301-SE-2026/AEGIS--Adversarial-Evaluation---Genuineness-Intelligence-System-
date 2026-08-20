@@ -1,12 +1,4 @@
 import os
-from unittest.mock import MagicMock
-
-import pytest
-from fastapi.testclient import TestClient
-
-from app.core.security import get_current_user
-from app.database.database import get_db
-from app.main import app
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
@@ -18,6 +10,15 @@ os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-github-client-secret")
 os.environ.setdefault(
     "GITHUB_REDIRECT_URI", "http://localhost:8000/github/callback"
 )
+
+from unittest.mock import MagicMock
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app.core.security import get_current_user
+from app.database.database import get_db
+from app.main import app
 
 
 @pytest.fixture
