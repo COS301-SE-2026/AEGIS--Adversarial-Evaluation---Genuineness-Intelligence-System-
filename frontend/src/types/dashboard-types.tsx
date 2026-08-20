@@ -22,8 +22,13 @@ export type InfoCardProps =
             type: "metric";
             title: string;
             value: number | string;
-            suffix?: string;
             icon: InfoCardIcon;
+        }
+    |   {
+            type: "duration";
+            title: string;
+            value: number
+            icon: InfoCardIcon
         }
     |   {
             type: "percentage";

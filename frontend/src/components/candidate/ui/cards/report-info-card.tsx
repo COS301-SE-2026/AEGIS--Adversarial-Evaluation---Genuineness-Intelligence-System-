@@ -12,8 +12,37 @@ const iconMap = {
     ai: AIIcon,
 }
 
+function formatDuration(minutesTotal: number): string {
+    if (minutesTotal < 60) {
+        return `${Math.round(minutesTotal)} min`;
+    }
+
+    const hours = Math.floor(minutesTotal / 60);
+    const minutes = Math.round(minutesTotal % 60);
+
+    if (minutes === 0) {
+        return `${hours} ${hours === 1 ? "Hour" : "Hours"}`;
+    }
+
+    return `${hours} ${hours === 1 ? "Hour" : "Hours"} ${minutes} Min`
+}
+
+
+
 export function InfoCard( props : Readonly<InfoCardProps>) {
     const Icon = iconMap[props.icon];
+
+    const rankingLevel = () => {
+        if (props.type === "percentage" && props.label === "HIGH") {
+            return "text-system-red";
+        }
+        else if (props.type === "percentage" && props.label === "MEDIUM") {
+            return "text-status-warning";
+        }
+        else {
+            return ("text-status-success");
+        }
+    }  
 
     const renderContent = () => {
         
@@ -21,25 +50,33 @@ export function InfoCard( props : Readonly<InfoCardProps>) {
             case "metric":
                 return (
                     <div className="flex flex-col items-center mt-6 font-medium">
-                        <p className="text-xl sm:text-2xl font-medium">
+                        <p className="text-xl sm:text-2xl">
                             {props.value}
-                            {props.suffix && (
-                                <span className="ml-1 text-sm text-default-border">
-                                    {props.suffix}
-                                </span>
-                            )}
                         </p>
                     </div>
                 );
             
+            case "duration" :
+                return (
+                    <div className="flex flex-col items-center font-medium mt-6">
+                        <p className="text-xl sm:text-2xl">
+                            {formatDuration(props.value)}
+                        </p>
+                    </div>
+                )
+
             case "percentage":
                 return ( 
-                    <div className="flex flex-col items-center text-md sm:text-xl font-medium mt-4">
+                    <div className="flex flex-row items-center justify-evenly gap-2 text-md sm:text-xl font-medium mt-6">   
+                       
+                        {props.value}%
+
                         {props.label && (
-                            <span>
+                            <span className={rankingLevel()}>
                                 {props.label}
                             </span>
                         )}
+                       
                     </div>
                 );
 
