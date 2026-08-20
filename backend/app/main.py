@@ -23,6 +23,7 @@ from app.api.routes.candidate_ass import (
     metrics_router as candidate_response_metrics_router,
 )
 from app.api.routes.dashboard import router as dashboard_router
+from app.api.routes.metrics import router as metrics_router
 
 app = FastAPI()
 
@@ -58,6 +59,7 @@ app.include_router(assessment_adversarial_router, prefix=API_V1_PREFIX)
 app.include_router(question_adversarial_router, prefix=API_V1_PREFIX)
 app.include_router(adversarial_questions_router, prefix=API_V1_PREFIX)
 app.include_router(dashboard_router, prefix=API_V1_PREFIX)
+app.include_router(metrics_router, prefix=API_V1_PREFIX)
 
 
 @app.on_event("startup")
