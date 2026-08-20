@@ -44,7 +44,8 @@ def get_metrics_for_assessment(
             focus_loss_count=1,
             focus_loss_time_ms=8000,
         ),
-        # above: row 2 — frequent tab-switching (focus_loss_count=4 >= 3), paste clean
+        # above: row 2 — frequent tab-switching (focus_loss_count=4 >= 3)
+        # paste clean
         CandidateMetricsResponse(
             candidate_response_id=2,
             active_time_ms=210500,
@@ -71,5 +72,5 @@ def get_metrics_for_assessment(
             paste_char_count=0,
             focus_loss_count=1,
             focus_loss_time_ms=4500,
-    ),
+        ),
     ]
