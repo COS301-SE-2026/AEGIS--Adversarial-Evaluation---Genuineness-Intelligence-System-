@@ -67,15 +67,9 @@ export function InfoCard( props : Readonly<InfoCardProps>) {
 
             case "percentage":
                 return ( 
-                    <div className="flex flex-row items-center justify-evenly gap-2 text-md sm:text-xl font-medium mt-6">   
+                    <div className="flex flex-col items-center justify-evenly gap-2 text-md sm:text-xl font-medium mt-6">   
                        
                         {props.value}%
-
-                        {props.label && (
-                            <span className={rankingLevel()}>
-                                {props.label}
-                            </span>
-                        )}
                        
                     </div>
                 );
