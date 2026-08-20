@@ -89,9 +89,7 @@ export default function CodeEditorCard({
         };
     }, []);
 
-    const handleEditorMount = (
-        editor: any,
-    ) => {
+    const handleEditorMount: NonNullable<React.ComponentProps<typeof Editor>["onMount"]> = (editor, monaco) => {
         editorDisposablesRef.current.forEach((disposable) => disposable.dispose());
         editorDisposablesRef.current = [];
 
