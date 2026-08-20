@@ -1296,7 +1296,11 @@ def test_submit_candidate_assessment_fetches_response_metrics_for_attempt():
     metrics_query = _mock_query_result([metrics_row])
     mock_db.query.side_effect = [session_query, metrics_query]
 
-    result = submit_candidate_assessment(mock_db, 9)
+    with patch(
+        "app.services.assessment.get_gemini_client",
+        return_value=MagicMock(),
+    ):
+        result = submit_candidate_assessment(mock_db, 9)
 
     assert result is mock_session
     assert mock_session.status == SessionStatus.COMPLETED
@@ -1325,11 +1329,16 @@ def test_submit_candidate_assessment_skips_metrics_query_when_no_responses():
     session_query = _mock_query_result(mock_session)
     mock_db.query.side_effect = [session_query]
 
-    result = submit_candidate_assessment(mock_db, 9)
+    with patch(
+        "app.services.assessment.get_gemini_client"
+    ) as mock_get_client:
+        result = submit_candidate_assessment(mock_db, 9)
 
     assert result is mock_session
     assert mock_session.status == SessionStatus.COMPLETED
     assert mock_db.query.call_count == 1
+    mock_get_client.assert_not_called()
+    assert mock_session.behavioral_summary is None
 
 
 def test_submit_candidate_assessment_raises_404_when_missing():
@@ -1341,3 +1350,111 @@ def test_submit_candidate_assessment_raises_404_when_missing():
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Candidate assessment not found"
+
+
+def _make_metrics_row(response_id, **overrides):
+    fields = {
+        "candidate_response_id": response_id,
+        "candidate_assessment_id": 9,
+        "active_time_ms": 120000,
+        "unique_keys_count": 30,
+        "chars_alnum": 200,
+        "chars_special": 10,
+        "backspace_count": 15,
+        "copy_event_count": 0,
+        "paste_event_count": 3,
+        "paste_char_count": 450,
+        "focus_loss_count": 4,
+        "focus_loss_time_ms": 20000,
+    }
+    fields.update(overrides)
+    return CandidateResponseMetrics(**fields)
+
+
+def _make_submit_ready_session(response_id=101):
+    mock_resp = MagicMock()
+    mock_resp.response_id = response_id
+    mock_resp.score = 2.0
+
+    mock_session = MagicMock()
+    mock_session.responses = [mock_resp]
+
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_questions = []
+    mock_session.assessment = mock_assessment
+    return mock_session
+
+
+def test_submit_candidate_assessment_generates_and_stores_behavioral_summary():
+    mock_db = MagicMock()
+    mock_session = _make_submit_ready_session(response_id=101)
+    metrics_row = _make_metrics_row(101, paste_event_count=3)
+
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result([metrics_row]),
+    ]
+
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text="  The candidate pasted heavily and typed steadily.  ",
+    )
+
+    with patch(
+        "app.services.assessment.get_gemini_client",
+        return_value=mock_client,
+    ):
+        result = submit_candidate_assessment(mock_db, 9)
+
+    assert result.behavioral_summary == (
+        "The candidate pasted heavily and typed steadily."
+    )
+
+    call_kwargs = mock_client.models.generate_content.call_args.kwargs
+    assert call_kwargs["model"] == "gemini-3.1-flash-lite"
+    assert call_kwargs["config"].temperature == 0.0
+    assert "3 paste event(s)" in call_kwargs["contents"]
+    assert "450 pasted character(s)" in call_kwargs["contents"]
+    mock_db.commit.assert_called_once()
+
+
+def test_submit_candidate_assessment_skips_gemini_when_no_metrics_flushed():
+    mock_db = MagicMock()
+    mock_session = _make_submit_ready_session(response_id=201)
+
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result([]),
+    ]
+
+    with patch(
+        "app.services.assessment.get_gemini_client"
+    ) as mock_get_client:
+        result = submit_candidate_assessment(mock_db, 9)
+
+    mock_get_client.assert_not_called()
+    assert result.behavioral_summary is None
+    mock_db.commit.assert_called_once()
+
+
+def test_submit_candidate_assessment_summary_null_on_gemini_failure():
+    mock_db = MagicMock()
+    mock_session = _make_submit_ready_session(response_id=301)
+    metrics_row = _make_metrics_row(301)
+
+    mock_db.query.side_effect = [
+        _mock_query_result(mock_session),
+        _mock_query_result([metrics_row]),
+    ]
+
+    with patch(
+        "app.services.assessment.get_gemini_client",
+        side_effect=RuntimeError("Gemini is unreachable"),
+    ):
+        result = submit_candidate_assessment(mock_db, 9)
+
+    assert result is mock_session
+    assert mock_session.status == SessionStatus.COMPLETED
+    assert result.behavioral_summary is None
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_session)
