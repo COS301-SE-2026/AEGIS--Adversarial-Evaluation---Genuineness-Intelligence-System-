@@ -122,10 +122,6 @@ function buildTelemetrySnapshot(
   };
 }
 
-function logTelemetryEvent(eventType: string) {
-  console.log(eventType);
-}
-
 export function useAssessmentTelemetry(
   candidateAssessmentId: number | null,
   candidateResponseId: number | null,
@@ -241,9 +237,7 @@ export function useAssessmentTelemetry(
     );
 
     const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
-    console.log(payload);
-
-     const authToken = getToken() ?? undefined;
+    const authToken = getToken() ?? undefined;
 
     try {
       await apiPost<{
@@ -326,8 +320,6 @@ export function useAssessmentTelemetry(
     reconcileActiveTimeState();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      logTelemetryEvent("keydown");
-
       const key = event.key.toLowerCase();
       uniqueKeysRef.current.add(key);
 
@@ -336,8 +328,7 @@ export function useAssessmentTelemetry(
 
     
     const handleBeforeInput = (event: InputEvent) => {
-      logTelemetryEvent("beforeinput");
-
+  
       if (event.inputType !== "insertText") {
         if (event.inputType.startsWith("delete")) {
           recordDeleteEvent(getDeleteCharacterCount(event));
@@ -366,7 +357,6 @@ export function useAssessmentTelemetry(
     };
     
     const handleCopy = (event: ClipboardEvent) => {
-      logTelemetryEvent("copy");
 
       if (isInsideCodeEditor(event)) {
         return;
@@ -380,14 +370,13 @@ export function useAssessmentTelemetry(
     };
 
     const handlePaste = (event: ClipboardEvent) => {
-      logTelemetryEvent("paste");
 
       const pastedText = event.clipboardData?.getData("text/plain") ?? "";
       recordPasteEvent(pastedText);
 };
 
     const handleVisibilityChange = () => {
-      logTelemetryEvent("visibilitychange");
+
 
       if (document.hidden) {
         if (focusLossStartedAtMsRef.current === null) {
@@ -407,7 +396,6 @@ export function useAssessmentTelemetry(
     };
 
     const handlePageHide = () => {
-      logTelemetryEvent("pagehide");
       void flushTelemetryKeepAlive();
     };
 
