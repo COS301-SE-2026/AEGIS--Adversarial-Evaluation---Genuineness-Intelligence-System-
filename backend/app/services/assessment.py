@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 import json
 import keyword
+import logging
 import uuid
 from typing import Any
 from fastapi import HTTPException, status
@@ -10,6 +11,7 @@ from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.candidate_test_results import CandidateTestResult
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.question_bank import QuestionBank, QuestionType
@@ -18,6 +20,8 @@ from app.models.user import User
 from app.schema.candidate_response import ResponseCreate
 import ast
 from app.services.test_cases import get_test_cases_by_question_id
+
+_logger = logging.getLogger(__name__)
 
 ASSESSMENT_NOT_FOUND = "Assessment not found"
 
@@ -687,6 +691,26 @@ def submit_candidate_assessment(
     session.total_score = total_score
     session.status = SessionStatus.COMPLETED
     session.end_time = datetime.now(timezone.utc)
+
+    response_ids = [resp.response_id for resp in session.responses]
+    response_metrics = (
+        db.query(CandidateResponseMetrics)
+        .filter(
+            CandidateResponseMetrics.candidate_response_id.in_(response_ids)
+        )
+        .all()
+        if response_ids
+        else []
+    )
+    _logger.info(
+        "Fetched %d candidate_response_metrics row(s) for "
+        "candidate_assessment_id=%s (response_ids=%s): "
+        "metrics_response_ids=%s",
+        len(response_metrics),
+        candidate_assessment_id,
+        response_ids,
+        [m.candidate_response_id for m in response_metrics],
+    )
 
     db.commit()
     db.refresh(session)

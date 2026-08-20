@@ -356,8 +356,10 @@ def test_submit_candidate_assessment_updates_scores(client, mock_db):
     mock_assessment.assessment_questions = [mock_aq_1, mock_aq_2]
     mock_session.assessment = mock_assessment
 
+    # query sequence: CandidateAssessment, CandidateResponseMetrics
     mock_db.query.side_effect = [
         _mock_query_result(mock_session),
+        _mock_query_result([]),
     ]
 
     response = client.post(

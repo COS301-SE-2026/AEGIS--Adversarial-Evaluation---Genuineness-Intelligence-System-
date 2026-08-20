@@ -10,6 +10,7 @@ from app.models.adversarial_question import AdversarialQuestion
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
+from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.candidate_test_results import CandidateTestResult
 from app.models.coding_test_cases import CodingTestCase
 from app.models.candidate_response import CorrectnessStatus
@@ -32,6 +33,7 @@ from app.services.assessment import (
     save_candidate_code_test_results,
     save_candidate_response,
     start_candidate_assessment,
+    submit_candidate_assessment,
     update_assessment,
 )
 from app.schema.candidate_response import ResponseCreate
@@ -58,6 +60,7 @@ def _make_mock_db_for_by_id(assessment):
 def _mock_query_result(result):
     query = MagicMock()
     query.filter.return_value.first.return_value = result
+    query.filter.return_value.all.return_value = result
     query.options.return_value.filter.return_value.first.return_value = result
     return query
 
@@ -1266,3 +1269,75 @@ def test_execute_candidate_code_non_coding_question(monkeypatch):
     with pytest.raises(HTTPException) as exc_info:
         execute_candidate_code(mock_db, 1, 2, "print('code')")
     assert exc_info.value.status_code == 400
+
+
+def test_submit_candidate_assessment_fetches_response_metrics_for_attempt():
+    mock_db = MagicMock()
+
+    mock_resp_1 = MagicMock()
+    mock_resp_1.response_id = 101
+    mock_resp_1.score = 2.0
+    mock_resp_2 = MagicMock()
+    mock_resp_2.response_id = 102
+    mock_resp_2.score = 1.0
+
+    mock_session = MagicMock()
+    mock_session.responses = [mock_resp_1, mock_resp_2]
+
+    mock_aq = MagicMock()
+    mock_aq.marks = 5.0
+    mock_aq.question_bank = None
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_questions = [mock_aq]
+    mock_session.assessment = mock_assessment
+
+    metrics_row = CandidateResponseMetrics(candidate_response_id=101)
+    session_query = _mock_query_result(mock_session)
+    metrics_query = _mock_query_result([metrics_row])
+    mock_db.query.side_effect = [session_query, metrics_query]
+
+    result = submit_candidate_assessment(mock_db, 9)
+
+    assert result is mock_session
+    assert mock_session.status == SessionStatus.COMPLETED
+    assert mock_db.query.call_count == 2
+    assert mock_db.query.call_args_list[1].args == (CandidateResponseMetrics,)
+
+    expected_filter = CandidateResponseMetrics.candidate_response_id.in_(
+        [101, 102]
+    )
+    actual_filter = metrics_query.filter.call_args.args[0]
+    assert actual_filter.compare(expected_filter)
+
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_session)
+
+
+def test_submit_candidate_assessment_skips_metrics_query_when_no_responses():
+    mock_db = MagicMock()
+
+    mock_session = MagicMock()
+    mock_session.responses = []
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_questions = []
+    mock_session.assessment = mock_assessment
+
+    session_query = _mock_query_result(mock_session)
+    mock_db.query.side_effect = [session_query]
+
+    result = submit_candidate_assessment(mock_db, 9)
+
+    assert result is mock_session
+    assert mock_session.status == SessionStatus.COMPLETED
+    assert mock_db.query.call_count == 1
+
+
+def test_submit_candidate_assessment_raises_404_when_missing():
+    mock_db = MagicMock()
+    mock_db.query.side_effect = [_mock_query_result(None)]
+
+    with pytest.raises(HTTPException) as exc_info:
+        submit_candidate_assessment(mock_db, 999)
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Candidate assessment not found"
