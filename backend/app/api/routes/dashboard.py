@@ -7,6 +7,7 @@ from app.schema.dashboard import (
     DashboardGraphResponse,
     DashboardTableResponse,
     AssessmentDetailCardResponse,
+    AssessmentDetailTableResponse,
 )
 from app.services import dashboard
 
@@ -45,3 +46,22 @@ def get_assessment_detail_cards(
     db: Annotated[Session, Depends(get_db)]
 ) -> AssessmentDetailCardResponse:
     return dashboard.get_assessment_detail_cards(assessment_id, db)
+
+
+@router.get("/assessments/{assessment_id}/candidates")
+def get_assessment_detail_table(
+    assessment_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    status: str | None = None,
+    search: str | None = None,
+    page: int = 1,
+    page_size: int = 8,
+) -> AssessmentDetailTableResponse:
+    return dashboard.get_assessment_detail_table_info(
+        db,
+        assessment_id,
+        status,
+        search,
+        page,
+        page_size
+    )

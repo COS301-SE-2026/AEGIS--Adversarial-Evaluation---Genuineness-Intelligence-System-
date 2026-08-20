@@ -1,7 +1,7 @@
 import os
 import pytest
 from unittest.mock import MagicMock, patch
-
+#added this comment to rerun a PR
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database.database import get_db
@@ -12,7 +12,10 @@ from app.schema.dashboard import (
     AIUsageLevel,
     TableItem,
     DashboardTableResponse,
-    AssessmentDetailCardResponse
+    AssessmentDetailCardResponse,
+    AssessmentDetailTableResponse,
+    FilterableTableItem,
+    CandidateResultStatus,
 )
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
@@ -233,3 +236,82 @@ def test_get_assessment_detail_cards_three_top_performers(client, mock_db):
     assert data["top_performers"][0]["candidate_name"] == "Alice"
     assert data["top_performers"][1]["candidate_name"] == "Bob"
     assert data["top_performers"][2]["candidate_name"] == "Charlie"
+
+
+def test_get_assessment_detail_table_returns_filtered_rows(client, mock_db):
+    response_obj = AssessmentDetailTableResponse(
+        items=[
+            FilterableTableItem(
+                candidate_id=12,
+                candidate_name="Alice",
+                total_score_percent=87.46,
+                status=CandidateResultStatus.PASS,
+                ai_rating_percent=91.23,
+            )
+        ],
+        page=1,
+        page_size=8,
+    )
+
+    with patch(
+        "app.api.routes.dashboard.dashboard"
+        ".get_assessment_detail_table_info",
+        return_value=response_obj,
+    ) as mock_table:
+        response = client.get(
+            "/api/v1/admin/dashboard/assessments/101/candidates",
+            params={
+                "status": "PASS",
+                "search": "Alice",
+                "page": 1,
+                "page_size": 8,
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [
+            {
+                "candidate_id": 12,
+                "candidate_name": "Alice",
+                "total_score_percent": 87.46,
+                "status": "PASS",
+                "ai_rating_percent": 91.23,
+            }
+        ],
+        "page": 1,
+        "page_size": 8,
+    }
+
+    mock_table.assert_called_once_with(
+        mock_db,
+        101,
+        "PASS",
+        "Alice",
+        1,
+        8,
+    )
+
+def test_get_assessment_detail_table_returns_empty_items(client, mock_db):
+    response_obj = AssessmentDetailTableResponse(
+        items=[],
+        page=1,
+        page_size=8,
+    )
+
+    with patch(
+        "app.api.routes.dashboard.dashboard"
+        ".get_assessment_detail_table_info",
+        return_value=response_obj,
+    ):
+        response = client.get(
+            "/api/v1/admin/dashboard/assessments/101/candidates"
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "page": 1,
+        "page_size": 8,
+    }
+

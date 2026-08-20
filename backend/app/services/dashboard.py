@@ -1,4 +1,5 @@
-from sqlalchemy import func
+from sqlalchemy import func, case
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.schema.dashboard import (
     DashboardSummaryResponse,
@@ -9,7 +10,9 @@ from app.schema.dashboard import (
     AverageScore,
     DashboardTableResponse,
     TableItem,
-    AssessmentDetailCardResponse
+    AssessmentDetailCardResponse,
+    AssessmentDetailTableResponse,
+    FilterableTableItem,
 )
 from app.models.user import User
 from app.models.assessment import Assessment
@@ -374,6 +377,112 @@ def _get_assessment_card_details(
     )
 
 
+def _get_assessment_detail_table_items(
+        db: Session,
+        assessment_id: int,
+        status: Optional[str],
+        search: Optional[str],
+        page: int,
+        page_size: int,
+) -> AssessmentDetailTableResponse:
+
+    total_score_percent = (
+        CandidateAssessment.candidate_score /
+        CandidateAssessment.total_score * 100
+    )
+
+    result_status = case(
+        (total_score_percent >= 50, "PASS"),
+        else_="FAIL",
+    ).label("status")
+
+    ai_rating_percent = (
+        func.avg(AIAnalysis.similarity_score) * 100
+    ).label("ai_rating_percent")
+
+    candidate_name = func.coalesce(
+        User.full_name,
+        User.email,
+    ).label("candidate_name")
+
+    query = (
+        db.query(
+            User.user_id.label("candidate_id"),
+            candidate_name,
+            total_score_percent.label("total_score_percent"),
+            result_status,
+            ai_rating_percent,
+        )
+        .join(
+            User,
+            CandidateAssessment.candidate_id == User.user_id,
+        )
+        .outerjoin(
+            CandidateResponse,
+            CandidateResponse.candidate_assessment_id
+            == CandidateAssessment.candidate_assess_id,
+        )
+        .outerjoin(
+            AIAnalysis,
+            AIAnalysis.response_id == CandidateResponse.response_id,
+        )
+        .filter(
+            CandidateAssessment.assessment_id == assessment_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+            CandidateAssessment.total_score.isnot(None),
+            CandidateAssessment.total_score > 0,
+            CandidateAssessment.candidate_score.isnot(None),
+        )
+    )
+
+    if search:
+        query = query.filter(
+            candidate_name.ilike(f"%{search.strip()}%")
+        )
+
+    query = query.group_by(
+        User.user_id,
+        User.full_name,
+        User.email,
+        CandidateAssessment.candidate_assess_id,
+        CandidateAssessment.candidate_score,
+        CandidateAssessment.total_score,
+    )
+
+    if status:
+        query = query.having(
+            result_status == status.strip().upper()
+        )
+
+    rows = (
+        query
+        .order_by(candidate_name)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+
+    _items = [
+        FilterableTableItem(
+            candidate_id=row.candidate_id,
+            candidate_name=row.candidate_name,
+            total_score_percent=round(row.total_score_percent, 2),
+            status=row.status,
+            ai_rating_percent=round(
+                row.ai_rating_percent or 0.0,
+                2,
+            ),
+        )
+        for row in rows
+    ]
+
+    return AssessmentDetailTableResponse(
+        items=_items,
+        page=page,
+        page_size=page_size,
+    )
+
+
 def get_dashboard_summary(
         db: Session,
         recruiter_id: int
@@ -413,3 +522,21 @@ def get_assessment_detail_cards(
         db: Session
 ) -> AssessmentDetailCardResponse:
     return _get_assessment_card_details(db, assessment_id)
+
+
+def get_assessment_detail_table_info(
+        db: Session,
+        assessment_id: int,
+        status: Optional[str] = None,
+        search: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 8
+) -> AssessmentDetailTableResponse:
+    return _get_assessment_detail_table_items(
+        db=db,
+        assessment_id=assessment_id,
+        status=status,
+        search=search,
+        page=page,
+        page_size=page_size
+    )
