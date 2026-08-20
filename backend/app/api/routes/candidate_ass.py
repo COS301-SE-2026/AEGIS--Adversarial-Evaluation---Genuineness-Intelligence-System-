@@ -8,12 +8,20 @@ from app.schema.candidate_response import (
     CandidateResponseResponse,
     ResponseUpdate
 )
+from app.schema.candidate_response_metrics import (
+    MetricsFlushRequest,
+    MetricsFlushResponse,
+)
 from app.services.candidate import (
+    flush_response_metrics,
     get_candidate_assessment_session,
     update_response
 )
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
+metrics_router = APIRouter(
+    prefix="/candidate-responses", tags=["candidate-response-metrics"]
+)
 
 
 @router.get(
@@ -67,4 +75,28 @@ async def update_cand_response(
         candidate_answer=response.candidate_answer,
         score=response.score,
         is_correct=response.is_correct.value if response.is_correct else None
+    )
+
+
+@metrics_router.post(
+    "/{candidate_response_id}/metrics/flush",
+    response_model=MetricsFlushResponse
+)
+async def flush_metrics(
+    candidate_response_id: int,
+    payload: MetricsFlushRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)]
+):
+    candidate_id = int(current_user["user_id"])
+    metrics = flush_response_metrics(
+        db,
+        candidate_response_id,
+        candidate_id,
+        payload
+    )
+
+    return MetricsFlushResponse(
+        candidate_response_id=metrics.candidate_response_id,
+        updated_at=metrics.updated_at,
     )

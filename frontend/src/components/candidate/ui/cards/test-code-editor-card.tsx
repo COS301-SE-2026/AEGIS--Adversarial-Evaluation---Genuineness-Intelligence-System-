@@ -1,5 +1,5 @@
 'use client';
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Editor } from "@monaco-editor/react";
 import { apiPost } from "@/lib/apiClient"
 
@@ -8,9 +8,13 @@ interface CodeEditorProps {
     code: string;
     setCode: React.Dispatch<React.SetStateAction<string>>;
     questionId: number;
-    candidateAssessId?: string | null;
+    candidateAssessId?: number | null;
     questionTitle?: string;
     functionSignature?: string;
+    telemetry?: {
+        recordPasteEvent: (pastedText: string) => void;
+        recordDeleteEvent: (deletedCharacterCount: number) => void;
+    };
 }
 
 type ExecuteResponse = {
@@ -36,6 +40,21 @@ function isPythonRuntimeTraceback(errorMessage: string): boolean {
     return normalized.includes("traceback (most recent call last)") || normalized.includes("nameerror:");
 }
 
+type MonacoRange = {
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+};
+
+type MonacoPasteEvent = {
+    range: MonacoRange;
+};
+
+type MonacoKeyboardEvent = {
+    browserEvent: KeyboardEvent;
+};
+
 export default function CodeEditorCard({
     code,
     setCode,
@@ -43,6 +62,7 @@ export default function CodeEditorCard({
     candidateAssessId,
     questionTitle,
     functionSignature,
+    telemetry,
 }: CodeEditorProps) {
 
     type RunSummary =
@@ -60,6 +80,62 @@ export default function CodeEditorCard({
         message: "Click Run Code To Test Your Code.",
     });
     const [isRunning, setIsRunning] = useState(false);
+    const editorDisposablesRef = useRef<Array<{ dispose: () => void }>>([]);
+
+    useEffect(() => {
+        return () => {
+            editorDisposablesRef.current.forEach((disposable) => disposable.dispose());
+            editorDisposablesRef.current = [];
+        };
+    }, []);
+
+    const handleEditorMount: NonNullable<React.ComponentProps<typeof Editor>["onMount"]> = (editor, monaco) => {
+        editorDisposablesRef.current.forEach((disposable) => disposable.dispose());
+        editorDisposablesRef.current = [];
+
+        if (!telemetry) {
+            return;
+        }
+
+        editorDisposablesRef.current.push(
+            editor.onDidPaste((event: MonacoPasteEvent) => {
+                const model = editor.getModel();
+                if (!model) {
+                    return;
+                }
+
+                const pastedText = model.getValueInRange(event.range);
+                telemetry.recordPasteEvent(pastedText);
+            }),
+            editor.onKeyDown((event: MonacoKeyboardEvent) => {
+                console.log("monaco keydown", event.browserEvent.key);
+                const isDeleteKey = event.browserEvent.key === "Backspace" || event.browserEvent.key === "Delete";
+                if (!isDeleteKey) {
+                    return;
+                }
+
+                const selection = editor.getSelection();
+                if (!selection) {
+                    telemetry.recordDeleteEvent(1);
+                    return;
+                }
+
+                if (selection.isEmpty()) {
+                    telemetry.recordDeleteEvent(1);
+                    return;
+                }
+
+                const model = editor.getModel();
+                if (!model) {
+                    telemetry.recordDeleteEvent(1);
+                    return;
+                }
+
+                const deletedText = model.getValueInRange(selection);
+                telemetry.recordDeleteEvent(deletedText.length);
+            }),
+        );
+    };
 
     const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -71,15 +147,6 @@ export default function CodeEditorCard({
             setRunSummary({
                 status: "info",
                 message: "Candidate assessment is not ready yet.",
-            });
-            return;
-        }
-
-        const assessmentId = Number(candidateAssessId);
-        if (Number.isNaN(assessmentId)) {
-            setRunSummary({
-                status: "error",
-                message: "Invalid candidate assessment id.",
             });
             return;
         }
@@ -98,7 +165,7 @@ export default function CodeEditorCard({
             }>(
                 "/api/v1/assessments/execute",
                 {
-                    candidate_assessment_id: assessmentId,
+                    candidate_assessment_id: candidateAssessId,
                     assessment_question_id: questionId,
                     code,
                 }
@@ -156,6 +223,7 @@ export default function CodeEditorCard({
                     value={code}
                     theme="vs-dark"
                     onChange={(value) => setCode(value || '')}
+                    onMount={handleEditorMount}
                     options={{
                         quickSuggestions: false,
                         suggestOnTriggerCharacters: false,

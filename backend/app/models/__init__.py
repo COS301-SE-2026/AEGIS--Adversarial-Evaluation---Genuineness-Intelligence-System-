@@ -10,6 +10,7 @@ from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.ai_analysis import AIAnalysis
@@ -30,6 +31,7 @@ __all__ = [
     "SessionStatus",
     "CandidateResponse",
     "CorrectnessStatus",
+    "CandidateResponseMetrics",
     "AdversarialQuestion",
     "AdversarialStrategy",
     "AIAnalysis",

@@ -9,6 +9,7 @@ import { TestPreviousButton } from "@/components/candidate/ui/buttons/test-prev-
 import { TestSubmitButton } from "@/components/candidate/ui/buttons/test-submit-button";
 import type { Question } from "@/components/candidate/ui/cards/question.type";
 import { useAssessmentTimer } from '@/components/candidate/context/assessment-timer';
+import { useAssessmentTelemetry } from "@/components/candidate/hooks/use-assessment-telemetry";
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { getToken } from "@/lib/auth";
 
@@ -142,8 +143,9 @@ function mapFunctionSignature(
 
 export default function AssessmentCompletionPage({ params }: { params: Promise<{ id: string }> }) {
    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-   const [candidateAssessId, setCandidateAssessId] = useState<string | null>(null);
+   const [candidateAssessId, setCandidateAssessId] = useState<number | null>(null);
    const [questions, setQuestions] = useState<Question[]>([]);
+   const [responseIdByQuestionId, setResponseIdByQuestionId] = useState<Record<number, number>>({});
    const [isLoading, setIsLoading] = useState(true);
    const [isSaving, setIsSaving] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,9 +154,26 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [error, setError] = useState<string | null>(null);
    const [answersByQuestionId, setAnswersByQuestionId] = useState<Record<number, string>>({});
    const {endTime, setEndTime} = useAssessmentTimer();
+   const activeQuestionId = questions[currentQuestionIndex]?.questionId ?? null;
+   const activeQuestionResponseId = activeQuestionId !== null ? responseIdByQuestionId[activeQuestionId] ?? null : null;
+
+   const {
+      flushTelemetry,
+      flushTelemetryKeepAlive,
+      recordPasteEvent,
+      recordDeleteEvent,
+   } = useAssessmentTelemetry(candidateAssessId, activeQuestionResponseId, activeQuestionId);
 
    useEffect(() => {
-      params.then(p => setCandidateAssessId(p.id));
+      params.then((p) => {
+         const parsedId = Number(p.id);
+         if (Number.isNaN(parsedId)) {
+            setError("Invalid candidate assessment id.");
+            return;
+         }
+
+         setCandidateAssessId(parsedId);
+      });
    }, [params]);
 
    useEffect(() => {
@@ -216,10 +235,19 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                {}
             );
 
+            const existingResponseIds = responseData.reduce<Record<number, number>>(
+               (acc, response) => {
+                  acc[response.assessment_question_id] = response.response_id;
+                  return acc;
+               },
+               {}
+            );
+
             if (isMounted) {
                setQuestions(mapped);
                setCurrentQuestionIndex(0);
                setAnswersByQuestionId(existingAnswers);
+               setResponseIdByQuestionId(existingResponseIds);
                
                if (sessionData.end_time) {
                   setEndTime(sessionData.end_time);
@@ -280,14 +308,16 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       try {
          setIsSaving(true);
          await saveCurrentAnswer();
+         await flushTelemetry();
          setCurrentQuestionIndex(currentQuestionIndex + 1);
       } finally {
          setIsSaving(false);
       }
    };
 
-   const handlePrevious = () => {
+   const handlePrevious = async () => {
       if (currentQuestionIndex > 0) {
+         await flushTelemetry();
          setCurrentQuestionIndex(currentQuestionIndex - 1);
       }
    };
@@ -298,8 +328,8 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       try {
          setSubmitError(null);
          setIsSubmitting(true);
-         // ensure last answer is saved
          await saveCurrentAnswer();
+         await flushTelemetryKeepAlive();
 
          const authToken = getToken() ?? undefined;
          await apiPost(`/api/v1/candidate-assessments/${candidateAssessId}/submit`, undefined, authToken ? { authToken } : {});
@@ -312,7 +342,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       } finally {
          setIsSubmitting(false);
       }
-   }, [candidateAssessId, isSubmitting, router, saveCurrentAnswer]);
+   }, [candidateAssessId, flushTelemetryKeepAlive, isSubmitting, router, saveCurrentAnswer]);
 
    useEffect(()=>{
       if (!endTime || isSubmitted || isSubmitting) return;
@@ -373,6 +403,10 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
                         question={currentQuestion}
                         value={answersByQuestionId[currentQuestion.questionId] ?? ""}
                         candidateAssessId={candidateAssessId}
+                        telemetry={{
+                           recordPasteEvent,
+                           recordDeleteEvent,
+                        }}
                         onChange={(value) => {
                            setAnswersByQuestionId((prev) => ({
                               ...prev,
