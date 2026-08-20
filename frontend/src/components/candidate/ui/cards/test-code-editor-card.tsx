@@ -108,7 +108,6 @@ export default function CodeEditorCard({
                 telemetry.recordPasteEvent(pastedText);
             }),
             editor.onKeyDown((event: MonacoKeyboardEvent) => {
-                console.log("monaco keydown", event.browserEvent.key);
                 const isDeleteKey = event.browserEvent.key === "Backspace" || event.browserEvent.key === "Delete";
                 if (!isDeleteKey) {
                     return;

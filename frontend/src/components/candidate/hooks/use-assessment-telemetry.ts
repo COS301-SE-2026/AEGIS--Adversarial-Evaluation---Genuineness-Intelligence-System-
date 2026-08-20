@@ -11,6 +11,7 @@ type TelemetryAccumulator = {
   chars_special: number;
   backspace_count: number;
   copy_event_count: number;
+  copy_char_count: number;
   paste_event_count: number;
   paste_char_count: number;
   focus_loss_count: number;
@@ -36,6 +37,7 @@ function createEmptyTelemetryAccumulator(): TelemetryAccumulator {
     chars_special: 0,
     backspace_count: 0,
     copy_event_count: 0,
+    copy_char_count: 0,
     paste_event_count: 0,
     paste_char_count: 0,
     focus_loss_count: 0,
@@ -94,6 +96,7 @@ function createTelemetryFlushPayload(
       chars_special: accumulator.chars_special,
       backspace_count: accumulator.backspace_count,
       copy_event_count: accumulator.copy_event_count,
+      copy_char_count: accumulator.copy_char_count,
       paste_event_count: accumulator.paste_event_count,
       paste_char_count: accumulator.paste_char_count,
       focus_loss_count: accumulator.focus_loss_count,
@@ -120,10 +123,6 @@ function buildTelemetrySnapshot(
     active_time_ms: accumulator.active_time_ms + inFlightActiveTime,
     unique_keys_count: uniqueKeysCount,
   };
-}
-
-function logTelemetryEvent(eventType: string) {
-  console.log(eventType);
 }
 
 export function useAssessmentTelemetry(
@@ -228,6 +227,12 @@ export function useAssessmentTelemetry(
 
     return Boolean(element.closest(".monaco-editor"));
   }
+
+  const recordCopyEvent = useCallback((copiedText: string) => {
+    accumulatorRef.current.copy_event_count += 1;
+    accumulatorRef.current.copy_char_count += copiedText.length;
+  }, []);
+
   const flushTelemetry = useCallback(async () => {
     if (!candidateAssessmentId || candidateResponseId === null) {
       return;
@@ -241,9 +246,7 @@ export function useAssessmentTelemetry(
     );
 
     const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
-    console.log(payload);
-
-     const authToken = getToken() ?? undefined;
+    const authToken = getToken() ?? undefined;
 
     try {
       await apiPost<{
@@ -326,8 +329,6 @@ export function useAssessmentTelemetry(
     reconcileActiveTimeState();
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      logTelemetryEvent("keydown");
-
       const key = event.key.toLowerCase();
       uniqueKeysRef.current.add(key);
 
@@ -336,8 +337,7 @@ export function useAssessmentTelemetry(
 
     
     const handleBeforeInput = (event: InputEvent) => {
-      logTelemetryEvent("beforeinput");
-
+  
       if (event.inputType !== "insertText") {
         if (event.inputType.startsWith("delete")) {
           recordDeleteEvent(getDeleteCharacterCount(event));
@@ -366,28 +366,23 @@ export function useAssessmentTelemetry(
     };
     
     const handleCopy = (event: ClipboardEvent) => {
-      logTelemetryEvent("copy");
 
       if (isInsideCodeEditor(event)) {
         return;
       }
 
       const copiedText = getCopiedText(event);
-
-      if (copiedText.includes("\n")) {
-        accumulatorRef.current.copy_event_count += 1;
-      }
+      recordCopyEvent(copiedText);
     };
 
     const handlePaste = (event: ClipboardEvent) => {
-      logTelemetryEvent("paste");
 
       const pastedText = event.clipboardData?.getData("text/plain") ?? "";
       recordPasteEvent(pastedText);
 };
 
     const handleVisibilityChange = () => {
-      logTelemetryEvent("visibilitychange");
+
 
       if (document.hidden) {
         if (focusLossStartedAtMsRef.current === null) {
@@ -407,7 +402,6 @@ export function useAssessmentTelemetry(
     };
 
     const handlePageHide = () => {
-      logTelemetryEvent("pagehide");
       void flushTelemetryKeepAlive();
     };
 
@@ -454,6 +448,7 @@ export function useAssessmentTelemetry(
     flushTelemetry,
     pauseActiveTimeTracking,
     reconcileActiveTimeState,
+    recordCopyEvent,
     recordDeleteEvent,
     recordPasteEvent,
   ]);
@@ -461,6 +456,7 @@ export function useAssessmentTelemetry(
   return {
     flushTelemetry,
     flushTelemetryKeepAlive,
+    recordCopyEvent,
     recordDeleteEvent,
     recordPasteEvent,
     uniqueKeysRef,
