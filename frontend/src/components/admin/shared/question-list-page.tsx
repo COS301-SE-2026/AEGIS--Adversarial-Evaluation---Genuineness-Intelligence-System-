@@ -2,14 +2,11 @@
 import { useState, useMemo, useEffect, useCallback, ComponentType } from "react";
 import { apiDelete, apiGet, apiPost, apiPatch } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
-import AdminSidebar from "@/components/admin/layouts/sidebar";
-import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import ConfirmationModal from "@/components/ui/confirmation/confirmationModal";
 import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
-import MobileSidebar from "../layouts/mobile-sidebar";
 import { buildSourceQuestionPayload, updateSavedQuestionList } from "@/lib/question-payload";
 import PageHelpDrawer, { type PageHelpConfig } from "@/components/admin/ui/help/page-help-drawer";
 
@@ -79,8 +76,6 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editQuestionId, setEditQuestionId] = useState<number | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 

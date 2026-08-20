@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/lib/apiClient";
-import { getAuthHeaders } from "@/lib/auth";
+// import { apiGet } from "@/lib/apiClient";
+// import { getAuthHeaders } from "@/lib/auth";
 import { AssessmentCandidatesResponse, AssessmentCandidateResult } from "@/types/dashboard-types";
 
 const MOCK_CANDIDATE_TABLE_ITEMS_DATA: AssessmentCandidateResult[] = [

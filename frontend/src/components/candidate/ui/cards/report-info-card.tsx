@@ -32,17 +32,17 @@ function formatDuration(minutesTotal: number): string {
 export function InfoCard( props : Readonly<InfoCardProps>) {
     const Icon = iconMap[props.icon];
 
-    const rankingLevel = () => {
-        if (props.type === "percentage" && props.label === "HIGH") {
-            return "text-system-red";
-        }
-        else if (props.type === "percentage" && props.label === "MEDIUM") {
-            return "text-status-warning";
-        }
-        else {
-            return ("text-status-success");
-        }
-    }  
+    // const rankingLevel = () => {
+    //     if (props.type === "percentage" && props.label === "HIGH") {
+    //         return "text-system-red";
+    //     }
+    //     else if (props.type === "percentage" && props.label === "MEDIUM") {
+    //         return "text-status-warning";
+    //     }
+    //     else {
+    //         return ("text-status-success");
+    //     }
+    // }  
 
     const renderContent = () => {
         

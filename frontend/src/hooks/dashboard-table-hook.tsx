@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/lib/apiClient";
-import { getAuthHeaders } from "@/lib/auth";
+// import { apiGet } from "@/lib/apiClient";
+// import { getAuthHeaders } from "@/lib/auth";
 import { AssessmentAnalyticsTable, AssessmentAnalyticsTableItems  } from "@/types/dashboard-types";
 
 const MOCK_ANALYTICS_TABLE_ITEMS_DATA: AssessmentAnalyticsTableItems[] = [

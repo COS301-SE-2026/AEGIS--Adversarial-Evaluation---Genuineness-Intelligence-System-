@@ -1,8 +1,8 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query";
-import { apiGet } from "@/lib/apiClient";
-import { getAuthHeaders } from "@/lib/auth";
+// import { apiGet } from "@/lib/apiClient";
+// import { getAuthHeaders } from "@/lib/auth";
 import { BarChartData  } from "@/types/dashboard-types";
 
 const BAR_CHART_QUERY_KEY = ["bar-chart-data"];

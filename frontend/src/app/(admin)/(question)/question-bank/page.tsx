@@ -2,8 +2,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { apiDelete, apiGet, apiPost, apiPatch } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
-import AdminSidebar from "@/components/admin/layouts/sidebar";
-import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import LegacyQuestionModal from "./legacy-question-modal";

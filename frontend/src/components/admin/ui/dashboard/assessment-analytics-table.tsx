@@ -1,8 +1,6 @@
 "use client"
 
-import Link from "next/link";
 import type { AnalyticsTableProps } from "@/types/dashboard-types";
-import { ReportViewButton } from "@/components/candidate/ui/buttons/report-view-button";
 
 export function AssessmentAnalyticsTable<T>({ items, columns, emptyMessage = "No analytics available" }: Readonly<AnalyticsTableProps<T>>) {
 
