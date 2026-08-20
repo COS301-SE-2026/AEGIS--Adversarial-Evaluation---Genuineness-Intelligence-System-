@@ -11,6 +11,7 @@ type TelemetryAccumulator = {
   chars_special: number;
   backspace_count: number;
   copy_event_count: number;
+  copy_char_count: number;
   paste_event_count: number;
   paste_char_count: number;
   focus_loss_count: number;
@@ -36,6 +37,7 @@ function createEmptyTelemetryAccumulator(): TelemetryAccumulator {
     chars_special: 0,
     backspace_count: 0,
     copy_event_count: 0,
+    copy_char_count: 0,
     paste_event_count: 0,
     paste_char_count: 0,
     focus_loss_count: 0,
@@ -94,6 +96,7 @@ function createTelemetryFlushPayload(
       chars_special: accumulator.chars_special,
       backspace_count: accumulator.backspace_count,
       copy_event_count: accumulator.copy_event_count,
+      copy_char_count: accumulator.copy_char_count,
       paste_event_count: accumulator.paste_event_count,
       paste_char_count: accumulator.paste_char_count,
       focus_loss_count: accumulator.focus_loss_count,
@@ -224,6 +227,12 @@ export function useAssessmentTelemetry(
 
     return Boolean(element.closest(".monaco-editor"));
   }
+
+  const recordCopyEvent = useCallback((copiedText: string) => {
+    accumulatorRef.current.copy_event_count += 1;
+    accumulatorRef.current.copy_char_count += copiedText.length;
+  }, []);
+
   const flushTelemetry = useCallback(async () => {
     if (!candidateAssessmentId || candidateResponseId === null) {
       return;
@@ -363,10 +372,7 @@ export function useAssessmentTelemetry(
       }
 
       const copiedText = getCopiedText(event);
-
-      if (copiedText.includes("\n")) {
-        accumulatorRef.current.copy_event_count += 1;
-      }
+      recordCopyEvent(copiedText);
     };
 
     const handlePaste = (event: ClipboardEvent) => {
@@ -442,6 +448,7 @@ export function useAssessmentTelemetry(
     flushTelemetry,
     pauseActiveTimeTracking,
     reconcileActiveTimeState,
+    recordCopyEvent,
     recordDeleteEvent,
     recordPasteEvent,
   ]);
@@ -449,6 +456,7 @@ export function useAssessmentTelemetry(
   return {
     flushTelemetry,
     flushTelemetryKeepAlive,
+    recordCopyEvent,
     recordDeleteEvent,
     recordPasteEvent,
     uniqueKeysRef,
