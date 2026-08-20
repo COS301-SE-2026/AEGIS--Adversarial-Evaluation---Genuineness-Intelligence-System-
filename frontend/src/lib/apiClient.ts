@@ -10,6 +10,7 @@ export type ApiRequestOptions<TBody = unknown> = {
   query?: Record<string, string | number | boolean | null | undefined>;
   credentials?: RequestCredentials;
   signal?: AbortSignal;
+  keepalive?: boolean;
   authToken?: string;
 };
 
@@ -127,6 +128,7 @@ export async function apiFetch<TResponse>(
     query,
     credentials,
     signal,
+    keepalive,
     authToken,
   } = options;
  
@@ -139,6 +141,7 @@ export async function apiFetch<TResponse>(
     body: requestBody,
     credentials,
     signal,
+    keepalive,
   });
  
   if (response.status === 204 || response.status === 205) {

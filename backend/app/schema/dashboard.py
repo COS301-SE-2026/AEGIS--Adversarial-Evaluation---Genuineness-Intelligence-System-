@@ -8,6 +8,11 @@ class AIUsageLevel(str, Enum):
     HIGH = "HIGH"
 
 
+class CandidateResultStatus(str, Enum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+
+
 class TopPerformer(BaseModel):
     candidate_name: str
     score_percent: float
@@ -30,6 +35,14 @@ class TableItem(BaseModel):
     top_candidate_name: str
 
 
+class FilterableTableItem(BaseModel):
+    candidate_id: int
+    candidate_name: str
+    total_score_percent: float
+    status: CandidateResultStatus
+    ai_rating_percent: float
+
+
 class DashboardSummaryResponse(BaseModel):
     top_performers: list[TopPerformer]
     total_assessments: int
@@ -42,5 +55,20 @@ class DashboardGraphResponse(BaseModel):
 
 class DashboardTableResponse(BaseModel):
     items: list[TableItem]
+    page: int
+    page_size: int
+
+
+class AssessmentDetailCardResponse(BaseModel):
+    assessment_id: int
+    assessment_name: str
+    top_performers: list[TopPerformer]
+    average_total_percent: float
+    average_completion_time: float
+    ai_usage: AIUsageRate
+
+
+class AssessmentDetailTableResponse(BaseModel):
+    items: list[FilterableTableItem]
     page: int
     page_size: int
