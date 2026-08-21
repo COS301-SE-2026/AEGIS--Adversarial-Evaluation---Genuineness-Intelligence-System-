@@ -82,7 +82,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="mb-4">
-          <AssessmentAnalyticsTableContainer/>
+          <AssessmentAnalyticsTableContainer recruiterId={recruiterId}/>
         </div>
 
       </div>

@@ -4,10 +4,14 @@ import { AssessmentAnalyticsTable } from "./assessment-analytics-table";
 import { useDashboardTable } from "@/hooks/dashboard-table-hook";
 import { assessmentColumns } from "./assessment-analytics-table-columns";
 
+interface AssessmentAnalyticsTableProps{
+    recruiterId: number | null;
+}
 
-export function AssessmentAnalyticsTableContainer() {
-    const {data, isLoading, isError, error} = useDashboardTable();
-
+export function AssessmentAnalyticsTableContainer({
+    recruiterId,
+}: AssessmentAnalyticsTableProps) {
+  const { data, isLoading, isError, error } = useDashboardTable(recruiterId);
 
     if (isLoading) {
         return (

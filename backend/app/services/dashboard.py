@@ -33,7 +33,10 @@ def _get_top_performers(
 
     rows = (
         db.query(
-            User.full_name.label("candidate_name"),
+            func.coalesce(
+            User.full_name,
+            User.email,
+        ).label("candidate_name"),
             percent_expr.label("score_percent"),
         )
         .join(
@@ -175,7 +178,7 @@ def _get_table_items(
     )
 
     top_candidate_name = (
-        db.query(User.full_name)
+        db.query(func.coalesce(User.full_name, User.email))
         .join(
             CandidateAssessment,
             CandidateAssessment.candidate_id == User.user_id
@@ -247,7 +250,10 @@ def _get_assessment_card_details(
 
     _top_performers_assessment = (
         db.query(
-            User.full_name.label("candidate_name"),
+            func.coalesce(
+            User.full_name,
+            User.email,
+        ).label("candidate_name"),
             ((CandidateAssessment.candidate_score /
               CandidateAssessment.total_score) * 100).label("score_percent"),
         )
