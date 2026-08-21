@@ -80,6 +80,7 @@ def test_get_response_metrics_returns_200(recruiter_client, mock_db):
         chars_special=44,
         backspace_count=33,
         copy_event_count=12,
+        copy_char_count=88,
         paste_event_count=24,
         paste_char_count=344,
         focus_loss_count=2,
@@ -96,6 +97,7 @@ def test_get_response_metrics_returns_200(recruiter_client, mock_db):
 
     assert response.status_code == 200
     assert response.json() == response_obj.model_dump()
+    assert response.json()["copy_char_count"] == 88
     mock_metrics.assert_called_once_with(mock_db, 7)
 
 
@@ -117,6 +119,7 @@ def test_get_assessment_metrics_returns_200(recruiter_client, mock_db):
             chars_special=44,
             backspace_count=38,
             copy_event_count=1,
+            copy_char_count=12,
             paste_event_count=2,
             paste_char_count=340,
             focus_loss_count=1,
@@ -130,6 +133,7 @@ def test_get_assessment_metrics_returns_200(recruiter_client, mock_db):
             chars_special=20,
             backspace_count=45,
             copy_event_count=0,
+            copy_char_count=0,
             paste_event_count=0,
             paste_char_count=0,
             focus_loss_count=4,
@@ -149,6 +153,7 @@ def test_get_assessment_metrics_returns_200(recruiter_client, mock_db):
     assert response.json() == [
         item.model_dump() for item in response_obj
     ]
+    assert response.json()[0]["copy_char_count"] == 12
     mock_metrics.assert_called_once_with(mock_db, 7)
 
 

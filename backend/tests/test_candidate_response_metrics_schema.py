@@ -19,6 +19,7 @@ def _valid_delta_kwargs():
         chars_special=2,
         backspace_count=1,
         copy_event_count=0,
+        copy_char_count=0,
         paste_event_count=0,
         paste_char_count=0,
         focus_loss_count=0,
@@ -100,6 +101,7 @@ def test_candidate_response_metrics_response_round_trips_from_orm_object():
         chars_special = 2
         backspace_count = 1
         copy_event_count = 0
+        copy_char_count = 0
         paste_event_count = 0
         paste_char_count = 0
         focus_loss_count = 0
@@ -112,3 +114,4 @@ def test_candidate_response_metrics_response_round_trips_from_orm_object():
     assert response.candidate_response_id == 3
     assert response.active_time_ms == 1000
     assert response.unique_keys_count == 42
+    assert response.copy_char_count == 0

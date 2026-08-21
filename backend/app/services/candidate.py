@@ -106,6 +106,7 @@ def flush_response_metrics(
             chars_special=0,
             backspace_count=0,
             copy_event_count=0,
+            copy_char_count=0,
             paste_event_count=0,
             paste_char_count=0,
             focus_loss_count=0,
@@ -119,6 +120,7 @@ def flush_response_metrics(
     metrics.chars_special += delta.chars_special
     metrics.backspace_count += delta.backspace_count
     metrics.copy_event_count += delta.copy_event_count
+    metrics.copy_char_count += delta.copy_char_count
     metrics.paste_event_count += delta.paste_event_count
     metrics.paste_char_count += delta.paste_char_count
     metrics.focus_loss_count += delta.focus_loss_count

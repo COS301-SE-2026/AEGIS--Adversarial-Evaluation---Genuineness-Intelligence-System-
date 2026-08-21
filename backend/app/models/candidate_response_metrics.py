@@ -20,6 +20,7 @@ class CandidateResponseMetrics(Base):
     chars_special = Column(Integer, nullable=False, default=0)
     backspace_count = Column(Integer, nullable=False, default=0)
     copy_event_count = Column(Integer, nullable=False, default=0)
+    copy_char_count = Column(Integer, nullable=False, default=0)
     paste_event_count = Column(Integer, nullable=False, default=0)
     paste_char_count = Column(Integer, nullable=False, default=0)
     focus_loss_count = Column(Integer, nullable=False, default=0)

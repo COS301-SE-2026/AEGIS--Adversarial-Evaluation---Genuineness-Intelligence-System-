@@ -17,6 +17,7 @@ def make_metrics_row(**overrides):
         "chars_special": 44,
         "backspace_count": 33,
         "copy_event_count": 12,
+        "copy_char_count": 88,
         "paste_event_count": 24,
         "paste_char_count": 344,
         "focus_loss_count": 2,
@@ -41,6 +42,7 @@ def test_get_metrics_for_response_queries_database():
     assert result.candidate_response_id == 7
     assert result.active_time_ms == 100000
     assert result.paste_char_count == 344
+    assert result.copy_char_count == 88
 
 
 def test_get_metrics_for_response_raises_when_missing():
