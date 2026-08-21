@@ -216,6 +216,91 @@ const filtered = useMemo(() => {
     setTimeout(() => setLinksCopied(false), 1500);
   };
 
+    const renderCandidateList = () => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-white-smoke/40">
+          Loading candidates...
+        </div>
+      );
+    }
+
+    if (loadError) {
+      return (
+        <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-system-red">
+          {loadError}
+        </div>
+      );
+    }
+
+    if (filtered.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="font-staatliches text-[18px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1.5">
+            NO CANDIDATES FOUND
+          </div>
+          <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.22)]">
+            Try adjusting your search or filter.
+          </div>
+        </div>
+      );
+    }
+
+    return filtered.map((c) => {
+      const isAssigned = assignedIds.has(c.user_id);
+      const isSelected = selected.has(c.user_id);
+      const status = rowStatus[c.user_id] ?? "idle";
+      return (
+        <div
+          key={c.user_id}
+          onClick={() => toggleCandidate(c.user_id)}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-[5px] transition-colors duration-150 ${
+            isAssigned ? "opacity-50" : "cursor-pointer hover:bg-tertiary-surface"
+          }`}
+        >
+          <input
+            type="checkbox"
+            checked={isSelected || isAssigned}
+            disabled={isAssigned}
+            onChange={() => toggleCandidate(c.user_id)}
+            onClick={(e) => e.stopPropagation()}
+            className="h-3.5 w-3.5 cursor-pointer accent-system-red disabled:cursor-default"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke truncate">
+              {c.full_name ?? c.email}
+            </div>
+            <div className="font-jetbrains text-[9px] text-white-smoke/40 truncate">
+              {c.email}
+            </div>
+          </div>
+
+          {status === "pending" && (
+            <Loader2 size={14} className="text-white-smoke/40 animate-spin shrink-0" />
+          )}
+          {status === "success" && (
+            <span className="flex items-center gap-1 font-jetbrains text-[9px] text-status-success shrink-0">
+              <Check size={13} /> ASSIGNED
+            </span>
+          )}
+          {status === "error" && (
+            <span
+              title={rowError[c.user_id]}
+              className="flex items-center gap-1 font-jetbrains text-[9px] text-system-red shrink-0"
+            >
+              <AlertCircle size={13} /> FAILED
+            </span>
+          )}
+          {status === "idle" && isAssigned && (
+            <span className="flex items-center gap-1 font-jetbrains text-[9px] text-status-success shrink-0">
+              <Check size={13} /> ASSIGNED
+            </span>
+          )}
+        </div>
+      );
+    });
+  };
+
     return (
      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] p-4">
       <button
@@ -291,78 +376,7 @@ const filtered = useMemo(() => {
         )}
 
         <div className="flex-1 overflow-y-auto px-2 py-2">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-white-smoke/40">
-              Loading candidates...
-            </div>
-          ) : loadError ? (
-            <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-system-red">
-              {loadError}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="font-staatliches text-[18px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1.5">
-                NO CANDIDATES FOUND
-              </div>
-              <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.22)]">
-                Try adjusting your search or filter.
-              </div>
-            </div>
-          ) : (
-            filtered.map((c) => {
-              const isAssigned = assignedIds.has(c.user_id);
-              const isSelected = selected.has(c.user_id);
-              const status = rowStatus[c.user_id] ?? "idle";
-              return (
-                <div
-                  key={c.user_id}
-                  onClick={() => toggleCandidate(c.user_id)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-[5px] transition-colors duration-150 ${
-                    isAssigned ? "opacity-50" : "cursor-pointer hover:bg-tertiary-surface"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected || isAssigned}
-                    disabled={isAssigned}
-                    onChange={() => toggleCandidate(c.user_id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-3.5 w-3.5 cursor-pointer accent-system-red disabled:cursor-default"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke truncate">
-                      {c.full_name ?? c.email}
-                    </div>
-                    <div className="font-jetbrains text-[9px] text-white-smoke/40 truncate">
-                      {c.email}
-                    </div>
-                  </div>
-
-                  {status === "pending" && (
-                    <Loader2 size={14} className="text-white-smoke/40 animate-spin shrink-0" />
-                  )}
-                  {status === "success" && (
-                    <span className="flex items-center gap-1 font-jetbrains text-[9px] text-status-success shrink-0">
-                      <Check size={13} /> ASSIGNED
-                    </span>
-                  )}
-                  {status === "error" && (
-                    <span
-                      title={rowError[c.user_id]}
-                      className="flex items-center gap-1 font-jetbrains text-[9px] text-system-red shrink-0"
-                    >
-                      <AlertCircle size={13} /> FAILED
-                    </span>
-                  )}
-                  {status === "idle" && isAssigned && (
-                    <span className="flex items-center gap-1 font-jetbrains text-[9px] text-status-success shrink-0">
-                      <Check size={13} /> ASSIGNED
-                    </span>
-                  )}
-                </div>
-              );
-            })
-          )}
+          {renderCandidateList()}
         </div>
 
                 <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-t border-tertiary-surface flex-wrap">
