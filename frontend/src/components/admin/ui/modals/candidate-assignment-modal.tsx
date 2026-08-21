@@ -251,9 +251,8 @@ const filtered = useMemo(() => {
       const isSelected = selected.has(c.user_id);
       const status = rowStatus[c.user_id] ?? "idle";
       return (
-        <div
+                        <label
           key={c.user_id}
-          onClick={() => toggleCandidate(c.user_id)}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-[5px] transition-colors duration-150 ${
             isAssigned ? "opacity-50" : "cursor-pointer hover:bg-tertiary-surface"
           }`}
@@ -263,7 +262,6 @@ const filtered = useMemo(() => {
             checked={isSelected || isAssigned}
             disabled={isAssigned}
             onChange={() => toggleCandidate(c.user_id)}
-            onClick={(e) => e.stopPropagation()}
             className="h-3.5 w-3.5 cursor-pointer accent-system-red disabled:cursor-default"
           />
           <div className="min-w-0 flex-1">
@@ -296,7 +294,7 @@ const filtered = useMemo(() => {
               <Check size={13} /> ASSIGNED
             </span>
           )}
-        </div>
+        </label>
       );
     });
   };
@@ -309,7 +307,7 @@ const filtered = useMemo(() => {
         onClick={onClose}
         className="absolute inset-0 cursor-default"
       />
-      <div className="w-full max-w-2xl max-h-[85vh] flex flex-col bg-secondary-surface border border-tertiary-surface rounded-[5px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
+      <div className="relative w-full max-w-2xl max-h-[85vh] flex flex-col bg-secondary-surface border border-tertiary-surface rounded-[5px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
         <div className="flex items-start justify-between px-5 py-4 border-b border-tertiary-surface">
           <div className="min-w-0">
             <div className="font-staatliches text-[20px] tracking-[0.06em] leading-none text-white-smoke">
