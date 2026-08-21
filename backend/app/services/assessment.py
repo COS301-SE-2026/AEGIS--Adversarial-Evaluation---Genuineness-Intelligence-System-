@@ -1033,14 +1033,14 @@ def create_candidate_assessment(
             detail="Candidate not found",
         )
 
-    existing = (
-        db.query(CandidateAssessment)
-        .filter(
-            CandidateAssessment.candidate_id == candidate_id,
-            CandidateAssessment.assessment_id == assessment_id,
-        )
-        .first()
-    )
+    # existing = (
+    #     db.query(CandidateAssessment)
+    #     .filter(
+    #         CandidateAssessment.candidate_id == candidate_id,
+    #         CandidateAssessment.assessment_id == assessment_id,
+    #     )
+    #     .first()
+    # )
     # if existing is not None:
     #     raise HTTPException(
     #         status_code=status.HTTP_400_BAD_REQUEST,
