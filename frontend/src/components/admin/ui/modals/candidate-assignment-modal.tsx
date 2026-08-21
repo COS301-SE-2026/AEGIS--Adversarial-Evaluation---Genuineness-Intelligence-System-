@@ -59,7 +59,7 @@ export default function CandidateAssignmentModal({
     setLoadError(null);
 
     // Mock data used for testing
-    const mockCandidates: ApiCandidate[] = [
+ /*   const mockCandidates: ApiCandidate[] = [
       { user_id: 1, email: "alice.smith@example.com", full_name: "Alice Smith" },
       { user_id: 2, email: "bob.johnson@example.com", full_name: "Bob Johnson" },
       { user_id: 3, email: "carol.williams@example.com", full_name: null },
@@ -75,9 +75,9 @@ export default function CandidateAssignmentModal({
       setCandidates(mockCandidates);
       setLoading(false);
     }
-    return; 
+    return; */
 
-    /* Original API call
+    
     try {
       const data = await apiGet<ApiCandidate[]>("/api/v1/users/candidates", {
         headers: getAuthHeaders(),
@@ -90,7 +90,7 @@ export default function CandidateAssignmentModal({
     } finally {
       if (isMounted) setLoading(false);
     }
-    */
+    
   };
   fetchCandidates();
   return () => {
@@ -217,12 +217,13 @@ const filtered = useMemo(() => {
   };
 
     return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] p-4"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-[2px] p-4">
+      <button
+        type="button"
+        aria-label="Close modal"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
       <div className="w-full max-w-2xl max-h-[85vh] flex flex-col bg-secondary-surface border border-tertiary-surface rounded-[5px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.6)]">
         <div className="flex items-start justify-between px-5 py-4 border-b border-tertiary-surface">
           <div className="min-w-0">
