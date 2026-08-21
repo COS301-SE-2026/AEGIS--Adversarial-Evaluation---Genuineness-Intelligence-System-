@@ -12,11 +12,14 @@
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@tanstack/react-query": "^5.101.4",
     "@testing-library/user-event": "^14.6.1",
     "lucide-react": "^1.16.0",
     "next": "16.2.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "recharts": "^3.10.1",
+    "root": "git+https://github.com/tanstack/react-query.git"
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",

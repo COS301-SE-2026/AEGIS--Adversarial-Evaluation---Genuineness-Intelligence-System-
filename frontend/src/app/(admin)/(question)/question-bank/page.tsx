@@ -2,8 +2,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { apiDelete, apiGet, apiPost, apiPatch } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
-import AdminSidebar from "@/components/admin/layouts/sidebar";
-import AdminTopbar from "@/components/admin/layouts/topbar";
 import QuestionFilters from "@/components/admin/ui/input/question-filter";
 import QuestionTable from "@/components/admin/ui/cards/question-table";
 import LegacyQuestionModal from "./legacy-question-modal";
@@ -281,12 +279,8 @@ export default function ViewQuestionsPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside>
-        <AdminSidebar/>
-      </aside>
 
       <div className="flex-1 flex flex-col w-full min-w-0 overflow-hidden">
-        <AdminTopbar/>
 
         <main className="flex-1 overflow-auto">
           <div className="p-4 sm:p-6 md:p-8">
