@@ -78,7 +78,7 @@ export default function DashboardPage() {
       <div className="flex flex-col justify-between gap-4 rounded-xl mt-2">
 
         <div className="mb-8">
-          <AssessmentBarChartContainer/>
+          <AssessmentBarChartContainer recruiterId={recruiterId}/>
         </div>
 
         <div className="mb-4">
