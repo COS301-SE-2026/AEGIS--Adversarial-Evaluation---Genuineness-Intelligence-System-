@@ -1,4 +1,6 @@
 from unittest.mock import MagicMock
+import pytest
+from fastapi import HTTPException
 
 from app.schema.dashboard import (
     AIUsageLevel,
@@ -475,3 +477,17 @@ def test_get_assessment_detail_table_info_delegates_to_helper(monkeypatch):
         page=2,
         page_size=4,
     )
+
+
+def test_get_assessment_card_details_raises_404_when_assessment_not_found():
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    with pytest.raises(HTTPException) as exc_info:
+        dashboard_service._get_assessment_card_details(
+            db=mock_db,
+            assessment_id=999,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"
