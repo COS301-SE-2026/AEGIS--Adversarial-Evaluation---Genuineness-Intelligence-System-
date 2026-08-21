@@ -58,24 +58,7 @@ export default function CandidateAssignmentModal({
     setLoading(true);
     setLoadError(null);
 
-    // Mock data used for testing
- /*   const mockCandidates: ApiCandidate[] = [
-      { user_id: 1, email: "alice.smith@example.com", full_name: "Alice Smith" },
-      { user_id: 2, email: "bob.johnson@example.com", full_name: "Bob Johnson" },
-      { user_id: 3, email: "carol.williams@example.com", full_name: null },
-      { user_id: 4, email: "dave.brown@example.com", full_name: "Dave Brown" },
-      { user_id: 5, email: "eve.davis@example.com", full_name: "Eve Davis" },
-      { user_id: 6, email: "frank.miller@example.com", full_name: null },
-      { user_id: 7, email: "grace.wilson@example.com", full_name: "Grace Wilson" },
-      { user_id: 8, email: "hank.moore@example.com", full_name: "Hank Moore" },
-      { user_id: 9, email: "ivy.taylor@example.com", full_name: "Ivy Taylor" },
-      { user_id: 10, email: "jack.anderson@example.com", full_name: "Jack Anderson" },
-    ];
-    if (isMounted) {
-      setCandidates(mockCandidates);
-      setLoading(false);
-    }
-    return; */
+   
 
     
     try {
