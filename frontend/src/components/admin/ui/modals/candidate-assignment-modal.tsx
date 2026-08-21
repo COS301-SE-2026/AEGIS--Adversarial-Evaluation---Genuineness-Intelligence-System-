@@ -36,7 +36,7 @@ export default function CandidateAssignmentModal({
   assessmentTitle,
   onClose,
   onAssigned,
-}: CandidateAssignmentModalProps) {
+}: Readonly<CandidateAssignmentModalProps>) {
   const [candidates, setCandidates] = useState<ApiCandidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
