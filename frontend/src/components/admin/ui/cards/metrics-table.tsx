@@ -25,6 +25,19 @@ function isFrequentTabSwitching(metric: CandidateMetrics): boolean {
 const MetricsTable = ({
     metrics,
 }: Readonly<MetricsTableProps>) => {
+  if (metrics.length == 0) {
+        return (
+      <div className="bg-secondary-surface rounded-lg border border-default-border px-6 py-12 text-center">
+        <p className="font-staatliches text-lg tracking-[0.04em] text-default-text">
+          No behavioural metrics available
+        </p>
+        <p className="mt-2 text-sm text-default-text/60">
+          Metrics will appear here once the candidate has responded.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-secondary-surface rounded-lg border border-default-border overflow-hidden">
       <div className="hidden sm:block overflow-x-auto">

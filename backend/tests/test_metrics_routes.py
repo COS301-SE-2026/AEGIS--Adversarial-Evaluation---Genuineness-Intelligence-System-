@@ -4,9 +4,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.security import get_current_user
 from app.database.database import get_db
 from app.main import app
-from app.schema.metrics import CandidateMetricsResponse
+from app.schema.candidate_response_metrics import (
+    CandidateResponseMetricsResponse,
+)
 
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
@@ -19,17 +22,57 @@ def mock_db():
 
 
 @pytest.fixture
-def client(mock_db):
+def recruiter_client(mock_db):
     def override_get_db():
         return mock_db
 
+    def override_get_current_user():
+        return {
+            "user_id": "5",
+            "role": "RECRUITER",
+        }
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = (
+        override_get_current_user
+    )
+
     yield TestClient(app)
+
     app.dependency_overrides.clear()
 
 
-def test_get_response_metrics_returns_200(client, mock_db):
-    response_obj = CandidateMetricsResponse(
+@pytest.fixture
+def candidate_metrics_client(mock_db):
+    def override_get_db():
+        return mock_db
+
+    def override_get_current_user():
+        return {
+            "user_id": "5",
+            "role": "CANDIDATE",
+        }
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = (
+        override_get_current_user
+    )
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
+
+
+def test_metrics_rejects_non_recruiter(candidate_metrics_client):
+    response = candidate_metrics_client.get(
+        "/api/v1/candidate-responses/7/metrics"
+    )
+
+    assert response.status_code == 403
+
+
+def test_get_response_metrics_returns_200(recruiter_client, mock_db):
+    response_obj = CandidateResponseMetricsResponse(
         candidate_response_id=7,
         active_time_ms=100000,
         unique_keys_count=27,
@@ -47,22 +90,26 @@ def test_get_response_metrics_returns_200(client, mock_db):
         "app.api.routes.metrics.metrics.get_metrics_for_response",
         return_value=response_obj,
     ) as mock_metrics:
-        response = client.get("/api/v1/candidate-responses/7/metrics")
+        response = recruiter_client.get(
+            "/api/v1/candidate-responses/7/metrics"
+        )
 
     assert response.status_code == 200
     assert response.json() == response_obj.model_dump()
     mock_metrics.assert_called_once_with(mock_db, 7)
 
 
-def test_get_response_metrics_requires_integer_id(client):
-    response = client.get("/api/v1/candidate-responses/not-an-id/metrics")
+def test_get_response_metrics_requires_integer_id(recruiter_client):
+    response = recruiter_client.get(
+        "/api/v1/candidate-responses/not-an-id/metrics"
+    )
 
     assert response.status_code == 422
 
 
-def test_get_assessment_metrics_returns_200(client, mock_db):
+def test_get_assessment_metrics_returns_200(recruiter_client, mock_db):
     response_obj = [
-        CandidateMetricsResponse(
+        CandidateResponseMetricsResponse(
             candidate_response_id=1,
             active_time_ms=184300,
             unique_keys_count=27,
@@ -75,7 +122,7 @@ def test_get_assessment_metrics_returns_200(client, mock_db):
             focus_loss_count=1,
             focus_loss_time_ms=8000,
         ),
-        CandidateMetricsResponse(
+        CandidateResponseMetricsResponse(
             candidate_response_id=2,
             active_time_ms=210500,
             unique_keys_count=35,
@@ -94,14 +141,20 @@ def test_get_assessment_metrics_returns_200(client, mock_db):
         "app.api.routes.metrics.metrics.get_metrics_for_assessment",
         return_value=response_obj,
     ) as mock_metrics:
-        response = client.get("/api/v1/candidate-assessments/7/metrics")
+        response = recruiter_client.get(
+            "/api/v1/candidate-assessments/7/metrics"
+        )
 
     assert response.status_code == 200
-    assert response.json() == [item.model_dump() for item in response_obj]
+    assert response.json() == [
+        item.model_dump() for item in response_obj
+    ]
     mock_metrics.assert_called_once_with(mock_db, 7)
 
 
-def test_get_assessment_metrics_requires_integer_id(client):
-    response = client.get("/api/v1/candidate-assessments/not-an-id/metrics")
+def test_get_assessment_metrics_requires_integer_id(recruiter_client):
+    response = recruiter_client.get(
+        "/api/v1/candidate-assessments/not-an-id/metrics"
+    )
 
     assert response.status_code == 422
