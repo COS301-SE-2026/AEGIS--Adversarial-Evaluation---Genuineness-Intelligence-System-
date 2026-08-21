@@ -1,4 +1,5 @@
 from sqlalchemy import func, case
+from fastapi import HTTPException, status
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.schema.dashboard import (
@@ -230,15 +231,19 @@ def _get_assessment_card_details(
         db: Session,
         assessment_id: int
 ) -> AssessmentDetailCardResponse:
-    _assessment_name = (
-        db.query(
-            Assessment.title
-        )
-        .filter(
-            Assessment.assessment_id == assessment_id
-        )
-        .scalar()
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
     )
+
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+
+    _assessment_name = assessment.title
 
     _top_performers_assessment = (
         db.query(
