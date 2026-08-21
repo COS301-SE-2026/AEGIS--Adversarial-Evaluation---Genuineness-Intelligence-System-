@@ -39,7 +39,7 @@ export const candidateColumns: AnalyticsTableColumn<AssessmentCandidateResult>[]
         header: "View Answers",
         render: (candidate) => (
             <Link
-                href={`/dashboard/assessment/candidate/${candidate.candidate_id}`}
+              href={`/grade-assessment/${candidate.candidate_assess_id}/metrics`}
             >
                 <ReportViewButton/>
             </Link>

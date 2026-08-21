@@ -6,6 +6,7 @@ import { AssessmentCandidatesResponse, AssessmentCandidateResult } from "@/types
 
 const MOCK_CANDIDATE_TABLE_ITEMS_DATA: AssessmentCandidateResult[] = [
     { 
+        candidate_assess_id: 1,
         candidate_id: 1,
         candidate_name: "Luyanda Ndlovu",
         total_score_percent: 93,
@@ -14,6 +15,7 @@ const MOCK_CANDIDATE_TABLE_ITEMS_DATA: AssessmentCandidateResult[] = [
         
     },
     { 
+        candidate_assess_id: 1,
         candidate_id: 2,
         candidate_name: "Lesedi Matena",
         total_score_percent: 84,

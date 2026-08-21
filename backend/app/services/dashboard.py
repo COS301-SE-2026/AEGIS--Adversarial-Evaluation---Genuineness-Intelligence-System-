@@ -407,6 +407,7 @@ def _get_assessment_detail_table_items(
 
     query = (
         db.query(
+            CandidateAssessment.candidate_assess_id,
             User.user_id.label("candidate_id"),
             candidate_name,
             total_score_percent.label("total_score_percent"),
@@ -464,6 +465,7 @@ def _get_assessment_detail_table_items(
 
     _items = [
         FilterableTableItem(
+            candidate_assess_id=row.candidate_assess_id,
             candidate_id=row.candidate_id,
             candidate_name=row.candidate_name,
             total_score_percent=round(row.total_score_percent, 2),

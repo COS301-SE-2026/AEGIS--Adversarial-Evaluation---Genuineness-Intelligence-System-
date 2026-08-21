@@ -75,7 +75,13 @@ export function InfoCard( props : Readonly<InfoCardProps>) {
                 );
 
             case "ranking":
-                return (
+                return props.items.length == 0 ? (
+                    <div className="mt-6 flex flex-1 items-center justify-center">
+                        <p className="text-sm text-default-border">
+                            No assessments completed yet.
+                        </p>
+                    </div>
+                ): (
                     <div className="mt-3 space-y-2">
                         {props.items.slice(0, 3).map((item, index) => (
                             <div

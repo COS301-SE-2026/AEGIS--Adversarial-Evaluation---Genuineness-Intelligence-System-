@@ -6,20 +6,28 @@ import { getAuthHeaders } from "@/lib/auth";
 import { DashboardSummaryProps,  } from "@/types/dashboard-types";
 
 
-export function useDashboardSummary() {
-    return useQuery({
-        queryKey: ["dashboard-summary"],
-        queryFn: ({ signal }) => 
-            apiGet<DashboardSummaryProps>(
-                "/api/v1/admin/dashboard/summary",
-                 {
-                    headers: getAuthHeaders(),
-                    signal,
-                }
-            ),
-           
-        refetchInterval: 10_000, //polls every 10s
-        
-        refetchIntervalInBackground: false, //stops polling when user changes tabs
-    })
+export function useDashboardSummary(recruiterId: number | null) {
+    return useQuery<DashboardSummaryProps>({
+        queryKey: ["dashboard-summary", recruiterId],
+        enabled: recruiterId !== null,
+        queryFn: ({ signal }) => {
+        if (recruiterId === null) {
+            throw new Error("Recruiter ID is required.");
+        }
+
+        return apiGet<DashboardSummaryProps>(
+            "/api/v1/admin/dashboard/summary",
+            {
+            query: {
+                recruiter_id: recruiterId,
+            },
+            headers: getAuthHeaders(),
+            signal,
+            }
+        );
+        },
+
+        refetchInterval: 10_000,
+        refetchIntervalInBackground: false,
+    });
 }
