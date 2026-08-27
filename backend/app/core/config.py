@@ -5,7 +5,7 @@ import boto3
 from botocore.exceptions import ClientError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-AWS_REGION = os.getenv("AWS_REGION","eu-north-1")
+AWS_REGION = os.getenv("AWS_REGION","af-south-1")
 
 AWS_SECRET_NAME = os.getenv("AWS_SECRET_NAME", "prod/aegis/backend",)
 

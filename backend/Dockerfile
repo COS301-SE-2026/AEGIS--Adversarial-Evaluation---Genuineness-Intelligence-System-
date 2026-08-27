@@ -18,8 +18,6 @@ RUN pip install \
 
 # copy all of the required folders in the backend
 COPY app ./app
-COPY alembic ./alembic
-COPY alembic.ini .
 COPY database_setup.py .
 
 # give the ownership to the non-root user

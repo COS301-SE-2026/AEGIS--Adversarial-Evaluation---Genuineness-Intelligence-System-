@@ -1,0 +1,61 @@
+name: Build & Deploy Container
+
+on: 
+    push:
+        branches:
+            - dev
+            - main
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ secrets.AWS_REGION }}
+
+            - name: Log in to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build and Push Docker Image
+              env:
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                ECR_REPOSITORY: aegis/fastapi-app
+                IMAGE_TAG: ${{ github.ref_name }}
+              run: |
+                docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+                docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            
+            - name: Deploy to Amazon EC2 via SSH
+              uses: appleboy/ssh-action@v1.0.3
+              with:
+                host: ${{ secrets.SERVER_HOST }}
+                username: ec2-user
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                script: |
+                    REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+                    IMAGE="$REGISTRY/aegis/fastapi-app:${{ github.ref_name }}"
+                    CONTAINER_NAME="myapp-${{ github.ref_name }}"
+
+                    # log into ecr and ec2 instance
+                    aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
+
+                    # map port 80 for production and port 8080 for development
+                    if [ "${{ github.ref_name }}" = "main" ]; then
+                        PORT="80:80"
+                    else
+                        PORT="8080:80"
+                    fi
+
+                    docker pull $IMAGE
+                    docker stop $CONTAINER_NAME || true
+                    docker rm $CONTAINER_NAME || true
+                    docker run -d --name $CONTAINER_NAME -p $PORT --restart always $IMAGE
+                    docker image prune -f
