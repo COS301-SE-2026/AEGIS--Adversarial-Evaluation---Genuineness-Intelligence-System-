@@ -13,7 +13,7 @@ def load_aws_secrets() -> None:
     # this wll load secrets straight from the AWS Secrets Manager.
 
     client = boto3.client(
-        "secretmanager",
+        "secretsmanager",
         region_name=AWS_REGION,
     )
 
@@ -21,7 +21,6 @@ def load_aws_secrets() -> None:
         response = client.get_secret_value( 
             SecretId=AWS_SECRET_NAME 
         )
-
     except ClientError as exc:
         error_code = exc.response.get(
             "Error",
@@ -30,12 +29,11 @@ def load_aws_secrets() -> None:
             "Code",
             "Unknown",
         )
-
-    raise RuntimeError(
-        f"Unable to retrieve AWS secret "
-        f"{AWS_SECRET_NAME}. "
-        f"AWS error: {error_code}"
-    ) from exc
+        raise RuntimeError(
+            f"Unable to retrieve AWS secret "
+            f"{AWS_SECRET_NAME}. "
+            f"AWS error: {error_code}"
+        ) from exc
 
     secret_string = response.get("SecretString")
 
@@ -86,10 +84,10 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Comma separated string of allowed CORS origins
-    allowed_origins: str = (
+    allowed_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:8000"
-    )
+    ]
 
     # Google OAuth credentials
     google_client_id: str
