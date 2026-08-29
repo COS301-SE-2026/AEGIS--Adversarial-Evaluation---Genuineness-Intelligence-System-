@@ -302,33 +302,30 @@ const allFilteredSelected =
 
 
   return (
-    
-      <div
-        className="fixed inset-0 bg-black/60 z-50 flex justify-end"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
-      >
-        <div className="w-180 max-w-[95vw] bg-secondary-surface border-l border-tertiary-surface flex flex-col h-full overflow-hidden">
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4">
+    <button
+      type="button"
+      aria-label="Close moda"
+      onClick={() => !isCreating && onClose()}
+      className="absolute inset-0 cursor-default"
+    />
+    <div className="relative w-full max-w-4xl max-h-[90vh] flex flex-col bg-secondary-surface border border-tertiary-surface rounded-[6px] overflow-hidden shadow-[0_24px_70px_rgba(0,0,0,0.65)]">
           {/* Header */}
           <div className="px-7 py-5 border-b border-tertiary-surface flex items-center justify-between">
             <div>
-              <div className="font-staatliches text-[22px] tracking-[0.07em] text-white-smoke">
+              <div className="font-staatliches text-[26px] tracking-[0.07em] leading-none text-white-smoke">
                 CREATE ASSESSMENT
               </div>
-              <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-0.5">
-                {" "}
-                starting with the basics
+              <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-1.5">
+                create and configure an adversarial assessment
               </div>
             </div>
             <button
               type="button"
+              aria-label="Close"
               onClick={onClose}
-              className="text-white-smoke/40 hover:text-system-red"
-            >
-              <X size={24} />
+              className="text-white-smoke/40 hover:text-system-red transition-colors duration-150 cursor-pointer shrink-0">
+              <X size={22} />
             </button>
           </div>
 
