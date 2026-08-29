@@ -305,7 +305,7 @@ const allFilteredSelected =
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-4">
     <button
       type="button"
-      aria-label="Close moda"
+      aria-label="Close"
       onClick={() => !isCreating && onClose()}
       className="absolute inset-0 cursor-default"
     />
@@ -316,7 +316,7 @@ const allFilteredSelected =
               <div className="font-staatliches text-[26px] tracking-[0.07em] leading-none text-white-smoke">
                 CREATE ASSESSMENT
               </div>
-              <div className="font-ibm-plex text-[10px] text-white-smoke/40 mt-1.5">
+              <div className="font-jetbrains text-[10px] text-white-smoke/40 mt-1.5">
                 create and configure an adversarial assessment
               </div>
             </div>
@@ -330,7 +330,7 @@ const allFilteredSelected =
           </div>
 
           {/* Stepper for the wizard */}
-          <div className="flex px-7 py-4 border-b border-tertiary-surface gap-1">
+          <div className="flex px-7 py-4 border-b border-tertiary-surface gap-1 shrink-0">
             {[
               { id: 0, label: "Basic", sub: "details" },
               { id: 1, label: "Questions", sub: "select" },
