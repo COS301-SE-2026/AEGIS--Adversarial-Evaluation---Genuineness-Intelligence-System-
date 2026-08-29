@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type {
   CreateAssessmentForm,
   Difficulty,
@@ -8,7 +8,7 @@ import type {
 import { TARGET_ROLES } from "../../../../app/(admin)/types/mock-data";
 import { apiGet, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
-import { X } from "lucide-react";
+import { X, Search, Check } from "lucide-react";
 
 const labelCls =
   "font-ibm-plex text-[10px] tracking-[0.1em] text-white-smoke/40 uppercase font-medium";
@@ -38,7 +38,11 @@ interface AdversarialQuestionOption {
   strategy_id: number;
   llm: string | null;
   generated_at: string;
+  pattern_used?: string | null;
+  validation_status: string;
 }
+
+type FilterValue = string | "all";
 
 const DEFAULT_FORM: CreateAssessmentForm = {
   name: "",
@@ -70,6 +74,9 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [questions, setQuestions] = useState<AdversarialQuestionOption[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const [questionSearch, setQuestionSearch] = useState("");
+  const [patternFilter, setPatternFilter] = useState<FilterValue>("all");
+  const [statusFilter, setStatusFilter] = useState<FilterValue>("all");
 
   const updateForm = useCallback(
     <K extends keyof CreateAssessmentForm>(
@@ -116,6 +123,22 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isCreating, onClose]);
+
+  const patternOptions = useMemo(() => {
+  const unique = new Set<string>();
+  questions.forEach((q) => {
+    if (q.pattern_used) unique.add(q.pattern_used);
+  });
+  return Array.from(unique).sort();
+}, [questions]);
+
+const statusOptions = useMemo(() => {
+  const unique = new Set<string>();
+  questions.forEach((q) => {
+    if (q.validation_status) unique.add(q.validation_status);
+  });
+  return Array.from(unique).sort();
+}, [questions]);
 
   const toggleQuestion = (id: number) => {
     setSelectedIds((prev) =>
