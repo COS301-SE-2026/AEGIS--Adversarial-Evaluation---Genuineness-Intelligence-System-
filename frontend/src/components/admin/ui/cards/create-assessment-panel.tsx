@@ -481,6 +481,39 @@ const allFilteredSelected =
         >
           All
         </button>
+        {patternOptions.map((p) => (
+          <button
+            type="button"
+            key={p}
+            onClick={() => setPatternFilter(p)}
+            className={`font-jetbrains text-[10px] tracking-wider px-3 py-1.25 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
+              patternFilter === p
+                ? "bg-system-red/15 border-system-red text-system-red"
+                : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+    )}
+
+    {statusOptions.length > 0 && (
+      <div className="flex items-center gap-1.5 flex-wrap mb-4">
+        <span className="font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/30 mr-1">
+          Status
+        </span>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("all")}
+          className={`font-jetbrains text-[10px] tracking-wider px-3 py-1.25 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
+            statusFilter === "all"
+              ? "bg-system-red/15 border-system-red text-system-red"
+              : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+          }`}
+        >
+          All
+        </button>
 
             {/* Section 3 */}
             {step === 2 && (
