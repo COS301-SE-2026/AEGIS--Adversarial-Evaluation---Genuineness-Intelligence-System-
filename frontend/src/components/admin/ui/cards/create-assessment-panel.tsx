@@ -224,23 +224,23 @@ const allFilteredSelected =
   };
 
   const renderQuestionsList = () => {
-    if (questionsLoading) {
-      return (
-        <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-white-smoke/40">
-          Loading questions...
-        </div>
-      );
-    }
+  if (questionsLoading) {
+    return (
+      <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-white-smoke/40">
+        Loading questions...
+      </div>
+    );
+  }
 
-    if (questionsError) {
-      return (
-        <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-system-red">
-          {questionsError}
-        </div>
-      );
-    }
+  if (questionsError) {
+    return (
+      <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-system-red">
+        {questionsError}
+      </div>
+    );
+  }
 
-      if (questions.length === 0) {
+  if (filteredQuestions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="font-staatliches text-[18px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1.5">
@@ -253,49 +253,52 @@ const allFilteredSelected =
     );
   }
 
-    return questions.map((q) => {
-      const selected = selectedIds.includes(q.adv_question_id);
-      const cardClassName = selected
-        ? "border-system-red bg-system-red/5"
-        : "border-default-border hover:border-white-smoke/30";
-      const label =
-        q.content.length > 80 ? `${q.content.slice(0, 80)}...` : q.content;
+  return filteredQuestions.map((q) => {
+    const selected = selectedIds.includes(q.adv_question_id);
+    const label =
+      q.content.length > 90 ? `${q.content.slice(0, 90)}...` : q.content;
 
-      return (
-        <button
-          type="button"
-          key={q.adv_question_id}
-          onClick={() => toggleQuestion(q.adv_question_id)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              toggleQuestion(q.adv_question_id);
-            }
-          }}
-          className={`w-full text-left p-3.5 rounded-[5px] border cursor-pointer transition-all ${cardClassName}`}
-        >
-          <div className="flex justify-between">
-            <div>
-              <div className="font-medium">{label}</div>
-              <div className="flex gap-2 mt-2">
-                <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">
-                  Strategy #{q.strategy_id}
-                </span>
-                <span className="text-[10px] px-2 py-0.5 bg-tertiary-surface rounded">
-                  {q.llm ?? "—"}
-                </span>
-              </div>
-            </div>
-            <div
-              className={`w-5 h-5 rounded flex items-center justify-center border mt-1 ${selected ? "bg-system-red text-white" : "border-default-border"}`}
-            >
-              {selected && "✓"}
-            </div>
+    return (
+      <label
+        key={q.adv_question_id}
+        className={`flex items-start gap-3 px-3.5 py-3 rounded-[5px] border transition-colors duration-150 cursor-pointer ${
+          selected
+            ? "border-system-red bg-system-red/5"
+            : "border-default-border hover:bg-tertiary-surface"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => toggleQuestion(q.adv_question_id)}
+          className="h-3.5 w-3.5 mt-0.5 cursor-pointer accent-system-red shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke truncate">
+            {label}
           </div>
-        </button>
-      );
-    });
-  };
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
+              {q.pattern_used ?? "—"}
+            </span>
+            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
+              {q.validation_status}
+            </span>
+            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
+              Strategy #{q.strategy_id}
+            </span>
+            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
+              {q.llm ?? "—"}
+            </span>
+          </div>
+        </div>
+        {selected && (
+          <Check size={15} className="text-system-red mt-0.5 shrink-0" />
+        )}
+      </label>
+    );
+  });
+};
 
 
   return (
@@ -583,7 +586,7 @@ const allFilteredSelected =
             )}
           </div>
 
-          {/* Basic Footer in the meantime*/}
+          {/* Basic Footer*/}
           <div className="px-7 py-4 border-t border-tertiary-surface flex flex-col gap-3 bg-secondary-surface">
             {createError && (
               <div className="font-ibm-plex text-[12px] text-system-red">
