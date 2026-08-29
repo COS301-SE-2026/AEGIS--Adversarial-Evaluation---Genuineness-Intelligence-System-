@@ -446,14 +446,41 @@ const allFilteredSelected =
             )}
             {/* Section 2 */}
             {step === 1 && (
-              <div className="mb-6">
-                <div className={sectionTitleCls}>Pick Questions</div>
+  <div className="mb-6">
+    <div className={sectionTitleCls}>Pick Questions</div>
 
-                <div className="max-h-[340px] overflow-y-auto pr-2 space-y-2">
-                  {renderQuestionsList()}
-                </div>
-              </div>
-            )}
+    {/* Search + filters */}
+    <div className="flex items-center gap-2.5 flex-wrap mb-3">
+      <div className="relative flex-1 min-w-50">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-white-smoke/40"
+          size={14}
+        />
+        <input
+          placeholder="Search questions..."
+          value={questionSearch}
+          onChange={(e) => setQuestionSearch(e.target.value)}
+          className="w-full bg-background border border-default-border text-default-text pl-9 pr-3 py-2 font-jetbrains text-[11px] tracking-[0.04em] rounded-[5px] outline-none placeholder:text-white-smoke/40 transition-colors duration-150 hover:bg-tertiary-surface focus:border-system-red focus:bg-background"
+        />
+      </div>
+    </div>
+
+    {patternOptions.length > 0 && (
+      <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+        <span className="font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/30 mr-1">
+          Pattern
+        </span>
+        <button
+          type="button"
+          onClick={() => setPatternFilter("all")}
+          className={`font-jetbrains text-[10px] tracking-wider px-3 py-1.25 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
+            patternFilter === "all"
+              ? "bg-system-red/15 border-system-red text-system-red"
+              : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+          }`}
+        >
+          All
+        </button>
 
             {/* Section 3 */}
             {step === 2 && (
