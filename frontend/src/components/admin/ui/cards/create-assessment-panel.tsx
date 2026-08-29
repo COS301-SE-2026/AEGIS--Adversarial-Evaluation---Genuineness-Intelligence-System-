@@ -240,6 +240,19 @@ const allFilteredSelected =
       );
     }
 
+      if (questions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="font-staatliches text-[18px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1.5">
+          NO QUESTIONS FOUND
+        </div>
+        <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.22)]">
+          Try adjusting your search or filters.
+        </div>
+      </div>
+    );
+  }
+
     return questions.map((q) => {
       const selected = selectedIds.includes(q.adv_question_id);
       const cardClassName = selected
@@ -284,7 +297,7 @@ const allFilteredSelected =
     });
   };
 
-  //will add the other sections later
+
   return (
     <>
       <div
@@ -435,29 +448,6 @@ const allFilteredSelected =
             {step === 1 && (
               <div className="mb-6">
                 <div className={sectionTitleCls}>Pick Questions</div>
-
-                <div className="mb-4">
-                  <label
-                    htmlFor="questionCount"
-                    className={`${labelCls} block mb-1.5`}
-                  >
-                    Question count
-                  </label>
-                  <input
-                    id="questionCount"
-                    type="range"
-                    min="3"
-                    max="15"
-                    value={formData.questionCount}
-                    onChange={(e) =>
-                      updateForm("questionCount", Number(e.target.value))
-                    }
-                    className="w-full accent-system-red"
-                  />
-                  <div className="text-right font-staatliches text-system-red text-sm mt-1">
-                    {formData.questionCount} target
-                  </div>
-                </div>
 
                 <div className="max-h-[340px] overflow-y-auto pr-2 space-y-2">
                   {renderQuestionsList()}
