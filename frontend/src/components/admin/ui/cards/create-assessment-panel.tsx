@@ -156,6 +156,17 @@ const allFilteredSelected =
   filteredQuestions.length > 0 &&
   filteredQuestions.every((q) => selectedIds.includes(q.adv_question_id));
 
+  const toggleSelectAllFiltered = () => {
+  setSelectedIds((prev) => {
+    const next = new Set(prev);
+    if (allFilteredSelected) {
+      filteredQuestions.forEach((q) => next.delete(q.adv_question_id));
+    } else {
+      filteredQuestions.forEach((q) => next.add(q.adv_question_id));
+    }
+    return Array.from(next);
+  });
+};
 
   const toggleQuestion = (id: number) => {
     setSelectedIds((prev) =>
@@ -215,7 +226,7 @@ const allFilteredSelected =
   const renderQuestionsList = () => {
     if (questionsLoading) {
       return (
-        <div className="text-xs text-white-smoke/40 text-center py-4">
+        <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-white-smoke/40">
           Loading questions...
         </div>
       );
@@ -223,7 +234,7 @@ const allFilteredSelected =
 
     if (questionsError) {
       return (
-        <div className="text-xs text-system-red text-center py-4">
+        <div className="flex items-center justify-center py-16 font-jetbrains text-[12px] text-system-red">
           {questionsError}
         </div>
       );
