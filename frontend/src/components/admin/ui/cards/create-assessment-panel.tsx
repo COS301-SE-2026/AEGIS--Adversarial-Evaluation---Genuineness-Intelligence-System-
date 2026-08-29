@@ -299,7 +299,7 @@ const allFilteredSelected =
 
 
   return (
-    <>
+    
       <div
         className="fixed inset-0 bg-black/60 z-50 flex justify-end"
         onClick={(e) => {
@@ -514,6 +514,45 @@ const allFilteredSelected =
         >
           All
         </button>
+        {statusOptions.map((s) => (
+          <button
+            type="button"
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`font-jetbrains text-[10px] tracking-wider px-3 py-1.25 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
+              statusFilter === s
+                ? "bg-system-red/15 border-system-red text-system-red"
+                : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    )}
+
+    <div className="flex items-center justify-between mb-2">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={allFilteredSelected}
+          onChange={toggleSelectAllFiltered}
+          className="h-3.5 w-3.5 cursor-pointer accent-system-red"
+        />
+        <span className="font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/40">
+          Select all ({filteredQuestions.length})
+        </span>
+      </label>
+      <div className="font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/40">
+        {selectedIds.length} selected
+      </div>
+    </div>
+
+    <div className="max-h-[360px] overflow-y-auto pr-2 space-y-2">
+      {renderQuestionsList()}
+    </div>
+  </div>
+)}
 
             {/* Section 3 */}
             {step === 2 && (
@@ -589,6 +628,6 @@ const allFilteredSelected =
           </div>
         </div>
       </div>
-    </>
+    
   );
 }
