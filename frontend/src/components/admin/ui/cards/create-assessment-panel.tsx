@@ -42,7 +42,7 @@ interface AdversarialQuestionOption {
   validation_status: string;
 }
 
-type FilterValue = string | "all";
+//type FilterValue = string;
 
 const DEFAULT_FORM: CreateAssessmentForm = {
   name: "",
@@ -75,8 +75,8 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [questionSearch, setQuestionSearch] = useState("");
-  const [patternFilter, setPatternFilter] = useState<FilterValue>("all");
-  const [statusFilter, setStatusFilter] = useState<FilterValue>("all");
+  const [patternFilter, setPatternFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const updateForm = useCallback(
     <K extends keyof CreateAssessmentForm>(
@@ -129,7 +129,7 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   questions.forEach((q) => {
     if (q.pattern_used) unique.add(q.pattern_used);
   });
-  return Array.from(unique).sort();
+  return Array.from(unique).sort((a, b) => a.localeCompare(b));
 }, [questions]);
 
 const statusOptions = useMemo(() => {
@@ -137,7 +137,7 @@ const statusOptions = useMemo(() => {
   questions.forEach((q) => {
     if (q.validation_status) unique.add(q.validation_status);
   });
-  return Array.from(unique).sort();
+  return Array.from(unique).sort((a, b) => a.localeCompare(b));
 }, [questions]);
 
 const filteredQuestions = useMemo(() => {
