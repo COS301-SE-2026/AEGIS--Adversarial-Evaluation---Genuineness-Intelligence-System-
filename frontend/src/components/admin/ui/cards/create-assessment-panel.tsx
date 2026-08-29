@@ -140,6 +140,23 @@ const statusOptions = useMemo(() => {
   return Array.from(unique).sort();
 }, [questions]);
 
+const filteredQuestions = useMemo(() => {
+  const q = questionSearch.trim().toLowerCase();
+  return questions.filter((item) => {
+    const matchesSearch = !q || item.content.toLowerCase().includes(q);
+    const matchesPattern =
+      patternFilter === "all" || item.pattern_used === patternFilter;
+    const matchesStatus =
+      statusFilter === "all" || item.validation_status === statusFilter;
+    return matchesSearch && matchesPattern && matchesStatus;
+  });
+}, [questions, questionSearch, patternFilter, statusFilter]);
+
+const allFilteredSelected =
+  filteredQuestions.length > 0 &&
+  filteredQuestions.every((q) => selectedIds.includes(q.adv_question_id));
+
+
   const toggleQuestion = (id: number) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
