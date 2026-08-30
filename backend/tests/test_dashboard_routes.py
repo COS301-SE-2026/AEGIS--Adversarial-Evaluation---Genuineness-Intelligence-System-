@@ -17,6 +17,8 @@ from app.schema.dashboard import (
     AssessmentDetailTableResponse,
     FilterableTableItem,
     CandidateResultStatus,
+    DashboardGraphResponse,
+    AverageScore,
 )
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
@@ -126,6 +128,32 @@ def test_get_dashboard_summary_returns_200(recruiter_client, mock_db):
     # recruiter_id is derived from the authenticated user (user_id=7),
     # not trusted from a query param
     mock_summary.assert_called_once_with(mock_db, 7)
+
+
+def test_get_score_distribution_returns_200(recruiter_client, mock_db):
+    response_obj = DashboardGraphResponse(
+        bars=[
+            AverageScore(
+                assessment_name="Python Assessment", average_score=88.5
+            ),
+        ]
+    )
+
+    with patch(
+        "app.api.routes.dashboard.dashboard.get_graph_values",
+        return_value=response_obj,
+    ) as mock_graph:
+        response = recruiter_client.get(
+            "/api/v1/admin/dashboard/score-distribution",
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "bars": [
+            {"assessment_name": "Python Assessment", "average_score": 88.5},
+        ],
+    }
+    mock_graph.assert_called_once_with(mock_db, 7)
 
 
 def test_get_assessments_summary_returns_200(recruiter_client, mock_db):
