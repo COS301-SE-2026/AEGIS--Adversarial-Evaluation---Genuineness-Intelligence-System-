@@ -11,3 +11,8 @@ export interface CandidateMetrics {
     focus_loss_count: number;
     focus_loss_time_ms: number;
 }
+
+export interface CandidateAssessmentMetrics {
+    behavioral_summary: string | null;
+    metrics: CandidateMetrics[];
+}

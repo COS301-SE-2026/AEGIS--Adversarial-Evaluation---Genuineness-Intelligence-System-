@@ -166,6 +166,7 @@ def test_metrics_row_round_trips_with_defaults(db_session):
     assert fetched.chars_special == 0
     assert fetched.backspace_count == 0
     assert fetched.copy_event_count == 0
+    assert fetched.copy_char_count == 0
     assert fetched.paste_event_count == 0
     assert fetched.paste_char_count == 0
     assert fetched.focus_loss_count == 0
@@ -186,6 +187,7 @@ def test_metrics_row_stores_provided_values(db_session):
         chars_special=10,
         backspace_count=5,
         copy_event_count=1,
+        copy_char_count=18,
         paste_event_count=2,
         paste_char_count=30,
         focus_loss_count=3,
@@ -202,6 +204,7 @@ def test_metrics_row_stores_provided_values(db_session):
     assert fetched.active_time_ms == 12000
     assert fetched.unique_keys_count == 42
     assert fetched.paste_char_count == 30
+    assert fetched.copy_char_count == 18
     assert fetched.focus_loss_time_ms == 4500
 
 

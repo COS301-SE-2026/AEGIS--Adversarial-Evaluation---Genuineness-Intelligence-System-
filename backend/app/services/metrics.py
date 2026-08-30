@@ -1,8 +1,10 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.models.candidate_assessment import CandidateAssessment
 from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.schema.candidate_response_metrics import (
+    CandidateAssessmentMetricsResponse,
     CandidateResponseMetricsResponse,
 )
 
@@ -35,7 +37,7 @@ def get_metrics_for_response(
 def get_metrics_for_assessment(
     db: Session,
     candidate_assessment_id: int,
-) -> list[CandidateResponseMetricsResponse]:
+) -> CandidateAssessmentMetricsResponse:
     metrics_rows = (
         db.query(CandidateResponseMetrics)
         .filter(
@@ -46,10 +48,22 @@ def get_metrics_for_assessment(
         .all()
     )
 
-    return [
-        CandidateResponseMetricsResponse.model_validate(
-            metrics,
-            from_attributes=True,
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id
         )
-        for metrics in metrics_rows
-    ]
+        .first()
+    )
+
+    return CandidateAssessmentMetricsResponse(
+        behavioral_summary=session.behavioral_summary if session else None,
+        metrics=[
+            CandidateResponseMetricsResponse.model_validate(
+                metrics,
+                from_attributes=True,
+            )
+            for metrics in metrics_rows
+        ],
+    )

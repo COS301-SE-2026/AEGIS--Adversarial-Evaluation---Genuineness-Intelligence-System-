@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database.database import get_db
+from app.core.security import get_current_user
 from app.schema.dashboard import (
     DashboardSummaryResponse,
     TopPerformer,
@@ -16,14 +17,26 @@ from app.schema.dashboard import (
     AssessmentDetailTableResponse,
     FilterableTableItem,
     CandidateResultStatus,
+    DashboardGraphResponse,
+    AverageScore,
 )
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 
+DASHBOARD_ENDPOINTS = [
+    "/api/v1/admin/dashboard/summary",
+    "/api/v1/admin/dashboard/score-distribution",
+    "/api/v1/admin/dashboard/assessments",
+    "/api/v1/admin/dashboard/assessments/101",
+    "/api/v1/admin/dashboard/assessments/101/candidates",
+]
+
+
 @pytest.fixture
 def mock_db():
     return MagicMock()
+
 
 @pytest.fixture
 def client(mock_db):
@@ -34,7 +47,64 @@ def client(mock_db):
     yield TestClient(app)
     app.dependency_overrides.clear()
 
-def test_get_dashboard_summary_returns_200(client, mock_db):
+
+#all the dashboard routes require role to be Recruiter
+@pytest.fixture
+def recruiter_client(mock_db):
+    def override_get_db():
+        return mock_db
+
+    def override_get_current_user():
+        return {
+            "user_id": "7",
+            "role": "RECRUITER",
+        }
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = (
+        override_get_current_user
+    )
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def candidate_client(mock_db):
+    def override_get_db():
+        return mock_db
+
+    def override_get_current_user():
+        return {
+            "user_id": "7",
+            "role": "CANDIDATE",
+        }
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = (
+        override_get_current_user
+    )
+
+    yield TestClient(app)
+
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.parametrize("path", DASHBOARD_ENDPOINTS)
+def test_dashboard_endpoints_reject_non_recruiter(candidate_client, path):
+    response = candidate_client.get(path)
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("path", DASHBOARD_ENDPOINTS)
+def test_dashboard_endpoints_reject_unauthenticated(client, path):
+    response = client.get(path)
+    assert response.status_code == 401
+
+
+def test_get_dashboard_summary_returns_200(recruiter_client, mock_db):
     response_obj = DashboardSummaryResponse(
         top_performers=[TopPerformer(candidate_name="Alice", score_percent=95.0)],
         total_assessments=5,
@@ -45,9 +115,8 @@ def test_get_dashboard_summary_returns_200(client, mock_db):
         "app.api.routes.dashboard.dashboard.get_dashboard_summary",
         return_value=response_obj,
     ) as mock_summary:
-        response = client.get(
+        response = recruiter_client.get(
             "/api/v1/admin/dashboard/summary",
-            params={"recruiter_id": 7},
         )
 
     assert response.status_code == 200
@@ -56,14 +125,38 @@ def test_get_dashboard_summary_returns_200(client, mock_db):
         "total_assessments": 5,
         "ai_usage_rate": {"level": "MEDIUM", "percent": 40.0},
     }
+    # recruiter_id is derived from the authenticated user (user_id=7),
+    # not trusted from a query param
     mock_summary.assert_called_once_with(mock_db, 7)
 
-def test_get_dashboard_summary_requires_recruiter_id(client):
-    response = client.get("/api/v1/admin/dashboard/summary")
-    assert response.status_code == 422
+
+def test_get_score_distribution_returns_200(recruiter_client, mock_db):
+    response_obj = DashboardGraphResponse(
+        bars=[
+            AverageScore(
+                assessment_name="Python Assessment", average_score=88.5
+            ),
+        ]
+    )
+
+    with patch(
+        "app.api.routes.dashboard.dashboard.get_graph_values",
+        return_value=response_obj,
+    ) as mock_graph:
+        response = recruiter_client.get(
+            "/api/v1/admin/dashboard/score-distribution",
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "bars": [
+            {"assessment_name": "Python Assessment", "average_score": 88.5},
+        ],
+    }
+    mock_graph.assert_called_once_with(mock_db, 7)
 
 
-def test_get_assessments_summary_returns_200(client, mock_db):
+def test_get_assessments_summary_returns_200(recruiter_client, mock_db):
     response_obj = DashboardTableResponse(
         items=[
             TableItem(
@@ -81,9 +174,9 @@ def test_get_assessments_summary_returns_200(client, mock_db):
         "app.api.routes.dashboard.dashboard.get_assessment_summary",
         return_value=response_obj,
     ) as mock_summary:
-        response = client.get(
+        response = recruiter_client.get(
             "/api/v1/admin/dashboard/assessments",
-            params={"recruiter_id": 7, "page": 1, "page_size": 8},
+            params={"page": 1, "page_size": 8},
         )
 
     assert response.status_code == 200
@@ -102,18 +195,23 @@ def test_get_assessments_summary_returns_200(client, mock_db):
     mock_summary.assert_called_once_with(7, mock_db, 1, 8)
 
 
-def test_get_assessments_summary_defaults_page_and_size(client):
-    response = client.get(
-        "/api/v1/admin/dashboard/assessments",
-        params={"recruiter_id": 7},
-    )
+def test_get_assessments_summary_defaults_page_and_size(
+    recruiter_client, mock_db
+):
+    response_obj = DashboardTableResponse(items=[], page=1, page_size=8)
+
+    with patch(
+        "app.api.routes.dashboard.dashboard.get_assessment_summary",
+        return_value=response_obj,
+    ):
+        response = recruiter_client.get(
+            "/api/v1/admin/dashboard/assessments",
+        )
 
     assert response.status_code == 200
 
 
-def test_get_assessment_detail_cards_returns_200(client, mock_db):
-    from app.schema.dashboard import AssessmentDetailCardResponse
-
+def test_get_assessment_detail_cards_returns_200(recruiter_client, mock_db):
     response_obj = AssessmentDetailCardResponse(
         assessment_id=101,
         assessment_name="Python Assessment",
@@ -130,7 +228,7 @@ def test_get_assessment_detail_cards_returns_200(client, mock_db):
         "app.api.routes.dashboard.dashboard.get_assessment_detail_cards",
         return_value=response_obj,
     ) as mock_detail:
-        response = client.get(
+        response = recruiter_client.get(
             "/api/v1/admin/dashboard/assessments/101"
         )
 
@@ -149,9 +247,9 @@ def test_get_assessment_detail_cards_returns_200(client, mock_db):
     mock_detail.assert_called_once_with(101, mock_db)
 
 
-def test_get_assessment_detail_cards_with_no_performers(client, mock_db):
-    from app.schema.dashboard import AssessmentDetailCardResponse
-
+def test_get_assessment_detail_cards_with_no_performers(
+    recruiter_client, mock_db
+):
     response_obj = AssessmentDetailCardResponse(
         assessment_id=102,
         assessment_name="New Assessment",
@@ -165,7 +263,9 @@ def test_get_assessment_detail_cards_with_no_performers(client, mock_db):
         "app.api.routes.dashboard.dashboard.get_assessment_detail_cards",
         return_value=response_obj,
     ):
-        response = client.get("/api/v1/admin/dashboard/assessments/102")
+        response = recruiter_client.get(
+            "/api/v1/admin/dashboard/assessments/102"
+        )
 
     assert response.status_code == 200
     data = response.json()
@@ -177,9 +277,9 @@ def test_get_assessment_detail_cards_with_no_performers(client, mock_db):
     assert data["ai_usage"]["level"] == "LOW"
 
 
-def test_get_assessment_detail_cards_medium_ai_usage(client, mock_db):
-    from app.schema.dashboard import AssessmentDetailCardResponse
-
+def test_get_assessment_detail_cards_medium_ai_usage(
+    recruiter_client, mock_db
+):
     response_obj = AssessmentDetailCardResponse(
         assessment_id=103,
         assessment_name="JavaScript Assessment",
@@ -195,7 +295,9 @@ def test_get_assessment_detail_cards_medium_ai_usage(client, mock_db):
         "app.api.routes.dashboard.dashboard.get_assessment_detail_cards",
         return_value=response_obj,
     ):
-        response = client.get("/api/v1/admin/dashboard/assessments/103")
+        response = recruiter_client.get(
+            "/api/v1/admin/dashboard/assessments/103"
+        )
 
     assert response.status_code == 200
     data = response.json()
@@ -203,14 +305,16 @@ def test_get_assessment_detail_cards_medium_ai_usage(client, mock_db):
     assert data["ai_usage"]["percent"] == 50.0
 
 
-def test_get_assessment_detail_cards_invalid_id_type(client):
-    response = client.get("/api/v1/admin/dashboard/assessments/invalid")
+def test_get_assessment_detail_cards_invalid_id_type(recruiter_client):
+    response = recruiter_client.get(
+        "/api/v1/admin/dashboard/assessments/invalid"
+    )
     assert response.status_code == 422
 
 
-def test_get_assessment_detail_cards_three_top_performers(client, mock_db):
-    from app.schema.dashboard import AssessmentDetailCardResponse
-
+def test_get_assessment_detail_cards_three_top_performers(
+    recruiter_client, mock_db
+):
     response_obj = AssessmentDetailCardResponse(
         assessment_id=104,
         assessment_name="SQL Assessment",
@@ -228,7 +332,9 @@ def test_get_assessment_detail_cards_three_top_performers(client, mock_db):
         "app.api.routes.dashboard.dashboard.get_assessment_detail_cards",
         return_value=response_obj,
     ):
-        response = client.get("/api/v1/admin/dashboard/assessments/104")
+        response = recruiter_client.get(
+            "/api/v1/admin/dashboard/assessments/104"
+        )
 
     assert response.status_code == 200
     data = response.json()
@@ -238,7 +344,9 @@ def test_get_assessment_detail_cards_three_top_performers(client, mock_db):
     assert data["top_performers"][2]["candidate_name"] == "Charlie"
 
 
-def test_get_assessment_detail_table_returns_filtered_rows(client, mock_db):
+def test_get_assessment_detail_table_returns_filtered_rows(
+    recruiter_client, mock_db
+):
     response_obj = AssessmentDetailTableResponse(
         items=[
             FilterableTableItem(
@@ -259,7 +367,7 @@ def test_get_assessment_detail_table_returns_filtered_rows(client, mock_db):
         ".get_assessment_detail_table_info",
         return_value=response_obj,
     ) as mock_table:
-        response = client.get(
+        response = recruiter_client.get(
             "/api/v1/admin/dashboard/assessments/101/candidates",
             params={
                 "status": "PASS",
@@ -294,7 +402,9 @@ def test_get_assessment_detail_table_returns_filtered_rows(client, mock_db):
         8,
     )
 
-def test_get_assessment_detail_table_returns_empty_items(client, mock_db):
+def test_get_assessment_detail_table_returns_empty_items(
+    recruiter_client, mock_db
+):
     response_obj = AssessmentDetailTableResponse(
         items=[],
         page=1,
@@ -306,7 +416,7 @@ def test_get_assessment_detail_table_returns_empty_items(client, mock_db):
         ".get_assessment_detail_table_info",
         return_value=response_obj,
     ):
-        response = client.get(
+        response = recruiter_client.get(
             "/api/v1/admin/dashboard/assessments/101/candidates"
         )
 
@@ -316,4 +426,3 @@ def test_get_assessment_detail_table_returns_empty_items(client, mock_db):
         "page": 1,
         "page_size": 8,
     }
-

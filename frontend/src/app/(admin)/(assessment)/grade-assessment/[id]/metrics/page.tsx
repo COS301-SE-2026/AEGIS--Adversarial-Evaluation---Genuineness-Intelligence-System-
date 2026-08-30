@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiGet, ApiError } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
-import { CandidateMetrics } from "@/app/(admin)/types/metrics";
+import { CandidateMetrics, CandidateAssessmentMetrics } from "@/app/(admin)/types/metrics";
 import Button from "@/components/hero/ui/button";
 import MetricsTable from "@/components/admin/ui/cards/metrics-table";
 
@@ -12,6 +12,7 @@ const GradeAssessmentMetricsPage = () => {
     const router = useRouter();
     const params = useParams<{id : string}>();
     const [metrics, setMetrics] = useState<CandidateMetrics[]>([]);
+    const [behavioralSummary, setBehavioralSummary] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,13 +22,14 @@ const GradeAssessmentMetricsPage = () => {
         async function performFetch() {
             try {
                 setIsLoading(true);
-                const data = await apiGet<CandidateMetrics[]>(
+                const data = await apiGet<CandidateAssessmentMetrics>(
                     `/api/v1/candidate-assessments/${params.id}/metrics`,
                     { headers: getAuthHeaders()}
                 );
 
                 if (isMounted) {
-                    setMetrics(data);
+                    setMetrics(data.metrics);
+                    setBehavioralSummary(data.behavioral_summary);
                     setError(null);
                 }
             } catch (err) {
@@ -70,6 +72,21 @@ const GradeAssessmentMetricsPage = () => {
                 <Button variant="solid" className="px-4 py-2 text-sm" onClick={() => router.back()}>
                     Back
                 </Button>
+            </div>
+            <div className="mb-4 bg-secondary-surface rounded-lg border border-default-border p-6">
+                <h2 className="font-staatliches text-lg tracking-[0.04em] text-default-text mb-2">
+                    Behavioral Summary
+                </h2>
+                {behavioralSummary ? (
+                    <p className="text-sm text-default-text/80">
+                        {behavioralSummary}
+                    </p>
+                ) : (
+                    <p className="text-sm text-default-text/60">
+                        No behavioral summary has been generated for this
+                        attempt yet.
+                    </p>
+                )}
             </div>
             <MetricsTable metrics={metrics} />
         </div>

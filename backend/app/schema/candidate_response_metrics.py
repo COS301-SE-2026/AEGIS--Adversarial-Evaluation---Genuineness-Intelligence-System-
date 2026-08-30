@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -18,6 +19,9 @@ class MetricsDelta(BaseModel):
     )
     copy_event_count: int = Field(
         ..., ge=0, description="Copy events since the last flush",
+    )
+    copy_char_count: int = Field(
+        ..., ge=0, description="Characters copied since the last flush",
     )
     paste_event_count: int = Field(
         ..., ge=0, description="Paste events since the last flush",
@@ -68,6 +72,7 @@ class CandidateResponseMetricsResponse(BaseModel):
     chars_special: int
     backspace_count: int
     copy_event_count: int
+    copy_char_count: int
     paste_event_count: int
     paste_char_count: int
     focus_loss_count: int
@@ -75,3 +80,17 @@ class CandidateResponseMetricsResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CandidateAssessmentMetricsResponse(BaseModel):
+    behavioral_summary: Optional[str] = Field(
+        None,
+        description=(
+            "AI-generated behavioral summary for this attempt, or None if "
+            "one has not been generated yet"
+        ),
+    )
+    metrics: list[CandidateResponseMetricsResponse] = Field(
+        default_factory=list,
+        description="Per-response behavioral metrics for this attempt",
+    )
