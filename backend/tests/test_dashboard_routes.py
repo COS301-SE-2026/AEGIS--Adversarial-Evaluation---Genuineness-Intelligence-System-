@@ -322,6 +322,7 @@ def test_get_assessment_detail_table_returns_filtered_rows(
     response_obj = AssessmentDetailTableResponse(
         items=[
             FilterableTableItem(
+                candidate_assess_id=501,
                 candidate_id=12,
                 candidate_name="Alice",
                 total_score_percent=87.46,
@@ -352,6 +353,7 @@ def test_get_assessment_detail_table_returns_filtered_rows(
     assert response.json() == {
         "items": [
             {
+                "candidate_assess_id": 501,
                 "candidate_id": 12,
                 "candidate_name": "Alice",
                 "total_score_percent": 87.46,

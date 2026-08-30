@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { apiGet, ApiError } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { CandidateMetrics, CandidateAssessmentMetrics } from "@/app/(admin)/types/metrics";
@@ -9,6 +9,7 @@ import Button from "@/components/hero/ui/button";
 import MetricsTable from "@/components/admin/ui/cards/metrics-table";
 
 const GradeAssessmentMetricsPage = () => {
+    const router = useRouter();
     const params = useParams<{id : string}>();
     const [metrics, setMetrics] = useState<CandidateMetrics[]>([]);
     const [behavioralSummary, setBehavioralSummary] = useState<string | null>(null);
@@ -68,7 +69,7 @@ const GradeAssessmentMetricsPage = () => {
                     Behavioural Metrics
                 </h1>
 
-                <Button variant="solid" className="px-4 py-2 text-sm">
+                <Button variant="solid" className="px-4 py-2 text-sm" onClick={() => router.back()}>
                     Back
                 </Button>
             </div>

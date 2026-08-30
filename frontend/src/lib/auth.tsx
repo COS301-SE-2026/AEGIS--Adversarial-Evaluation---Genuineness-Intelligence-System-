@@ -24,3 +24,23 @@ export function getAuthHeaders(): Record<string, string> {
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
 }
+
+type TokenPayload = {
+  user_id?: string;
+};
+
+export function getUserId(): number | null {
+  const token = getToken();
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(
+      window.atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+    ) as TokenPayload;
+
+    const userId = Number(payload.user_id);
+    return Number.isInteger(userId) ? userId : null;
+  } catch {
+    return null;
+  }
+}

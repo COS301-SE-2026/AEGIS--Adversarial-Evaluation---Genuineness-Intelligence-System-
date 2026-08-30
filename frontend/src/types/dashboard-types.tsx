@@ -52,7 +52,7 @@ export interface BarChartData {
 export interface DashboardSummaryProps {
     top_performers: TopPerformer[],
     total_assessments: number,
-    ai_usage: AIUsageRate;
+    ai_usage_rate: AIUsageRate;
 }
 
 export interface AssessmentAnalyticsTableItems {
@@ -82,6 +82,7 @@ export interface AnalyticsTableProps<T> {
 }
 
 export interface AssessmentCandidateResult {
+    candidate_assess_id: number;
     candidate_id: number;
     candidate_name: string;
     total_score_percent: number;
@@ -89,7 +90,33 @@ export interface AssessmentCandidateResult {
     ai_rating_percent: number;
 }
 
-export interface AssessmentCandidatesResponse {
-    items: AssessmentCandidateResult[];
-    total: number;
+export interface DashboardGraphResponse {
+  bars: {
+    assessment_name: string;
+    average_score: number;
+  }[];
+}
+
+export interface AssessmentDetailCardResponse {
+  assessment_id: number;
+  assessment_name: string;
+  top_performers: TopPerformer[];
+  average_total_percent: number;
+  average_completion_time: number;
+  ai_usage: AIUsageRate;
+}
+
+export interface AssessmentCandidateResult {
+  candidate_assess_id: number;
+  candidate_id: number;
+  candidate_name: string;
+  total_score_percent: number;
+  status: "PASS" | "FAIL";
+  ai_rating_percent: number;
+}
+
+export interface AssessmentDetailTableResponse {
+  items: AssessmentCandidateResult[];
+  page: number;
+  page_size: number;
 }
