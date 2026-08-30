@@ -93,7 +93,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
     if (!validate()) return;
     setLoading(true);
 
-    const targetEndpoint = mode === "login" ? "/auth/login" : "/auth/register";
+    const targetEndpoint = mode === "login" ? "/auth?mode=login" : "/auth?mode=register";
 
     try{
       const data = await apiPost<
@@ -133,7 +133,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
         router.push("/assessment");
       }
       else {
-        router.push("/auth/login");
+        router.push("/auth?mode=login");
       }
     } catch (error) {
       if (error instanceof ApiError) {
