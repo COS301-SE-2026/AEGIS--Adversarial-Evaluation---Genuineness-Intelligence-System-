@@ -1,4 +1,6 @@
 from unittest.mock import MagicMock
+import pytest
+from fastapi import HTTPException
 
 from app.schema.dashboard import (
     AIUsageLevel,
@@ -7,16 +9,14 @@ from app.schema.dashboard import (
     DashboardGraphResponse,
     TableItem,
     DashboardTableResponse,
-    CandidateResultStatus,
     AssessmentDetailTableResponse,
-    FilterableTableItem
+    FilterableTableItem,
 )
 from app.services import dashboard as dashboard_service
 
 
 def _make_query(rows=None, *, count_value=0, scalar_value=0):
     query = MagicMock()
-    query.join.return_value = query
     query.join.return_value = query
     query.outerjoin.return_value = query
     query.having.return_value = query
@@ -97,6 +97,7 @@ def test_get_dashboard_summary_builds_response(monkeypatch):
     assert result.ai_usage_rate.level == AIUsageLevel.MEDIUM
     assert result.ai_usage_rate.percent == 40.0
 
+
 def test_get_average_score_per_assessment_returns_values():
     row = MagicMock()
     row.assessment_name = "Assessment A"
@@ -111,6 +112,7 @@ def test_get_average_score_per_assessment_returns_values():
     assert result[0].assessment_name == "Assessment A"
     assert result[0].average_score == 88.5
 
+
 def test_get_average_score_per_assessment_returns_empty_list():
     mock_db = MagicMock()
     mock_db.query.return_value = _make_query([])
@@ -119,13 +121,20 @@ def test_get_average_score_per_assessment_returns_empty_list():
 
     assert result == []
 
+
 def test_get_graph_values_wraps_bars(monkeypatch):
     monkeypatch.setattr(
         dashboard_service,
         "_get_average_score_per_assessment",
         lambda db, recruiter_id: [
-            AverageScore(assessment_name="Assessment A", average_score=81.5),
-            AverageScore(assessment_name="Assessment B", average_score=92.0),
+            AverageScore(
+                assessment_name="Assessment A",
+                average_score=81.5,
+            ),
+            AverageScore(
+                assessment_name="Assessment B",
+                average_score=92.0,
+            ),
         ],
     )
 
@@ -154,7 +163,12 @@ def test_get_table_items_returns_paginated_items():
     mock_db.query.return_value.limit.return_value = mock_db.query.return_value
     mock_db.query.return_value.all.return_value = [row]
 
-    result = dashboard_service._get_table_items(mock_db, 7, page=1, page_size=8)
+    result = dashboard_service._get_table_items(
+        mock_db,
+        7,
+        page=1,
+        page_size=8,
+    )
 
     assert len(result) == 1
     assert result[0].assessment_id == 101
@@ -174,7 +188,12 @@ def test_get_table_items_returns_empty_list_when_no_rows():
     mock_db.query.return_value.limit.return_value = mock_db.query.return_value
     mock_db.query.return_value.all.return_value = []
 
-    result = dashboard_service._get_table_items(mock_db, 7, page=1, page_size=8)
+    result = dashboard_service._get_table_items(
+        mock_db,
+        7,
+        page=1,
+        page_size=8,
+    )
 
     assert result == []
 
@@ -209,30 +228,26 @@ def test_get_assessment_summary_builds_table_response(monkeypatch):
 
 
 def test_get_assessment_card_details_with_no_performers():
+    assessment = MagicMock()
+    assessment.title = "New Assessment"
+
     mock_db = MagicMock()
     mock_query = MagicMock()
+
     mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_query
     mock_query.join.return_value = mock_query
     mock_query.order_by.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all.return_value = []
-    
-    call_count = [0]
-    def scalar_side_effect():
-        call_count[0] += 1
-        if call_count[0] == 1:
-            return "New Assessment"
-        elif call_count[0] == 2:
-            return None
-        elif call_count[0] == 3:
-            return None
-        return None
-    
-    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.filter.return_value.first.return_value = assessment
+    mock_query.scalar.side_effect = [None, None]
     mock_query.count.return_value = 0
 
-    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+    result = dashboard_service._get_assessment_card_details(
+        mock_db,
+        1,
+    )
 
     assert result.assessment_id == 1
     assert result.assessment_name == "New Assessment"
@@ -244,129 +259,109 @@ def test_get_assessment_card_details_with_no_performers():
 
 
 def test_get_assessment_card_details_ai_usage_level_low():
-    """Test AI usage level when percent is below 35%"""
+    assessment = MagicMock()
+    assessment.title = "Test Assessment"
+
     mock_db = MagicMock()
     mock_query = MagicMock()
+
     mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_query
     mock_query.join.return_value = mock_query
     mock_query.order_by.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all.return_value = []
-    
-    call_count = [0]
-    def scalar_side_effect():
-        call_count[0] += 1
-        if call_count[0] == 1:
-            return "Test Assessment"
-        elif call_count[0] == 2:
-            return 50.0
-        elif call_count[0] == 3:
-            return 1200.0
-        return None
-    
-    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.filter.return_value.first.return_value = assessment
+    mock_query.scalar.side_effect = [50.0, 1200.0]
     mock_query.count.side_effect = [2, 10]
 
-    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+    result = dashboard_service._get_assessment_card_details(
+        mock_db,
+        1,
+    )
 
     assert result.ai_usage.level == AIUsageLevel.LOW
     assert result.ai_usage.percent == 20.0
 
 
 def test_get_assessment_card_details_ai_usage_level_medium():
-    """Test AI usage level when percent is 35-70%"""
+    assessment = MagicMock()
+    assessment.title = "Test Assessment"
+
     mock_db = MagicMock()
     mock_query = MagicMock()
+
     mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_query
     mock_query.join.return_value = mock_query
     mock_query.order_by.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all.return_value = []
-    
-    call_count = [0]
-    def scalar_side_effect():
-        call_count[0] += 1
-        if call_count[0] == 1:
-            return "Test Assessment"
-        elif call_count[0] == 2:
-            return 60.0
-        elif call_count[0] == 3:
-            return 1200.0
-        return None
-    
-    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.filter.return_value.first.return_value = assessment
+    mock_query.scalar.side_effect = [60.0, 1200.0]
     mock_query.count.side_effect = [5, 10]
 
-    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+    result = dashboard_service._get_assessment_card_details(
+        mock_db,
+        1,
+    )
 
     assert result.ai_usage.level == AIUsageLevel.MEDIUM
     assert result.ai_usage.percent == 50.0
 
 
 def test_get_assessment_card_details_ai_usage_level_high():
-    """Test AI usage level when percent is 70% or above"""
+    assessment = MagicMock()
+    assessment.title = "Test Assessment"
+
     mock_db = MagicMock()
     mock_query = MagicMock()
+
     mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_query
     mock_query.join.return_value = mock_query
     mock_query.order_by.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all.return_value = []
-    
-    call_count = [0]
-    def scalar_side_effect():
-        call_count[0] += 1
-        if call_count[0] == 1:
-            return "Test Assessment"
-        elif call_count[0] == 2:
-            return 75.0
-        elif call_count[0] == 3:
-            return 1200.0
-        return None
-    
-    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.filter.return_value.first.return_value = assessment
+    mock_query.scalar.side_effect = [75.0, 1200.0]
     mock_query.count.side_effect = [7, 10]
 
-    result = dashboard_service._get_assessment_card_details(mock_db, 1)
+    result = dashboard_service._get_assessment_card_details(
+        mock_db,
+        1,
+    )
 
     assert result.ai_usage.level == AIUsageLevel.HIGH
     assert result.ai_usage.percent == 70.0
 
 
 def test_get_assessment_detail_cards_service_function():
-    """Test the public get_assessment_detail_cards function"""
+    assessment = MagicMock()
+    assessment.title = "Test Assessment"
+
     mock_db = MagicMock()
     mock_query = MagicMock()
+
     mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_query
     mock_query.join.return_value = mock_query
     mock_query.order_by.return_value = mock_query
     mock_query.limit.return_value = mock_query
     mock_query.all.return_value = []
-    
-    call_count = [0]
-    def scalar_side_effect():
-        call_count[0] += 1
-        if call_count[0] == 1:
-            return "Test Assessment"
-        elif call_count[0] == 2:
-            return 85.0
-        elif call_count[0] == 3:
-            return 1500.0
-        return None
-    
-    mock_query.scalar.side_effect = scalar_side_effect
+    mock_query.filter.return_value.first.return_value = assessment
+    mock_query.scalar.side_effect = [85.0, 1500.0]
     mock_query.count.return_value = 0
 
     result = dashboard_service.get_assessment_detail_cards(
         assessment_id=42,
-        db=mock_db
+        db=mock_db,
     )
 
-    assert isinstance(result, dashboard_service.AssessmentDetailCardResponse)
+    assert isinstance(
+        result,
+        dashboard_service.AssessmentDetailCardResponse,
+    )
     assert result.assessment_id == 42
     assert result.assessment_name == "Test Assessment"
 
@@ -482,3 +477,17 @@ def test_get_assessment_detail_table_info_delegates_to_helper(monkeypatch):
         page=2,
         page_size=4,
     )
+
+
+def test_get_assessment_card_details_raises_404_when_assessment_not_found():
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    with pytest.raises(HTTPException) as exc_info:
+        dashboard_service._get_assessment_card_details(
+            db=mock_db,
+            assessment_id=999,
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"

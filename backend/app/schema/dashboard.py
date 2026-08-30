@@ -36,6 +36,7 @@ class TableItem(BaseModel):
 
 
 class FilterableTableItem(BaseModel):
+    candidate_assess_id: int
     candidate_id: int
     candidate_name: str
     total_score_percent: float

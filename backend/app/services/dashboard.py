@@ -1,4 +1,5 @@
 from sqlalchemy import func, case
+from fastapi import HTTPException, status
 from typing import Optional
 from sqlalchemy.orm import Session
 from app.schema.dashboard import (
@@ -32,7 +33,10 @@ def _get_top_performers(
 
     rows = (
         db.query(
-            User.full_name.label("candidate_name"),
+            func.coalesce(
+                User.full_name,
+                User.email,
+            ).label("candidate_name"),
             percent_expr.label("score_percent"),
         )
         .join(
@@ -174,7 +178,7 @@ def _get_table_items(
     )
 
     top_candidate_name = (
-        db.query(User.full_name)
+        db.query(func.coalesce(User.full_name, User.email))
         .join(
             CandidateAssessment,
             CandidateAssessment.candidate_id == User.user_id
@@ -230,19 +234,26 @@ def _get_assessment_card_details(
         db: Session,
         assessment_id: int
 ) -> AssessmentDetailCardResponse:
-    _assessment_name = (
-        db.query(
-            Assessment.title
-        )
-        .filter(
-            Assessment.assessment_id == assessment_id
-        )
-        .scalar()
+    assessment = (
+        db.query(Assessment)
+        .filter(Assessment.assessment_id == assessment_id)
+        .first()
     )
+
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+
+    _assessment_name = assessment.title
 
     _top_performers_assessment = (
         db.query(
-            User.full_name.label("candidate_name"),
+            func.coalesce(
+                User.full_name,
+                User.email,
+            ).label("candidate_name"),
             ((CandidateAssessment.candidate_score /
               CandidateAssessment.total_score) * 100).label("score_percent"),
         )
@@ -407,6 +418,7 @@ def _get_assessment_detail_table_items(
 
     query = (
         db.query(
+            CandidateAssessment.candidate_assess_id,
             User.user_id.label("candidate_id"),
             candidate_name,
             total_score_percent.label("total_score_percent"),
@@ -464,6 +476,7 @@ def _get_assessment_detail_table_items(
 
     _items = [
         FilterableTableItem(
+            candidate_assess_id=row.candidate_assess_id,
             candidate_id=row.candidate_id,
             candidate_name=row.candidate_name,
             total_score_percent=round(row.total_score_percent, 2),
