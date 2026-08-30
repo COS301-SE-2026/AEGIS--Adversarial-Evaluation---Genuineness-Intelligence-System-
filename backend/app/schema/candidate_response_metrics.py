@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -79,3 +80,17 @@ class CandidateResponseMetricsResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CandidateAssessmentMetricsResponse(BaseModel):
+    behavioral_summary: Optional[str] = Field(
+        None,
+        description=(
+            "AI-generated behavioral summary for this attempt, or None if "
+            "one has not been generated yet"
+        ),
+    )
+    metrics: list[CandidateResponseMetricsResponse] = Field(
+        default_factory=list,
+        description="Per-response behavioral metrics for this attempt",
+    )

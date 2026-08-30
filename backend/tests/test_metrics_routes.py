@@ -8,6 +8,7 @@ from app.core.security import get_current_user
 from app.database.database import get_db
 from app.main import app
 from app.schema.candidate_response_metrics import (
+    CandidateAssessmentMetricsResponse,
     CandidateResponseMetricsResponse,
 )
 
@@ -110,36 +111,39 @@ def test_get_response_metrics_requires_integer_id(recruiter_client):
 
 
 def test_get_assessment_metrics_returns_200(recruiter_client, mock_db):
-    response_obj = [
-        CandidateResponseMetricsResponse(
-            candidate_response_id=1,
-            active_time_ms=184300,
-            unique_keys_count=27,
-            chars_alnum=200,
-            chars_special=44,
-            backspace_count=38,
-            copy_event_count=1,
-            copy_char_count=12,
-            paste_event_count=2,
-            paste_char_count=340,
-            focus_loss_count=1,
-            focus_loss_time_ms=8000,
-        ),
-        CandidateResponseMetricsResponse(
-            candidate_response_id=2,
-            active_time_ms=210500,
-            unique_keys_count=35,
-            chars_alnum=600,
-            chars_special=20,
-            backspace_count=45,
-            copy_event_count=0,
-            copy_char_count=0,
-            paste_event_count=0,
-            paste_char_count=0,
-            focus_loss_count=4,
-            focus_loss_time_ms=15000,
-        ),
-    ]
+    response_obj = CandidateAssessmentMetricsResponse(
+        behavioral_summary="Candidate typed steadily throughout.",
+        metrics=[
+            CandidateResponseMetricsResponse(
+                candidate_response_id=1,
+                active_time_ms=184300,
+                unique_keys_count=27,
+                chars_alnum=200,
+                chars_special=44,
+                backspace_count=38,
+                copy_event_count=1,
+                copy_char_count=12,
+                paste_event_count=2,
+                paste_char_count=340,
+                focus_loss_count=1,
+                focus_loss_time_ms=8000,
+            ),
+            CandidateResponseMetricsResponse(
+                candidate_response_id=2,
+                active_time_ms=210500,
+                unique_keys_count=35,
+                chars_alnum=600,
+                chars_special=20,
+                backspace_count=45,
+                copy_event_count=0,
+                copy_char_count=0,
+                paste_event_count=0,
+                paste_char_count=0,
+                focus_loss_count=4,
+                focus_loss_time_ms=15000,
+            ),
+        ],
+    )
 
     with patch(
         "app.api.routes.metrics.metrics.get_metrics_for_assessment",
@@ -150,11 +154,32 @@ def test_get_assessment_metrics_returns_200(recruiter_client, mock_db):
         )
 
     assert response.status_code == 200
-    assert response.json() == [
-        item.model_dump() for item in response_obj
-    ]
-    assert response.json()[0]["copy_char_count"] == 12
+    assert response.json() == response_obj.model_dump()
+    assert response.json()["behavioral_summary"] == (
+        "Candidate typed steadily throughout."
+    )
+    assert response.json()["metrics"][0]["copy_char_count"] == 12
     mock_metrics.assert_called_once_with(mock_db, 7)
+
+
+def test_get_assessment_metrics_returns_null_summary_when_absent(
+    recruiter_client, mock_db
+):
+    response_obj = CandidateAssessmentMetricsResponse(
+        behavioral_summary=None,
+        metrics=[],
+    )
+
+    with patch(
+        "app.api.routes.metrics.metrics.get_metrics_for_assessment",
+        return_value=response_obj,
+    ):
+        response = recruiter_client.get(
+            "/api/v1/candidate-assessments/8/metrics"
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"behavioral_summary": None, "metrics": []}
 
 
 def test_get_assessment_metrics_requires_integer_id(recruiter_client):

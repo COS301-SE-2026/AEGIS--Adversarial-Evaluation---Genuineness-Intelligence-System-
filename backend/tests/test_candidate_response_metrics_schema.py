@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schema.candidate_response_metrics import (
+    CandidateAssessmentMetricsResponse,
     CandidateResponseMetricsResponse,
     MetricsCumulative,
     MetricsDelta,
@@ -115,3 +116,37 @@ def test_candidate_response_metrics_response_round_trips_from_orm_object():
     assert response.active_time_ms == 1000
     assert response.unique_keys_count == 42
     assert response.copy_char_count == 0
+
+
+def test_candidate_assessment_metrics_response_wraps_summary_and_metrics():
+    per_response = CandidateResponseMetricsResponse(
+        candidate_response_id=3,
+        active_time_ms=1000,
+        unique_keys_count=42,
+        chars_alnum=10,
+        chars_special=2,
+        backspace_count=1,
+        copy_event_count=0,
+        copy_char_count=0,
+        paste_event_count=0,
+        paste_char_count=0,
+        focus_loss_count=0,
+        focus_loss_time_ms=0,
+    )
+
+    response = CandidateAssessmentMetricsResponse(
+        behavioral_summary="Candidate typed steadily throughout.",
+        metrics=[per_response],
+    )
+
+    assert response.behavioral_summary == (
+        "Candidate typed steadily throughout."
+    )
+    assert response.metrics == [per_response]
+
+
+def test_candidate_assessment_metrics_response_defaults_to_none_and_empty():
+    response = CandidateAssessmentMetricsResponse()
+
+    assert response.behavioral_summary is None
+    assert response.metrics == []
