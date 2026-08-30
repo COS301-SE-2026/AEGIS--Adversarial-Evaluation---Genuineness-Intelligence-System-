@@ -1362,6 +1362,7 @@ def _make_metrics_row(response_id, **overrides):
         "chars_special": 10,
         "backspace_count": 15,
         "copy_event_count": 0,
+        "copy_char_count": 0,
         "paste_event_count": 3,
         "paste_char_count": 450,
         "focus_loss_count": 4,
@@ -1388,7 +1389,9 @@ def _make_submit_ready_session(response_id=101):
 def test_submit_candidate_assessment_generates_and_stores_behavioral_summary():
     mock_db = MagicMock()
     mock_session = _make_submit_ready_session(response_id=101)
-    metrics_row = _make_metrics_row(101, paste_event_count=3)
+    metrics_row = _make_metrics_row(
+        101, paste_event_count=3, copy_event_count=2, copy_char_count=75,
+    )
 
     mock_db.query.side_effect = [
         _mock_query_result(mock_session),
@@ -1415,6 +1418,8 @@ def test_submit_candidate_assessment_generates_and_stores_behavioral_summary():
     assert call_kwargs["config"].temperature == 0.0
     assert "3 paste event(s)" in call_kwargs["contents"]
     assert "450 pasted character(s)" in call_kwargs["contents"]
+    assert "2 copy event(s)" in call_kwargs["contents"]
+    assert "75 copied character(s)" in call_kwargs["contents"]
     mock_db.commit.assert_called_once()
 
 
