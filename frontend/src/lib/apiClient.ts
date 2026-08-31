@@ -108,12 +108,24 @@ async function parseResponseData(response: Response): Promise<unknown> {
 
 function throwApiError(response: Response, data: unknown): never {
   const detail = (data as { detail?: unknown } | null)?.detail;
+
+  if (response.status === 401) {
+    const message = "Your session has expired due to inactivity. Redirecting to login...";
+    window.dispatchEvent(new CustomEvent("session-expired", { detail: { message } }));
+    setTimeout(() => {
+      localStorage.removeItem("aegis_token");
+      localStorage.removeItem("aegis_role");
+      window.location.href = "/auth?mode=login";
+    }, 1200);
+  }
+
   const message =
     detail && typeof detail === "string"
       ? detail
       : Array.isArray(detail)
       ? "Validation error — check your input"
       : `Request failed with status ${response.status}`;
+
   throw new ApiError(message, response.status, data);
 }
  

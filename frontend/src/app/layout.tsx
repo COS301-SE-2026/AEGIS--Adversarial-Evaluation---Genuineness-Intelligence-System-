@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SessionTimeoutGate } from "@/components/session/session-timeout-gate";
 import { Staatliches, IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
       className={`${staatliches.variable} ${ibmPlexSans.variable} ${jetBrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <SessionTimeoutGate />
         {children}
       </body>
     </html>

@@ -37,7 +37,7 @@ export default function AssessmentsPage() {
   useEffect(() => {
     const checkAuth = async () => {
       if (!isAuthenticated() || getRole() !== "RECRUITER") {
-        router.replace("/login");
+        router.replace("/auth?mode=login");
         return;
       }
       setAuthChecked(true);
