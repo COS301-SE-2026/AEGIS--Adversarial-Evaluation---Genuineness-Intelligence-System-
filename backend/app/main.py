@@ -24,6 +24,7 @@ from app.api.routes.candidate_ass import (
 )
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.metrics import router as metrics_router
+from app.api.routes.reporting import router as reporting_router
 
 app = FastAPI()
 
@@ -60,6 +61,7 @@ app.include_router(question_adversarial_router, prefix=API_V1_PREFIX)
 app.include_router(adversarial_questions_router, prefix=API_V1_PREFIX)
 app.include_router(dashboard_router, prefix=API_V1_PREFIX)
 app.include_router(metrics_router, prefix=API_V1_PREFIX)
+app.include_router(reporting_router, prefix=API_V1_PREFIX)
 
 
 @app.on_event("startup")
