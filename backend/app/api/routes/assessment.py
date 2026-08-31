@@ -38,6 +38,8 @@ from app.schema.candidate_response import (
     ResponseCreate,
 )
 from app.schema.candidate_assessment import CandidateAssessmentResponse
+from app.schema.review_priority import ReviewPriorityResponse
+from app.services.reporting_candidate_metrics import get_review_priority
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 candidate_response_router = APIRouter(
@@ -427,3 +429,20 @@ def execute_code(
         code=payload.code,
         piston_client=piston_client,
     )
+
+
+@candidate_response_router.get(
+    "/{candidate_assessment_id}/review-priority",
+    response_model=ReviewPriorityResponse,
+)
+def read_review_priority(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can access review priority.",
+        )
+    return get_review_priority(candidate_assessment_id)
