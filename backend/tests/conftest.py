@@ -12,15 +12,15 @@ os.environ.setdefault("GITHUB_REDIRECT_URI", "http://localhost:8000/github/callb
 
 # mock boto3 before importing execute load_aws_secrets()
 with patch("boto3.client") as mock_boto:
-    mock_client = MagicMock()
-    mock_client.get.secret.value.return_value = {"SecretString": "{}"}
-    mock_boto.return_value = mock_client
+    mock_boto.return_value.get_secret_value.return_value = {"SecretString": "{}"}
+
     from app.core.security import get_current_user
     from app.database.database import get_db
     from app.main import app
 
 import pytest
 from fastapi.testclient import TestClient
+
 
 @pytest.fixture
 def mock_db():

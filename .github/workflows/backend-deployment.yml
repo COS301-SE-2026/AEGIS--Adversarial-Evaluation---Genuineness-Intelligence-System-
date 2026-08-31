@@ -27,7 +27,7 @@ jobs:
 
             - name: Log in to Amazon ECR
               id: login-ecr
-              uses: aws-actions/amazon-ecr-login@062b18dfa212eee9a024220311f9737f29ff1007
+              uses: aws-actions/amazon-ecr-login@v2
 
             - name: Build and Push Docker Image
               env:
@@ -39,7 +39,7 @@ jobs:
                 # docker image tags cannot contain forward slashes, so github branch names needed to be converted accordinly.
                 # e.g 'deployment/aws-migration' becomes 'deployment-aws-migration'
                 # a stream editor (sed) is used. '\//' defines what to look for. '/-/' specifies to add a hyphen. 'g' indicates that all forward slashes should be replaced.
-                IMAGE_TAG=$(echo "RAW_TAG" | sed 's/\//-/g')
+                IMAGE_TAG=$(echo "$RAW_TAG" | sed 's/\//-/g')
                 
                 docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
@@ -50,7 +50,7 @@ jobs:
             
             - name: Deploy to Amazon EC2 via SSH
               if: github.event_name == 'push'
-              uses: appleboy/ssh-action@40f098027725906efdd624231b672778db106399
+              uses: appleboy/ssh-action@v1.2.0
               with:
                 host: ${{ secrets.SERVER_HOST }}
                 username: ec2-user
