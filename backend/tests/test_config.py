@@ -38,6 +38,16 @@ def test_load_aws_secrets_client_error():
             load_aws_secrets()
 
 
+def test_load_aws_secrets_missing_secret_string():
+    with patch("boto3.client") as mock_boto:
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {}
+        mock_boto.return_value = mock_client
+
+        with pytest.raises(RuntimeError, match="does not contain a SecretString"):
+            load_aws_secrets()
+
+
 def test_load_aws_secrets_invalid_json():
     with patch("boto3.client") as mock_boto:
         mock_client = MagicMock()
