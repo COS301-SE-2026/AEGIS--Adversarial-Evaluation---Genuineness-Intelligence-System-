@@ -10,7 +10,7 @@ AWS_REGION = os.getenv("AWS_REGION", "af-south-1")
 AWS_SECRET_NAME = os.getenv("AWS_SECRET_NAME", "prod/aegis/backend",)
 
 
-def load_aws_secrets() -> None: 
+def load_aws_secrets() -> None:
     # this wll load secrets straight from the AWS Secrets Manager.
 
     client = boto3.client(
@@ -19,8 +19,8 @@ def load_aws_secrets() -> None:
     )
 
     try:
-        response = client.get_secret_value( 
-            SecretId=AWS_SECRET_NAME 
+        response = client.get_secret_value(
+            SecretId=AWS_SECRET_NAME
         )
     except ClientError as exc:
         error_code = exc.response.get(
@@ -43,9 +43,9 @@ def load_aws_secrets() -> None:
             f"AWS secret {AWS_SECRET_NAME} does not contain a SecretString."
         )
 
-    try: 
+    try:
         secrets = json.loads(secret_string)
-    except json.JSONDecodeError as exc: 
+    except json.JSONDecodeError as exc:
         raise RuntimeError(
             f"AWS secret {AWS_SECRET_NAME} does not contain valid JSON."
         ) from exc
@@ -56,7 +56,7 @@ def load_aws_secrets() -> None:
         )
 
     # make the fetched values Pydantic ready as environment variables.
-    for key, value in secrets.items(): 
+    for key, value in secrets.items():
         os.environ[key] = str(value)
 
 
@@ -64,7 +64,7 @@ load_aws_secrets()
 
 
 class Settings(BaseSettings):
-    
+
     model_config = SettingsConfigDict(
         case_sensitive=False,
         extra="ignore",
