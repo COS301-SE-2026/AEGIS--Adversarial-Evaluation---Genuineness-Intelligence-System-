@@ -5,7 +5,7 @@ import boto3
 from botocore.exceptions import ClientError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-AWS_REGION = os.getenv("AWS_REGION","af-south-1")
+AWS_REGION = os.getenv("AWS_REGION", "af-south-1")
 
 AWS_SECRET_NAME = os.getenv("AWS_SECRET_NAME", "prod/aegis/backend",)
 
@@ -44,7 +44,6 @@ def load_aws_secrets() -> None:
 
     try: 
         secrets = json.loads(secret_string)
-
     except json.JSONDecodeError as exc: 
         raise RuntimeError(
             f"AWS secret {AWS_SECRET_NAME} does not contain valid JSON."
@@ -57,9 +56,10 @@ def load_aws_secrets() -> None:
 
     # make the fetched values Pydantic ready as environment variables.
     for key, value in secrets.items(): 
-        os.environ[key] = str(value);
+        os.environ[key] = str(value)
 
 load_aws_secrets()
+
 
 class Settings(BaseSettings):
     
@@ -103,7 +103,6 @@ class Settings(BaseSettings):
     piston_base_url: str = "http://localhost:2000"
     piston_request_timeout_seconds: int = 30
     piston_enabled: bool = False
-
 
 # Single shared instance imported by the rest of the app
 settings = Settings()

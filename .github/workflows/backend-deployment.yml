@@ -19,7 +19,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Configure AWS Credentials
-              uses: aws-actions/configure-aws-credentials@v4
+              uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
               with:
                 aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
                 aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -27,14 +27,20 @@ jobs:
 
             - name: Log in to Amazon ECR
               id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
+              uses: aws-actions/amazon-ecr-login@062b18dfa212eee9a024220311f9737f29ff1007
 
             - name: Build and Push Docker Image
               env:
                 ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
                 ECR_REPOSITORY: aegis/fastapi-app
-                IMAGE_TAG: ${{ github.head_ref || github.ref_name }}
+                RAW_TAG: ${{ github.head_ref || github.ref_name }}
               run: |
+                
+                # docker image tags cannot contain forward slashes, so github branch names needed to be converted accordinly.
+                # e.g 'deployment/aws-migration' becomes 'deployment-aws-migration'
+                # a stream editor (sed) is used. '\//' defines what to look for. '/-/' specifies to add a hyphen. 'g' indicates that all forward slashes should be replaced.
+                IMAGE_TAG=$(echo "RAW_TAG" | sed 's/\//-/g')
+                
                 docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
 
                 # only push image to ECR on push events
@@ -44,7 +50,7 @@ jobs:
             
             - name: Deploy to Amazon EC2 via SSH
               if: github.event_name == 'push'
-              uses: appleboy/ssh-action@v1.0.3
+              uses: appleboy/ssh-action@40f098027725906efdd624231b672778db106399
               with:
                 host: ${{ secrets.SERVER_HOST }}
                 username: ec2-user
