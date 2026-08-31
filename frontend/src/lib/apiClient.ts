@@ -106,10 +106,10 @@ async function parseResponseData(response: Response): Promise<unknown> {
   return text ? JSON.parse(text) : null;
 }
 
-function throwApiError(response: Response, data: unknown): never {
+function throwApiError(response: Response, data: unknown, wasAuthenticated: boolean): never {
   const detail = (data as { detail?: unknown } | null)?.detail;
 
-  if (response.status === 401) {
+  if (response.status === 401 && wasAuthenticated) {
     const message = "Your session has expired due to inactivity. Redirecting to login...";
     window.dispatchEvent(new CustomEvent("session-expired", { detail: { message } }));
     setTimeout(() => {
@@ -163,7 +163,7 @@ export async function apiFetch<TResponse>(
   const data = await parseResponseData(response);
  
   if (!response.ok) {
-    throwApiError(response, data);
+    throwApiError(response, data, Boolean(authToken));
   }
  
   return data as TResponse;

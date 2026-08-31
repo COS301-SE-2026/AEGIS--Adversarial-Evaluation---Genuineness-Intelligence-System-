@@ -137,10 +137,13 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        const detail = (error.data as {detail?: unknown})?.detail;
-
+        const detail = (error.data as { detail?: unknown })?.detail;
         if (Array.isArray(detail)) {
           setServerError(detail.map((e: { message: string }) => e.message).join(" "));
+        } else if (typeof detail === "string") {
+          setServerError(detail);
+        } else {
+          setServerError("Login failed. Please try again.");
         }
       }
       else {
