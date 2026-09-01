@@ -74,5 +74,5 @@ jobs:
                     docker pull $IMAGE
                     docker stop $CONTAINER_NAME || true
                     docker rm $CONTAINER_NAME || true
-                    docker run -d --name $CONTAINER_NAME -p $PORT --restart always $IMAGE
+                    docker run -d --name $CONTAINER_NAME -p $PORT -e AWS_REGION="${{ secrets.AWS_REGION }}" --restart always $IMAGE
                     docker image prune -f
