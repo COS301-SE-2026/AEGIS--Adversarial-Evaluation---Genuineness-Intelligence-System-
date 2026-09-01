@@ -16,3 +16,21 @@ export interface CandidateAssessmentMetrics {
     behavioral_summary: string | null;
     metrics: CandidateMetrics[];
 }
+
+export type RadarAxisName =
+  | "paste_ratio"
+  | "backspace_rate"
+  | "typing_speed"
+  | "focus_loss_rate";
+
+export interface RadarAxis {
+  axis: RadarAxisName;
+  candidate_value: number;
+  cohort_avg_value: number;
+}
+
+export interface MetricsRadarResponse {
+  axes: RadarAxis[];
+  cohort_sample_size: number;
+  insufficient_cohort_data: boolean;
+}
