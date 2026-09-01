@@ -15,7 +15,7 @@ from app.schema.dashboard import (
     QuestionQualityResponse
 )
 from app.services import dashboard as dashboard_service
-from app.services.assessment_report import get_question_quality
+from app.services.assessment_report import get_question_quality, build_question_quality_guidance
 
 
 def _make_query(rows=None, *, count_value=0, scalar_value=0):
@@ -541,3 +541,23 @@ def test_get_question_quality_groups_generated_questions_by_bucket():
     assert "balanced range" in result.guidance[1]
     assert "above 95% success" in result.guidance[2]
     assert "fewer than 3 attempts" in result.guidance[3]
+
+
+def test_build_question_quality_guidance_skips_empty_bucket():
+    bucket = MagicMock()
+    bucket.count = 0
+    bucket.bucket = "needs_revision"
+
+    result = build_question_quality_guidance([bucket])
+
+    assert result == []
+
+
+def test_build_question_quality_guidance_handles_unknown_bucket():
+    bucket = MagicMock()
+    bucket.count = 1
+    bucket.bucket = "unknown"
+
+    result = build_question_quality_guidance([bucket])
+
+    assert result == []
