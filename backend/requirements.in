@@ -28,3 +28,6 @@ google-genai==1.2.0
 
 # CORS support
 fastapi-cors==0.0.6
+
+# AWS software development kit
+boto3

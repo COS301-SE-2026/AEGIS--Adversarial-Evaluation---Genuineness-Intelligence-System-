@@ -1,4 +1,5 @@
 import os
+from unittest.mock import MagicMock, patch
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
@@ -7,18 +8,18 @@ os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("GOOGLE_REDIRECT_URI", "http://localhost:8000/callback")
 os.environ.setdefault("GITHUB_CLIENT_ID", "test-github-client-id")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-github-client-secret")
-os.environ.setdefault(
-    "GITHUB_REDIRECT_URI", "http://localhost:8000/github/callback"
-)
+os.environ.setdefault("GITHUB_REDIRECT_URI", "http://localhost:8000/github/callback")
 
-from unittest.mock import MagicMock
+# mock boto3 before importing execute load_aws_secrets()
+with patch("boto3.client") as mock_boto:
+    mock_boto.return_value.get_secret_value.return_value = {"SecretString": "{}"}
+
+    from app.core.security import get_current_user
+    from app.database.database import get_db
+    from app.main import app
 
 import pytest
 from fastapi.testclient import TestClient
-
-from app.core.security import get_current_user
-from app.database.database import get_db
-from app.main import app
 
 
 @pytest.fixture

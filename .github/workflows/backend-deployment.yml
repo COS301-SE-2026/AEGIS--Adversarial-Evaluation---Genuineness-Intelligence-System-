@@ -1,0 +1,78 @@
+name: Build & Deploy Container
+
+on: 
+    push:
+        branches:
+            - dev
+            - main
+
+    pull_request:
+            branches:
+                - dev
+                - main
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+              with:
+                aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ secrets.AWS_REGION }}
+
+            - name: Log in to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64
+
+            - name: Build and Push Docker Image
+              working-directory: backend
+              env:
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                ECR_REPOSITORY: aegis/fastapi-app
+                RAW_TAG: ${{ github.head_ref || github.ref_name }}
+              run: |
+                
+                # docker image tags cannot contain forward slashes, so github branch names needed to be converted accordinly.
+                # e.g 'deployment/aws-migration' becomes 'deployment-aws-migration'
+                # a stream editor (sed) is used. '\//' defines what to look for. '/-/' specifies to add a hyphen. 'g' indicates that all forward slashes should be replaced.
+                IMAGE_TAG=$(echo "$RAW_TAG" | sed 's/\//-/g')
+                
+                docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+                # only push image to ECR on push events
+                if [ "${{ github.event_name }}" = "push" ]; then
+                    docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                fi
+            
+            - name: Deploy to Amazon EC2 via SSH
+              if: github.event_name == 'push'
+              uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+              with:
+                host: ${{ secrets.SERVER_HOST }}
+                username: ec2-user
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                script: |
+                    REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+                    IMAGE="$REGISTRY/aegis/fastapi-app:${{ github.ref_name }}"
+                    CONTAINER_NAME="myapp-${{ github.ref_name }}"
+
+                    # log into ecr and ec2 instance
+                    aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
+
+                    # map port 80 for production and port 8080 for development
+                    if [ "${{ github.ref_name }}" = "main" ]; then
+                        PORT="80:80"
+                    else
+                        PORT="8080:80"
+                    fi
+
+                    docker pull $IMAGE
+                    docker stop $CONTAINER_NAME || true
+                    docker rm $CONTAINER_NAME || true
+                    docker run -d --name $CONTAINER_NAME -p $PORT --restart always $IMAGE
+                    docker image prune -f
