@@ -1,7 +1,6 @@
 import os
 import pytest
 from unittest.mock import MagicMock, patch
-#added this comment to rerun a PR
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database.database import get_db
@@ -19,6 +18,8 @@ from app.schema.dashboard import (
     CandidateResultStatus,
     DashboardGraphResponse,
     AverageScore,
+    QuestionQualityResponse,
+    QuestionQualityBucket
 )
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
@@ -30,6 +31,10 @@ DASHBOARD_ENDPOINTS = [
     "/api/v1/admin/dashboard/assessments",
     "/api/v1/admin/dashboard/assessments/101",
     "/api/v1/admin/dashboard/assessments/101/candidates",
+]
+
+REPORTING_ENDPOINTS = [
+    "/api/v1/reporting/question-quality",
 ]
 
 
@@ -426,3 +431,16 @@ def test_get_assessment_detail_table_returns_empty_items(
         "page": 1,
         "page_size": 8,
     }
+
+
+@pytest.mark.parametrize("path", REPORTING_ENDPOINTS)
+def test_reporting_endpoints_reject_non_recruiter(candidate_client, path):
+    response = candidate_client.get(path)
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("path", REPORTING_ENDPOINTS)
+def test_reporting_endpoints_reject_unauthenticated(client, path):
+    response = client.get(path)
+    assert response.status_code == 401
