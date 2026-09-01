@@ -173,7 +173,17 @@ const MetricsRadar = ()=> {
           </RadarChart>
         </ResponsiveContainer>
       </div>
+      <div className="mt-3 flex items-center justify-center gap-6 text-xs text-default-text/80">
+        <div className="flex items-center gap-2">
+          <span className="block h-2.5 w-2.5 rounded-full bg-[var(--color-system-red)]" />
+          <span>Candidate</span>
+        </div>
 
+        <div className="flex items-center gap-2">
+          <span className="block h-0.5 w-6 rounded-full bg-[var(--color-default-text)]" />
+          <span>Average</span>
+        </div>
+      </div>
       {data.insufficient_cohort_data ? (
         <p className="mt-3 text-sm text-default-text/70">
           Not enough completed attempts yet for a cohort comparison.
