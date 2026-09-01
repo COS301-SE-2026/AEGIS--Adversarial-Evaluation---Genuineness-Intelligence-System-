@@ -30,11 +30,12 @@ function buildChartData(response: MetricsRadarResponse) {
   }));
 }
 
-function formatTooltipValue(value: unknown) {
-  const numericValue = Array.isArray(value) ? Number(value[0]) : Number(value);
-  return [numericValue.toFixed(2), "Value"];
+function formatTooltipValue(value: unknown, name: unknown) {
+  const rawValue = Array.isArray(value) ? value[0] : value;
+  const numericValue = Number(rawValue ?? 0);
+  const seriesName = typeof name === "string" ? name : "Value";
+  return [numericValue.toFixed(2), seriesName];
 }
-
 const MetricsRadar = ()=> {
   const params = useParams<{ id: string }>();
   const [data, setData] = useState<MetricsRadarResponse | null>(null);
@@ -146,7 +147,7 @@ const MetricsRadar = ()=> {
             ) : (
               <>
                 <Radar
-                  name="Cohort Average"
+                  name="Average"
                   dataKey="cohort"
                   stroke="var(--color-default-text)"
                   fill="var(--color-default-text)"
