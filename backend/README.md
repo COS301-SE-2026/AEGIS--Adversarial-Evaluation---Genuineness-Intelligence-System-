@@ -142,7 +142,7 @@ If the sandbox is configured correctly, the response will return `hello` in the 
 ## Database
 
 - PostgreSQL 15
-- Managed with SQLAlchemy ORM
+- Managed with SQLAlchemy ORMcurl http://localhost:2000/api/v2/runtimes
 - Migrations handled by Alembic
 
 ## Next Steps (Implementation)
