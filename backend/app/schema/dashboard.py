@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
 from typing import Literal
-from pydantic import BaseModel
 
 
 class AIUsageLevel(str, Enum):
