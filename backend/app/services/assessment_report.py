@@ -61,11 +61,13 @@ def build_question_quality_guidance(
 def get_question_quality(db: Session) -> QuestionQualityResponse:
     rows = (
         db.query(
-            AssessmentQuestion.adv_question_id.label("adversarial_question_id"),
+            AssessmentQuestion.adv_question_id.label(
+                "adversarial_question_id"),
             func.count(CandidateResponse.response_id).label("attempt_count"),
             func.sum(
                 case(
-                    (CandidateResponse.is_correct == CorrectnessStatus.CORRECT, 1),
+                    (CandidateResponse.is_correct == CorrectnessStatus.CORRECT,
+                     1),
                     else_=0,
                 )
             ).label("correct_count"),
