@@ -7,6 +7,8 @@ import { getAuthHeaders } from "@/lib/auth";
 import { CandidateMetrics, CandidateAssessmentMetrics } from "@/app/(admin)/types/metrics";
 import Button from "@/components/hero/ui/button";
 import MetricsTable from "@/components/admin/ui/cards/metrics-table";
+import MetricsRadar from "@/components/admin/ui/dashboard/assessment-metrics-radar";
+import ReviewPriorityBadge from "@/components/admin/ui/dashboard/review-priority-badge";
 
 const GradeAssessmentMetricsPage = () => {
     const router = useRouter();
@@ -88,7 +90,13 @@ const GradeAssessmentMetricsPage = () => {
                     </p>
                 )}
             </div>
-            <MetricsTable metrics={metrics} />
+            <div className="mb-4">
+                <ReviewPriorityBadge />
+            </div>  
+            <MetricsRadar />
+            <div className="mt-6">
+                <MetricsTable metrics={metrics} />
+            </div>          
         </div>
     );
 }
