@@ -18,8 +18,7 @@
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "recharts": "^3.10.1",
-    "root": "git+https://github.com/tanstack/react-query.git"
+    "recharts": "^3.10.1"
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
