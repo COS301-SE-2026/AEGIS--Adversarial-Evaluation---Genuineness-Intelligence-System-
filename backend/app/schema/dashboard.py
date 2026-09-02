@@ -86,3 +86,13 @@ class QuestionQualityResponse(BaseModel):
     total_questions_answered: int
     buckets: list[QuestionQualityBucket]
     guidance: list[str]
+
+
+class ThroughputResponse(BaseModel):
+    total_assessments: int
+    active_count: int
+    completed_count: int
+    expired_count: int
+    avg_time_to_completion_seconds: float | None
+    avg_score: float | None
+    completion_rate: float
