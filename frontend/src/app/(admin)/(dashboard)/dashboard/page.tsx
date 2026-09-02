@@ -19,8 +19,10 @@ export default function DashboardPage() {
         router.replace("/auth?mode=login");
         return;
       }
+
       setAuthChecked(true);
     };
+
     checkAuth();
   }, [router]);
 
