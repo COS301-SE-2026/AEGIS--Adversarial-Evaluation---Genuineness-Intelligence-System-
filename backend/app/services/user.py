@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, selectinload
-
+from sqlalchemy.exc import IntegrityError
 from app.models.role import Role
 from app.models.user import User
 from app.schema.user_management import UserRole
@@ -61,3 +61,52 @@ def change_user_role(
 
     return user
 
+
+def update_user(
+    db: Session,
+    user_id: int,
+    email: str | None = None,
+    full_name: str | None = None,
+) -> User:
+    user = (
+        db.query(User)
+        .filter(User.user_id == user_id)
+        .first()
+    )
+
+    if user is None:
+        raise ValueError("User not found")
+
+    if email is not None:
+        user.email = email
+
+    if full_name is not None:
+        user.full_name = full_name
+
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise ValueError("A user with that email already exists") from exc
+
+    db.refresh(user)
+    return user
+
+
+def delete_user(db: Session, user_id: int) -> None:
+    user = (
+        db.query(User)
+        .filter(User.user_id == user_id)
+        .first()
+    )
+
+    if user is None:
+        raise ValueError("User not found")
+
+    if user.assessments or user.sessions or user.oauths:
+        raise ValueError(
+            "This user cannot be deleted because they have related records"
+        )
+
+    db.delete(user)
+    db.commit()

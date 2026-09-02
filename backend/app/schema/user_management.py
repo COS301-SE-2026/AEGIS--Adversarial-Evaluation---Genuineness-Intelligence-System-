@@ -16,3 +16,8 @@ class UserManagementResponse(BaseModel):
 
 class ChangeUserRoleRequest(BaseModel):
     role: UserRole
+
+
+class UpdateUserRequest(BaseModel):
+    email: EmailStr | None = None
+    full_name: str | None = None
