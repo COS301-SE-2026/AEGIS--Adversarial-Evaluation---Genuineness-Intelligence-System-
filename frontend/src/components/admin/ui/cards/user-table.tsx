@@ -43,6 +43,38 @@ function RoleSelect({
   );
 }
 
+function StatusToggle({
+  active,
+  disabled,
+  onClick,
+}: {
+  active: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={active ? "Disable account" : "Enable account"}
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        relative w-9 h-5 rounded-full transition-colors duration-150 shrink-0
+        disabled:opacity-40 disabled:cursor-not-allowed
+        ${active ? "bg-status-success-dim" : "bg-tertiary-surface border border-default-border"}
+      `}
+    >
+      <span
+        className={`
+          absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white-smoke
+          transition-transform duration-150
+          ${active ? "translate-x-4" : "translate-x-0"}
+        `}
+      />
+    </button>
+  );
+}
+
 export default function UserTable({
   users,
   pendingIds,
