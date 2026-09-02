@@ -95,6 +95,7 @@ jobs:
                       -p $PORT \
                       -e PISTON_BASE_URL=http://piston_sandbox:2000 \
                       -e PISTON_ENABLED=true \
+                      -e AWS_REGION="${{ secrets.AWS_REGION }}" \
                       --restart always \
                       $IMAGE
 
