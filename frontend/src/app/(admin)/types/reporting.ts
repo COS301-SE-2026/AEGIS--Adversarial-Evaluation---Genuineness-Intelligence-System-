@@ -1,9 +1,5 @@
 // Types mirroring the frozen backend contract in the Reporting Feature build
-// plan, §2 (Stream 1 — Assessment-Wide Dashboard). Keep these in lockstep
-// with backend/app/schema/... once BE-A's routes land — field names here
-// are copied verbatim from the frozen Pydantic models.
-
-// ─── 2.1 GET /reporting/question-quality ───────────────────────────────────
+// GET /reporting/question-quality 
 
 export type QuestionQualityBucketKey =
   | "needs_revision"
@@ -23,7 +19,7 @@ export interface QuestionQualityResponse {
   guidance: string[];
 }
 
-// ─── 2.2 GET /reporting/performance-breakdown?by=... ───────────────────────
+// GET /reporting/performance-breakdown?by=
 
 export type BreakdownBy = "category" | "difficulty" | "adversarial";
 
@@ -38,7 +34,7 @@ export interface PerformanceBreakdownResponse {
   slices: BreakdownSlice[];
 }
 
-// ─── 2.3 GET /reporting/throughput ──────────────────────────────────────────
+//GET /reporting/throughput
 
 export interface ThroughputResponse {
   total_assessments: number;
@@ -50,13 +46,13 @@ export interface ThroughputResponse {
   completion_rate: number; // 0.0-1.0
 }
 
-// ─── 2.4 GET /reporting/score-trend?granularity=... ────────────────────────
+// GET /reporting/score-trend?granularity=
 
 export type ScoreTrendGranularity = "week" | "month";
 
 export interface ScoreTrendPoint {
-  period_label: string; // e.g. "2026-W32"
-  period_start: string; // ISO date string
+  period_label: string; 
+  period_start: string; 
   avg_score: number;
   completed_count: number;
 }
@@ -66,7 +62,7 @@ export interface ScoreTrendResponse {
   points: ScoreTrendPoint[];
 }
 
-// ─── 2.5 GET /reporting/trap-pattern-effectiveness ─────────────────────────
+// reporting/trap-pattern-effectiveness
 
 export interface PatternEffectiveness {
   pattern_used: string;
@@ -79,7 +75,7 @@ export interface TrapPatternEffectivenessResponse {
   patterns: PatternEffectiveness[];
 }
 
-// ─── 2.6 GET /reporting/integrity-summary ──────────────────────────────────
+//integrity-summary 
 
 export interface IntegritySummaryResponse {
   pct_responses_elevated_paste_reliance: number; // 0.0-1.0
