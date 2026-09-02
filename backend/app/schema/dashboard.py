@@ -88,6 +88,16 @@ class QuestionQualityResponse(BaseModel):
     guidance: list[str]
 
 
+class ThroughputResponse(BaseModel):
+    total_assessments: int
+    active_count: int
+    completed_count: int
+    expired_count: int
+    avg_time_to_completion_seconds: float | None
+    avg_score: float | None
+    completion_rate: float
+
+
 class BreakdownSlice(BaseModel):
     label: str
     avg_success_rate: float

@@ -11,8 +11,7 @@ from app.schema.dashboard import (
     DashboardTableResponse,
     AssessmentDetailTableResponse,
     FilterableTableItem,
-    QuestionQualityBucket,
-    QuestionQualityResponse
+    QuestionQualityResponse,
 )
 from app.services import dashboard as dashboard_service
 from app.services.assessment_report import get_question_quality, build_question_quality_guidance

@@ -19,7 +19,8 @@ from app.schema.dashboard import (
     DashboardGraphResponse,
     AverageScore,
     QuestionQualityResponse,
-    QuestionQualityBucket
+    QuestionQualityBucket,
+    ThroughputResponse
 )
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
@@ -31,10 +32,12 @@ DASHBOARD_ENDPOINTS = [
     "/api/v1/admin/dashboard/assessments",
     "/api/v1/admin/dashboard/assessments/101",
     "/api/v1/admin/dashboard/assessments/101/candidates",
+    
 ]
 
 REPORTING_ENDPOINTS = [
     "/api/v1/reporting/question-quality",
+    "/api/v1/reporting/throughput"
 ]
 
 
@@ -516,3 +519,38 @@ def test_get_question_quality_returns_200(recruiter_client, mock_db):
         ],
     }
     mock_quality.assert_called_once_with(mock_db)
+
+
+def test_throughput_route_returns_200_for_recruiter(recruiter_client, mock_db):
+    response_obj = ThroughputResponse(
+        total_assessments=6,
+        active_count=2,
+        completed_count=3,
+        expired_count=1,
+        avg_time_to_completion_seconds=1800.5,
+        avg_score=84.25,
+        completion_rate=0.75,
+    )
+    with patch(
+        "app.api.routes.reporting.get_throughput",
+        return_value=response_obj,
+    ) as mock_service:
+        response = recruiter_client.get("/api/v1/reporting/throughput")
+    assert response.status_code == 200
+    assert response.json() == {
+        "total_assessments": 6,
+        "active_count": 2,
+        "completed_count": 3,
+        "expired_count": 1,
+        "avg_time_to_completion_seconds": 1800.5,
+        "avg_score": 84.25,
+        "completion_rate": 0.75,
+    }
+    mock_service.assert_called_once_with(mock_db)
+
+
+def test_throughput_route_rejects_candidate(candidate_client):
+    response = candidate_client.get("/api/v1/reporting/throughput")
+    assert response.status_code == 403
+    assert "Only recruiters can view reporting data." in response.json()["detail"]
+
