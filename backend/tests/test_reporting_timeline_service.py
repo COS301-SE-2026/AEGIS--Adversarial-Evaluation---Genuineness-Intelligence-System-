@@ -298,3 +298,44 @@ def test_get_metrics_timeline_skips_typing_burst_with_insufficient_cohort():
     assert "typing_burst" not in event_types
     # no cohort query should even have been attempted
     assert db.query.call_count == 3
+
+
+def test_get_metrics_timeline_skips_typing_burst_when_candidate_inactive():
+    session = make_session()
+    aq = make_assessment_question(assessment_q_id=1)
+    adv = make_adversarial_question(source_question_id=501)
+    metrics = make_metrics(
+        active_time_ms=0, chars_alnum=1000, chars_special=0,
+    )
+    rows = [(MagicMock(), aq, adv, metrics)]
+
+    db = MagicMock()
+    _stub_timeline_queries(db, session, rows, other_completed_count=3)
+
+    result = timeline_service.get_metrics_timeline(db, 12)
+
+    event_types = {e.event_type for e in result.questions[0].events}
+    assert "typing_burst" not in event_types
+    assert db.query.call_count == 3
+
+
+def test_get_metrics_timeline_skips_typing_burst_when_cohort_empty():
+    session = make_session()
+    aq = make_assessment_question(assessment_q_id=1)
+    adv = make_adversarial_question(source_question_id=501)
+    metrics = make_metrics(
+        active_time_ms=10000, chars_alnum=100, chars_special=0,
+    )
+    rows = [(MagicMock(), aq, adv, metrics)]
+
+    db = MagicMock()
+    _stub_timeline_queries(
+        db, session, rows, other_completed_count=3,
+        cohort_rows_by_call=[[]],
+    )
+
+    result = timeline_service.get_metrics_timeline(db, 12)
+
+    event_types = {e.event_type for e in result.questions[0].events}
+    assert "typing_burst" not in event_types
+    assert db.query.call_count == 4
