@@ -2,6 +2,9 @@
   "name": "aegis",
   "version": "1.0.0",
   "private": true,
+  "dependencies": {
+    "next": "16.2.4"
+  },
   "description": "AEDIS - Adversarial Evaluation & Genuineness Intelligence System",
   "scripts": {
     "frontend:dev": "pnpm --dir frontend dev",
