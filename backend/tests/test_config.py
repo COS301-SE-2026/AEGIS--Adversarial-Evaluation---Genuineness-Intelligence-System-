@@ -1,9 +1,11 @@
+import importlib
 import json
 import os
 from unittest.mock import MagicMock, patch
 import pytest
 from botocore.exceptions import ClientError
 
+import app.core.config as config_module
 from app.core.config import load_aws_secrets
 
 def test_load_aws_secrets_success():
@@ -66,4 +68,65 @@ def test_load_aws_secrets_non_dict_json():
 
         with pytest.raises(RuntimeError, match="must contain a JSON object"):
             load_aws_secrets()
+
+
+def _reload_config():
+    with patch("boto3.client") as mock_boto:
+        mock_boto.return_value.get_secret_value.return_value = {
+            "SecretString": "{}"
+        }
+        importlib.reload(config_module)
+    return mock_boto
+
+
+def test_settings_model_config_declares_env_file():
+    assert config_module.Settings.model_config["env_file"] == ".env"
+    assert config_module.Settings.model_config["env_file_encoding"] == "utf-8"
+
+
+def test_settings_reads_from_env_file_when_env_var_is_absent(
+    tmp_path, monkeypatch,
+):
+    env_file = tmp_path / ".env"
+    env_file.write_text("PISTON_ENABLED=true\n")
+    monkeypatch.delenv("PISTON_ENABLED", raising=False)
+
+    result = config_module.Settings(_env_file=str(env_file))
+
+    assert result.piston_enabled is True
+
+
+def test_settings_env_var_overrides_env_file_value(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text("PISTON_ENABLED=true\n")
+    monkeypatch.setenv("PISTON_ENABLED", "false")
+
+    result = config_module.Settings(_env_file=str(env_file))
+
+    assert result.piston_enabled is False
+
+
+def test_load_aws_secrets_not_called_when_environment_not_production():
+    original = os.environ.pop("ENVIRONMENT", None)
+    try:
+        mock_boto = _reload_config()
+        mock_boto.assert_not_called()
+    finally:
+        if original is not None:
+            os.environ["ENVIRONMENT"] = original
+        _reload_config()
+
+
+def test_load_aws_secrets_called_when_environment_is_production():
+    original = os.environ.get("ENVIRONMENT")
+    os.environ["ENVIRONMENT"] = "production"
+    try:
+        mock_boto = _reload_config()
+        mock_boto.assert_called_once()
+    finally:
+        if original is None:
+            os.environ.pop("ENVIRONMENT", None)
+        else:
+            os.environ["ENVIRONMENT"] = original
+        _reload_config()
 

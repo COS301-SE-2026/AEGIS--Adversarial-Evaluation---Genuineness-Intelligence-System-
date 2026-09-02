@@ -60,12 +60,15 @@ def load_aws_secrets() -> None:
         os.environ[key] = str(value)
 
 
-load_aws_secrets()
+if os.getenv("ENVIRONMENT") == "production":
+    load_aws_secrets()
 
 
 class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
     )
@@ -85,7 +88,7 @@ class Settings(BaseSettings):
     # FastAPI debug mode
     debug: bool = False
 
-    # Comma separated string of allowed CORS origins
+    # JSON array string of allowed CORS origins, e.g. ["http://a","http://b"]
     allowed_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:8000"
