@@ -1,15 +1,15 @@
 name: Build & Deploy Container
 
-on: 
+on:
     push:
         branches:
             - dev
             - main
 
     pull_request:
-            branches:
-                - dev
-                - main
+        branches:
+            - dev
+            - main
 
 jobs:
     build-and-deploy:
@@ -21,7 +21,7 @@ jobs:
             - name: Configure AWS Credentials
               uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
               with:
-                aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                 aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                 aws-region: ${{ secrets.AWS_REGION }}
 
@@ -31,24 +31,23 @@ jobs:
 
             - name: Build and Push Docker Image
               working-directory: backend
+              id: build
               env:
                 ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
                 ECR_REPOSITORY: aegis/fastapi-app
-                RAW_TAG: ${{ github.head_ref || github.ref_name }}
               run: |
-                
-                # docker image tags cannot contain forward slashes, so github branch names needed to be converted accordinly.
-                # e.g 'deployment/aws-migration' becomes 'deployment-aws-migration'
-                # a stream editor (sed) is used. '\//' defines what to look for. '/-/' specifies to add a hyphen. 'g' indicates that all forward slashes should be replaced.
-                IMAGE_TAG=$(echo "$RAW_TAG" | sed 's/\//-/g')
-                
-                docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+                IMAGE_SOURCE=${{ github.head_ref || github.ref_name }}
+                IMAGE_TAG=$(echo "$IMAGE_SOURCE" | sed 's/\//-/g')
+                echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-                # only push image to ECR on push events
+                docker build -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" .
+
                 if [ "${{ github.event_name }}" = "push" ]; then
-                    docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                    docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
                 fi
-            
+
+            # Step 5: SSH into the EC2 instance, pull the image, start the Piston stack if present,
+            # and run the backend container on the shared Docker network with the Piston service URL.
             - name: Deploy to Amazon EC2 via SSH
               if: github.event_name == 'push'
               uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
@@ -58,44 +57,42 @@ jobs:
                 key: ${{ secrets.SSH_PRIVATE_KEY }}
                 script: |
                     REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-                    # 1. Sanitize branch name so it matches the tag built earlier.
-                    RAW_TAG="${{ github.ref_name }}"
-                    IMAGE_TAG=$(echo "$RAW_TAG" | sed 's/\//-/g')
-
+                    IMAGE_TAG="${{ steps.build.outputs.image_tag }}"
                     IMAGE="$REGISTRY/aegis/fastapi-app:$IMAGE_TAG"
                     CONTAINER_NAME="myapp-$IMAGE_TAG"
 
-                    # 2. Ensure shared Docker network exists on the EC2 host.
+                    # Ensure the shared Docker network exists before the backend connects to the Piston container.
                     docker network create aegis-net 2>/dev/null || true
 
-                    # 3. Log into ECR.
+                    # Log in to ECR from the EC2 instance so it can pull the built image.
                     aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
 
-                    # 4. Map host ports: 80 for main, 8080 for dev.
-                    if [ "$RAW_TAG" = "main" ]; then
+                    # Map dev to port 8080 and main to port 80 for the backend service.
+                    if [ "${{ github.ref_name }}" = "main" ]; then
                         PORT="80:8000"
                     else
                         PORT="8080:8000"
                     fi
 
-                    # 5. Ensure the Piston sandbox is running from the managed compose file
+                    # Start the Piston stack if the deployment directory exists on the host.
                     if [ -f "/opt/aegis/docker-compose.yml" ]; then
                         (cd /opt/aegis && docker compose up -d)
                     fi
 
-                    # 6. Pull and restart the backend container.
-                    docker pull $IMAGE
-                    docker stop $CONTAINER_NAME || true
-                    docker rm $CONTAINER_NAME || true
+                    # Pull the new backend image and replace any existing container with the same tag.
+                    docker pull "$IMAGE"
+                    docker stop "$CONTAINER_NAME" || true
+                    docker rm "$CONTAINER_NAME" || true
 
+                    # Run the backend container on the shared network and point it to the internal Piston service.
                     docker run -d \
-                      --name $CONTAINER_NAME \
+                      --name "$CONTAINER_NAME" \
                       --network aegis-net \
-                      -p $PORT \
+                      -p "$PORT" \
                       -e PISTON_BASE_URL=http://piston_sandbox:2000 \
                       -e PISTON_ENABLED=true \
                       --restart always \
-                      $IMAGE
+                      "$IMAGE"
 
+                    # Clean up old dangling images after deployment.
                     docker image prune -f
