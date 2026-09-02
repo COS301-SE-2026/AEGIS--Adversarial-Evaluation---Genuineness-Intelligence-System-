@@ -1,4 +1,4 @@
-from sqlalchemy import case, func
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.assessment import Assessment
@@ -7,14 +7,17 @@ from app.schema.dashboard import ThroughputResponse
 
 
 def get_throughput(db: Session) -> ThroughputResponse:
-    total_assessments = db.query(func.count(Assessment.assessment_id)).scalar() or 0
+    total_assessments = (
+        db.query(func.count(Assessment.assessment_id)).scalar() or 0
+    )
 
     active_count = (
         db.query(func.count(CandidateAssessment.candidate_assess_id))
-        .filter(CandidateAssessment.status.in_([
-            SessionStatus.STARTED,
-            SessionStatus.IN_PROGRESS,
-        ]))
+        .filter(
+            CandidateAssessment.status.in_(
+                [SessionStatus.STARTED, SessionStatus.IN_PROGRESS]
+            )
+        )
         .scalar()
         or 0
     )
@@ -38,7 +41,8 @@ def get_throughput(db: Session) -> ThroughputResponse:
             func.avg(
                 func.extract(
                     "epoch",
-                    CandidateAssessment.end_time - CandidateAssessment.start_time,
+                    CandidateAssessment.end_time
+                    - CandidateAssessment.start_time,
                 )
             )
         )
@@ -53,7 +57,11 @@ def get_throughput(db: Session) -> ThroughputResponse:
     avg_score = (
         db.query(
             func.avg(
-                (CandidateAssessment.candidate_score / CandidateAssessment.total_score) * 100
+                (
+                    CandidateAssessment.candidate_score
+                    / CandidateAssessment.total_score
+                )
+                * 100
             )
         )
         .filter(
@@ -76,8 +84,11 @@ def get_throughput(db: Session) -> ThroughputResponse:
         active_count=active_count,
         completed_count=completed_count,
         expired_count=expired_count,
-        avg_time_to_completion_seconds=round(avg_time_to_completion_seconds, 2)
-        if avg_time_to_completion_seconds is not None else None,
+        avg_time_to_completion_seconds=(
+            round(avg_time_to_completion_seconds, 2)
+            if avg_time_to_completion_seconds is not None
+            else None
+        ),
         avg_score=round(avg_score, 2) if avg_score is not None else None,
         completion_rate=round(completion_rate, 4),
     )

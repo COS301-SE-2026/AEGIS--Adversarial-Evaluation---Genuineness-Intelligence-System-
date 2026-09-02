@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 from app.core.security import get_current_user
 from app.database.database import get_db
-from app.schema.dashboard import QuestionQualityResponse, ThroughputResponse 
+from app.schema.dashboard import QuestionQualityResponse, ThroughputResponse
 from app.services.assessment_report import get_question_quality
 from app.services.assess_throughput import get_throughput
 
@@ -26,6 +26,7 @@ def get_question_quality_report(
 ) -> QuestionQualityResponse:
     require_recruiter(current_user)
     return get_question_quality(db)
+
 
 @router.get("/throughput")
 def get_throughput_report(
