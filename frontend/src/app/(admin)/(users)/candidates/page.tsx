@@ -16,6 +16,10 @@ export default function CandidatesPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -29,7 +33,7 @@ export default function CandidatesPage() {
     try {
       setLoadingData(true);
       setDataError(null);
-      const data = await apiGet<ApiUser[]>("/api/v1/users/candidates", {
+      const data = await apiGet<ApiUser[]>("/api/v1/users", {
         headers: getAuthHeaders(),
       });
       setUsers(data.map(normalizeUser));
@@ -49,7 +53,7 @@ export default function CandidatesPage() {
     [users]
   );
 
-    const filtered = users.filter((u) => {
+  const filtered = users.filter((u) => {
     const matchSearch =
       !search ||
       u.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -75,10 +79,11 @@ export default function CandidatesPage() {
     []
   );
 
-    const handleSaveEdit = async (
+  const handleSaveEdit = async (
     user: AdminUser,
     updates: { full_name: string; email: string }
   ) => {
+    setDataError(null);
     await apiPatch(`/api/v1/users/${user.user_id}`, updates, {
       headers: getAuthHeaders(),
     });
@@ -140,15 +145,28 @@ export default function CandidatesPage() {
     });
   };
 
-  const handleDelete = (user: AdminUser) => {
-    apiDelete(`/api/v1/users/${user.user_id}`, { headers: getAuthHeaders() })
-      .then(() => {
-        setUsers((prev) => prev.filter((u) => u.user_id !== user.user_id));
-      })
-      .catch((err) => {
-        setDataError(err instanceof Error ? err.message : "Failed to delete user.");
+  async function handleDelete(user: AdminUser) {
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await apiDelete(`/api/v1/users/${user.user_id}`, {
+        headers: getAuthHeaders(),
       });
-  };
+      setUsers((prev) => prev.filter((u) => u.user_id !== user.user_id));
+      setDeleteSuccess(true);
+      setTimeout(function closeDeleteModal() {
+        setDeleteSuccess(false);
+        setDeletingUser(null);
+      }, 2000);
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "Failed to delete user."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (!authChecked) return;
@@ -159,7 +177,7 @@ export default function CandidatesPage() {
   useEffect(() => {
     const checkAuth = async () => {
       if (!isAuthenticated() || getRole() !== "RECRUITER") {
-        router.replace("/login");
+        router.replace("/auth?mode=login");
         return;
       }
       setAuthChecked(true);
@@ -198,27 +216,35 @@ export default function CandidatesPage() {
             statusOptions={statusOptions}
           />
 
-            {loadingData ? (
+          {loadingData ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="font-jetbrains text-[12px] text-white-smoke/40">
                 Loading users...
               </div>
             </div>
-          ) : dataError ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="font-jetbrains text-[12px] text-system-red">
-                {dataError}
-              </div>
-            </div>
           ) : (
-            <UserTable
-              users={filtered}
-              pendingIds={pendingIds}
-              onEdit={setEditingUser}
-              onDelete={setDeletingUser}
-              onRoleChange={handleRoleChange}
-              onToggleStatus={handleToggleStatus}
-            />
+            <>
+              {dataError && (
+                <div className="mb-4 border border-system-red/40 bg-system-red/10 px-4 py-3 font-jetbrains text-[11px] text-system-red">
+                  {dataError}
+                </div>
+              )}
+
+              {successMessage && (
+                <div className="mb-4 border border-status-success/40 bg-status-success/10 px-4 py-3 font-jetbrains text-[11px] text-status-success">
+                  {successMessage}
+                </div>
+              )}
+
+              <UserTable
+                users={filtered}
+                pendingIds={pendingIds}
+                onEdit={setEditingUser}
+                onDelete={setDeletingUser}
+                onRoleChange={handleRoleChange}
+                onToggleStatus={handleToggleStatus}
+              />
+            </>
           )}
         </main>
       </div>
@@ -233,13 +259,25 @@ export default function CandidatesPage() {
 
       <ConfirmationModal
         isOpen={deletingUser !== null}
-        onClose={() => setDeletingUser(null)}
-        onConfirm={() => deletingUser && handleDelete(deletingUser)}
+        onClose={function closeConfirmationModal() {
+          if (!deleteSuccess) {
+            setDeletingUser(null);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={function confirmDelete() {
+          if (deletingUser) {
+            handleDelete(deletingUser);
+          }
+        }}       
         headerText="Delete User"
         title={`Delete ${deletingUser?.full_name ?? "this user"}?`}
         description={`This will permanently delete ${deletingUser?.email ?? "this account"}. This action cannot be undone.`}
         confirmText="DELETE"
         isDanger
+        successMessage={deleteSuccess ? "USER DELETED" : undefined}
+        isLoading={isDeleting}
+        errorMessage={deleteError}
       />
     </div>
   );
