@@ -152,7 +152,8 @@ export default function CandidatesPage() {
 
   useEffect(() => {
     if (!authChecked) return;
-    loadUsers();
+    //loadUsers();
+    void Promise.resolve().then(loadUsers);
   }, [authChecked, loadUsers]);
 
   useEffect(() => {
