@@ -40,6 +40,41 @@ export default function CandidatesPage() {
     }
   }, []);
 
+    const roleOptions = useMemo(
+    () => ["all", ...Array.from(new Set(users.map((u) => u.role)))],
+    [users]
+  );
+  const statusOptions = useMemo(
+    () => ["all", ...Array.from(new Set(users.map((u) => u.status)))],
+    [users]
+  );
+
+    const filtered = users.filter((u) => {
+    const matchSearch =
+      !search ||
+      u.full_name.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase());
+    const matchRole = roleFilter === "all" || u.role === roleFilter;
+    const matchStatus = statusFilter === "all" || u.status === statusFilter;
+    return matchSearch && matchRole && matchStatus;
+  });
+
+  const withPending = useCallback(
+    async (userId: number, action: () => Promise<void>) => {
+      setPendingIds((prev) => new Set(prev).add(userId));
+      try {
+        await action();
+      } finally {
+        setPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(userId);
+          return next;
+        });
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     if (!authChecked) return;
     loadUsers();
