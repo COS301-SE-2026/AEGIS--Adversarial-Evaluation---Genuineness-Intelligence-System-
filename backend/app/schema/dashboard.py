@@ -86,3 +86,14 @@ class QuestionQualityResponse(BaseModel):
     total_questions_answered: int
     buckets: list[QuestionQualityBucket]
     guidance: list[str]
+
+
+class BreakdownSlice(BaseModel):
+    label: str
+    avg_success_rate: float
+    attempt_count: int
+
+
+class PerformanceBreakdownResponse(BaseModel):
+    by: Literal["category", "difficulty"]
+    slices: list[BreakdownSlice]
