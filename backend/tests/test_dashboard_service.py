@@ -11,8 +11,11 @@ from app.schema.dashboard import (
     DashboardTableResponse,
     AssessmentDetailTableResponse,
     FilterableTableItem,
+    QuestionQualityBucket,
+    QuestionQualityResponse
 )
 from app.services import dashboard as dashboard_service
+from app.services.assessment_report import get_question_quality, build_question_quality_guidance
 
 
 def _make_query(rows=None, *, count_value=0, scalar_value=0):
@@ -491,3 +494,70 @@ def test_get_assessment_card_details_raises_404_when_assessment_not_found():
 
     assert exc_info.value.status_code == 404
     assert exc_info.value.detail == "Assessment not found"
+
+def test_get_question_quality_groups_generated_questions_by_bucket():
+    row_1 = MagicMock()
+    row_1.adversarial_question_id = 101
+    row_1.attempt_count = 2
+    row_1.correct_count = 1
+
+    row_2 = MagicMock()
+    row_2.adversarial_question_id = 102
+    row_2.attempt_count = 5
+    row_2.correct_count = 4
+
+    row_3 = MagicMock()
+    row_3.adversarial_question_id = 103
+    row_3.attempt_count = 20
+    row_3.correct_count = 20
+
+    row_4 = MagicMock()
+    row_4.adversarial_question_id = 104
+    row_4.attempt_count = 5
+    row_4.correct_count = 1
+
+    mock_db = MagicMock()
+    mock_db.query.return_value = MagicMock()
+    mock_db.query.return_value.join.return_value = mock_db.query.return_value
+    mock_db.query.return_value.outerjoin.return_value = (
+        mock_db.query.return_value
+    )
+    mock_db.query.return_value.group_by.return_value = (
+        mock_db.query.return_value
+    )
+    mock_db.query.return_value.all.return_value = [row_1, row_2, row_3, row_4]
+    result = get_question_quality(mock_db)
+    assert isinstance(result, QuestionQualityResponse)
+    assert result.total_questions_answered == 4
+    assert result.buckets[0].bucket == "needs_revision"
+    assert result.buckets[0].question_ids == [104]
+    assert result.buckets[1].bucket == "balanced"
+    assert result.buckets[1].question_ids == [102]
+    assert result.buckets[2].bucket == "too_easy"
+    assert result.buckets[2].question_ids == [103]
+    assert result.buckets[3].bucket == "thin_sample"
+    assert result.buckets[3].question_ids == [101]
+    assert "below 30% success" in result.guidance[0]
+    assert "balanced range" in result.guidance[1]
+    assert "above 95% success" in result.guidance[2]
+    assert "fewer than 3 attempts" in result.guidance[3]
+
+
+def test_build_question_quality_guidance_skips_empty_bucket():
+    bucket = MagicMock()
+    bucket.count = 0
+    bucket.bucket = "needs_revision"
+
+    result = build_question_quality_guidance([bucket])
+
+    assert result == []
+
+
+def test_build_question_quality_guidance_handles_unknown_bucket():
+    bucket = MagicMock()
+    bucket.count = 1
+    bucket.bucket = "unknown"
+
+    result = build_question_quality_guidance([bucket])
+
+    assert result == []

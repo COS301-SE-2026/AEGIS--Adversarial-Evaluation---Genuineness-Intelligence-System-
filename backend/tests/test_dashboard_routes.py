@@ -1,7 +1,6 @@
 import os
 import pytest
 from unittest.mock import MagicMock, patch
-#added this comment to rerun a PR
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database.database import get_db
@@ -19,6 +18,8 @@ from app.schema.dashboard import (
     CandidateResultStatus,
     DashboardGraphResponse,
     AverageScore,
+    QuestionQualityResponse,
+    QuestionQualityBucket
 )
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
@@ -30,6 +31,10 @@ DASHBOARD_ENDPOINTS = [
     "/api/v1/admin/dashboard/assessments",
     "/api/v1/admin/dashboard/assessments/101",
     "/api/v1/admin/dashboard/assessments/101/candidates",
+]
+
+REPORTING_ENDPOINTS = [
+    "/api/v1/reporting/question-quality",
 ]
 
 
@@ -426,3 +431,88 @@ def test_get_assessment_detail_table_returns_empty_items(
         "page": 1,
         "page_size": 8,
     }
+
+
+@pytest.mark.parametrize("path", REPORTING_ENDPOINTS)
+def test_reporting_endpoints_reject_non_recruiter(candidate_client, path):
+    response = candidate_client.get(path)
+    assert response.status_code == 403
+    assert "Only recruiters" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("path", REPORTING_ENDPOINTS)
+def test_reporting_endpoints_reject_unauthenticated(client, path):
+    response = client.get(path)
+    assert response.status_code == 401
+
+def test_get_question_quality_returns_200(recruiter_client, mock_db):
+    response_obj = QuestionQualityResponse(
+        total_questions_answered=4,
+        buckets=[
+            QuestionQualityBucket(
+                bucket="needs_revision",
+                count=1,
+                question_ids=[104]
+            ),
+            QuestionQualityBucket(
+                bucket="balanced",
+                count=1,
+                question_ids=[102]
+            ),
+            QuestionQualityBucket(
+                bucket="too_easy",
+                count=1,
+                question_ids=[103]
+            ),
+            QuestionQualityBucket(
+                bucket="thin_sample",
+                count=1,
+                question_ids=[101]
+            ),
+        ],
+        guidance=[
+            "1 question has fallen below 30% success and should be reviewed.",
+            "1 question is in the balanced range and appear healthy.",
+            "1 question are performing above 95% success and may be too easy.",
+            "1 question has fewer than 3 attempts and need more data before judging quality.",
+        ],
+    )
+    with patch(
+        "app.api.routes.reporting.get_question_quality",
+        return_value=response_obj,
+    ) as mock_quality:
+        response = recruiter_client.get("/api/v1/reporting/question-quality")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "total_questions_answered": 4,
+        "buckets": [
+            {
+                "bucket": "needs_revision",
+                "count": 1,
+                "question_ids": [104]
+            },
+            {
+                "bucket": "balanced",
+                "count": 1,
+                "question_ids": [102]
+            },
+            {
+                "bucket": "too_easy",
+                "count": 1,
+                "question_ids": [103]
+            },
+            {
+                "bucket": "thin_sample",
+                "count": 1,
+                "question_ids": [101]
+            },
+        ],
+        "guidance": [
+            "1 question has fallen below 30% success and should be reviewed.",
+            "1 question is in the balanced range and appear healthy.",
+            "1 question are performing above 95% success and may be too easy.",
+            "1 question has fewer than 3 attempts and need more data before judging quality.",
+        ],
+    }
+    mock_quality.assert_called_once_with(mock_db)

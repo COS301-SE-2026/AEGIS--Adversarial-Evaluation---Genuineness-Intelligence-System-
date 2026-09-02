@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
+from typing import Literal
 
 
 class AIUsageLevel(str, Enum):
@@ -73,3 +74,15 @@ class AssessmentDetailTableResponse(BaseModel):
     items: list[FilterableTableItem]
     page: int
     page_size: int
+
+
+class QuestionQualityBucket(BaseModel):
+    bucket: Literal["needs_revision", "balanced", "too_easy", "thin_sample"]
+    count: int
+    question_ids: list[int]
+
+
+class QuestionQualityResponse(BaseModel):
+    total_questions_answered: int
+    buckets: list[QuestionQualityBucket]
+    guidance: list[str]
