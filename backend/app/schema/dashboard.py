@@ -96,6 +96,8 @@ class ThroughputResponse(BaseModel):
     avg_time_to_completion_seconds: float | None
     avg_score: float | None
     completion_rate: float
+
+
 class BreakdownSlice(BaseModel):
     label: str
     avg_success_rate: float
