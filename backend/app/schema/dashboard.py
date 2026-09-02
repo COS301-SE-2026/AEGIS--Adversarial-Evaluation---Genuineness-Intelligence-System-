@@ -107,3 +107,10 @@ class BreakdownSlice(BaseModel):
 class PerformanceBreakdownResponse(BaseModel):
     by: Literal["category", "difficulty"]
     slices: list[BreakdownSlice]
+
+
+class IntegritySummaryResponse(BaseModel):
+    pct_responses_elevated_paste_reliance: float
+    pct_assessments_with_elevated_review: float
+    avg_focus_loss_count: float
+    total_responses_analyzed: int
