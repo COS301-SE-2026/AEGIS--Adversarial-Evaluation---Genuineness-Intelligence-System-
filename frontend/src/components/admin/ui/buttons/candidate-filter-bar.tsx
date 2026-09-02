@@ -77,6 +77,31 @@ export default function CandidateFilterBar({
             </button>
           ))}
         </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+        <span className="font-jetbrains text-[9px] text-white-smoke/40 tracking-wider uppercase mr-1">
+          Status
+        </span>
+        {statusOptions.map((s) => (
+          <button
+            type="button"
+            key={s}
+            onClick={() => onStatusChange(s)}
+            className={`
+              font-jetbrains text-[10px] tracking-wider px-3 py-1.25
+              rounded-[5px] cursor-pointer border transition-all duration-150 uppercase
+              ${
+                statusFilter === s
+                  ? "bg-system-red/15 border-system-red text-system-red"
+                  : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+              }
+            `}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      
       </div>
     </div>
   );
