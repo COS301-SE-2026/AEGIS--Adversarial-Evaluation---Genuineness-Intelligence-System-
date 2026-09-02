@@ -14,10 +14,15 @@ const BUCKET_META: Record<QuestionQualityBucketKey, { label: string; color: stri
   thin_sample: { label: "Thin Sample", color: "var(--color-status-warning)" },
 };
 
-
 function QuestionQualitySlice(props: PieSectorShapeProps) {
   const payload = props.payload as { color?: string } | undefined;
-  return <Sector {...props} fill={payload?.color ?? props.fill} stroke="var(--color-secondary-surface)" />;
+  return (
+    <Sector
+      {...props}
+      fill={payload?.color ?? props.fill}
+      stroke="var(--color-secondary-surface)"
+    />
+  );
 }
 
 interface QuestionQualityDonutProps {
@@ -30,6 +35,30 @@ export function QuestionQualityDonut({ data }: Readonly<QuestionQualityDonutProp
     label: BUCKET_META[b.bucket].label,
     color: BUCKET_META[b.bucket].color,
   }));
+
+  const renderLegend = (props: any) => {
+    const { payload } = props;
+
+    return (
+      <ul className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        {payload?.map((entry: any) => {
+          const color = entry.payload?.color ?? entry.color;
+          return (
+            <li
+              key={entry.value}
+              className="flex items-center gap-2 text-xs text-default-text"
+            >
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ backgroundColor: color }}
+              />
+              <span>{entry.value}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
 
   return (
     <div className="w-full">
@@ -68,8 +97,10 @@ export function QuestionQualityDonut({ data }: Readonly<QuestionQualityDonutProp
                 }}
               />
               <Legend
-                position="bottom"
+                verticalAlign="bottom"
+                align="center"
                 wrapperStyle={{ fontFamily: "var(--font-ibm-plex)", fontSize: 12 }}
+                content={renderLegend}
               />
             </PieChart>
           </ResponsiveContainer>
