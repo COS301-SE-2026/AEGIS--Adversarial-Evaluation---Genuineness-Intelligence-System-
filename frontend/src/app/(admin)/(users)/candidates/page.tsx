@@ -186,13 +186,60 @@ export default function CandidatesPage() {
             </h1>
           </div>
 
-          {/* Filter bar */}
+          <CandidateFilterBar
+            search={search}
+            onSearchChange={setSearch}
+            roleFilter={roleFilter}
+            onRoleChange={setRoleFilter}
+            roleOptions={roleOptions}
+            statusFilter={statusFilter}
+            onStatusChange={setStatusFilter}
+            statusOptions={statusOptions}
+          />
 
-          {/* User table */}
+            {loadingData ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="font-jetbrains text-[12px] text-white-smoke/40">
+                Loading users...
+              </div>
+            </div>
+          ) : dataError ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="font-jetbrains text-[12px] text-system-red">
+                {dataError}
+              </div>
+            </div>
+          ) : (
+            <UserTable
+              users={filtered}
+              pendingIds={pendingIds}
+              onEdit={setEditingUser}
+              onDelete={setDeletingUser}
+              onRoleChange={handleRoleChange}
+              onToggleStatus={handleToggleStatus}
+            />
+          )}
         </main>
       </div>
 
-      {/* Modals */}
+            {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSave={handleSaveEdit}
+        />
+      )}
+
+      <ConfirmationModal
+        isOpen={deletingUser !== null}
+        onClose={() => setDeletingUser(null)}
+        onConfirm={() => deletingUser && handleDelete(deletingUser)}
+        headerText="Delete User"
+        title={`Delete ${deletingUser?.full_name ?? "this user"}?`}
+        description={`This will permanently delete ${deletingUser?.email ?? "this account"}. This action cannot be undone.`}
+        confirmText="DELETE"
+        isDanger
+      />
     </div>
   );
 }
