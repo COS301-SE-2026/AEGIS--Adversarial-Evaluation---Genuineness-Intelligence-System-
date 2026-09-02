@@ -75,6 +75,81 @@ export default function CandidatesPage() {
     []
   );
 
+    const handleSaveEdit = async (
+    user: AdminUser,
+    updates: { full_name: string; email: string }
+  ) => {
+    await apiPatch(`/api/v1/users/${user.user_id}`, updates, {
+      headers: getAuthHeaders(),
+    });
+    setUsers((prev) =>
+      prev.map((u) => (u.user_id === user.user_id ? { ...u, ...updates } : u))
+    );
+  };
+
+  const handleRoleChange = (user: AdminUser, role: UserRole) => {
+    if (role === user.role) return;
+    withPending(user.user_id, async () => {
+      const previous = user.role;
+      setUsers((prev) =>
+        prev.map((u) => (u.user_id === user.user_id ? { ...u, role } : u))
+      );
+      try {
+        await apiPatch(
+          `/api/v1/users/${user.user_id}/role`,
+          { role },
+          { headers: getAuthHeaders() }
+        );
+      } catch (err) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.user_id === user.user_id ? { ...u, role: previous } : u
+          )
+        );
+        setDataError(
+          err instanceof Error ? err.message : "Failed to change role."
+        );
+      }
+    });
+  };
+
+  const handleToggleStatus = (user: AdminUser) => {
+    withPending(user.user_id, async () => {
+      const nextStatus = user.status === "active" ? "disabled" : "active";
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.user_id === user.user_id ? { ...u, status: nextStatus } : u
+        )
+      );
+      try {
+        await apiPatch(
+          `/api/v1/users/${user.user_id}/status`,
+          { status: nextStatus },
+          { headers: getAuthHeaders() }
+        );
+      } catch (err) {
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.user_id === user.user_id ? { ...u, status: user.status } : u
+          )
+        );
+        setDataError(
+          err instanceof Error ? err.message : "Failed to update status."
+        );
+      }
+    });
+  };
+
+  const handleDelete = (user: AdminUser) => {
+    apiDelete(`/api/v1/users/${user.user_id}`, { headers: getAuthHeaders() })
+      .then(() => {
+        setUsers((prev) => prev.filter((u) => u.user_id !== user.user_id));
+      })
+      .catch((err) => {
+        setDataError(err instanceof Error ? err.message : "Failed to delete user.");
+      });
+  };
+
   useEffect(() => {
     if (!authChecked) return;
     loadUsers();
