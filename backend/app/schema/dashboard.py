@@ -87,6 +87,7 @@ class QuestionQualityResponse(BaseModel):
     buckets: list[QuestionQualityBucket]
     guidance: list[str]
 
+
 class BreakdownSlice(BaseModel):
     label: str
     avg_success_rate: float
