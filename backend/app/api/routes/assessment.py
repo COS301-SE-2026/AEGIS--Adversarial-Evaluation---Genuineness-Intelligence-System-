@@ -466,4 +466,3 @@ def read_metrics_radar(
             detail="Only recruiters can access candidate metrics radar.",
         )
     return get_metrics_radar(db, candidate_assessment_id)
-

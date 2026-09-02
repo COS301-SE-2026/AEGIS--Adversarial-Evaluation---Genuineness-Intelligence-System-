@@ -29,14 +29,27 @@ def _sum_metrics_for_candidate_assessment(
 ) -> Dict[str, int]:
     row = (
         db.query(
-            func.coalesce(func.sum(CandidateResponseMetrics.paste_char_count), 0).label("paste_char_count"),
-            func.coalesce(func.sum(CandidateResponseMetrics.backspace_count), 0).label("backspace_count"),
-            func.coalesce(func.sum(CandidateResponseMetrics.chars_alnum), 0).label("chars_alnum"),
-            func.coalesce(func.sum(CandidateResponseMetrics.chars_special), 0).label("chars_special"),
-            func.coalesce(func.sum(CandidateResponseMetrics.active_time_ms), 0).label("active_time_ms"),
-            func.coalesce(func.sum(CandidateResponseMetrics.focus_loss_time_ms), 0).label("focus_loss_time_ms"),
+            func.coalesce(func.sum(
+                CandidateResponseMetrics.paste_char_count), 0)
+            .label("paste_char_count"),
+            func.coalesce(func.sum(
+                CandidateResponseMetrics.backspace_count), 0)
+            .label("backspace_count"),
+            func.coalesce(func.sum(
+                CandidateResponseMetrics.chars_alnum), 0)
+            .label("chars_alnum"),
+            func.coalesce(func.sum(
+                CandidateResponseMetrics.chars_special), 0)
+            .label("chars_special"),
+            func.coalesce(func.sum(
+                CandidateResponseMetrics.active_time_ms), 0)
+            .label("active_time_ms"),
+            func.coalesce(func.sum(
+                CandidateResponseMetrics.focus_loss_time_ms), 0)
+            .label("focus_loss_time_ms"),
         )
-        .filter(CandidateResponseMetrics.candidate_assessment_id == candidate_assessment_id)
+        .filter(CandidateResponseMetrics.candidate_assessment_id
+                == candidate_assessment_id)
         .one()
     )
 
@@ -91,7 +104,9 @@ def get_cohort_summed_metrics(
 ) -> list[dict]:
     target = (
         db.query(CandidateAssessment)
-        .filter(CandidateAssessment.candidate_assess_id == candidate_assessment_id)
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id)
         .one()
     )
 
@@ -172,10 +187,14 @@ def get_metrics_radar(
         for v in speed_values
     ]
 
-    cohort_avg_paste = sum(item["paste_ratio"] for item in cohort) / len(cohort)
-    cohort_avg_backspace_norm = sum(cohort_backspace_norms) / len(cohort_backspace_norms)
-    cohort_avg_speed_norm = sum(cohort_speed_norms) / len(cohort_speed_norms)
-    cohort_avg_focus = sum(item["focus_loss_rate"] for item in cohort) / len(cohort)
+    cohort_avg_paste = sum(
+        item["paste_ratio"] for item in cohort) / len(cohort)
+    cohort_avg_backspace_norm = sum(
+        cohort_backspace_norms) / len(cohort_backspace_norms)
+    cohort_avg_speed_norm = sum(
+        cohort_speed_norms) / len(cohort_speed_norms)
+    cohort_avg_focus = sum(
+        item["focus_loss_rate"] for item in cohort) / len(cohort)
 
     axes = [
         RadarAxis(
