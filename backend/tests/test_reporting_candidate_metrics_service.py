@@ -5,6 +5,9 @@ import pytest
 from app.services.reporting_candidate_metrics import (
     get_review_priority,
     get_metrics_radar,
+    get_candidate_summed_metrics,
+    get_cohort_summed_metrics,
+    _sum_metrics_for_candidate_assessment,
     _compute_behavioral_ratios,
     _min_max_normalize,
 )
@@ -72,6 +75,137 @@ def test_min_max_normalize_returns_zero_for_empty_cohort():
     result = _min_max_normalize(3, [])
 
     assert result == 0.0
+
+
+def test_sum_metrics_for_candidate_assessment_builds_dict_from_row(mock_db):
+    fake_row = MagicMock(
+        paste_char_count=40,
+        backspace_count=5,
+        chars_alnum=90,
+        chars_special=10,
+        active_time_ms=100_000,
+        focus_loss_time_ms=5_000,
+    )
+    mock_db.query.return_value.filter.return_value.one.return_value = fake_row
+
+    result = _sum_metrics_for_candidate_assessment(
+        mock_db, candidate_assessment_id=1
+    )
+
+    assert result == {
+        "paste_char_count": 40,
+        "backspace_count": 5,
+        "chars_alnum": 90,
+        "chars_special": 10,
+        "active_time_ms": 100_000,
+        "focus_loss_time_ms": 5_000,
+    }
+
+
+def test_sum_metrics_for_candidate_assessment_defaults_none_fields_to_zero(mock_db):
+    fake_row = MagicMock(
+        paste_char_count=None,
+        backspace_count=None,
+        chars_alnum=None,
+        chars_special=None,
+        active_time_ms=None,
+        focus_loss_time_ms=None,
+    )
+    mock_db.query.return_value.filter.return_value.one.return_value = fake_row
+
+    result = _sum_metrics_for_candidate_assessment(
+        mock_db, candidate_assessment_id=1
+    )
+
+    assert result == {
+        "paste_char_count": 0,
+        "backspace_count": 0,
+        "chars_alnum": 0,
+        "chars_special": 0,
+        "active_time_ms": 0,
+        "focus_loss_time_ms": 0,
+    }
+
+
+def test_get_candidate_summed_metrics_delegates_to_sum_helper(
+    mock_db, monkeypatch
+):
+    expected = {
+        "paste_char_count": 1,
+        "backspace_count": 2,
+        "chars_alnum": 3,
+        "chars_special": 4,
+        "active_time_ms": 5,
+        "focus_loss_time_ms": 6,
+    }
+    fake_sum = MagicMock(return_value=expected)
+    monkeypatch.setattr(
+        "app.services.reporting_candidate_metrics."
+        "_sum_metrics_for_candidate_assessment",
+        fake_sum,
+    )
+
+    result = get_candidate_summed_metrics(mock_db, candidate_assessment_id=7)
+
+    fake_sum.assert_called_once_with(mock_db, 7)
+    assert result == expected
+
+
+def test_get_cohort_summed_metrics_excludes_target_and_filters_completed(
+    mock_db, monkeypatch
+):
+    target_row = MagicMock(assessment_id=99)
+    target_query = MagicMock()
+    target_query.filter.return_value.one.return_value = target_row
+
+    cohort_row_a = MagicMock(candidate_assess_id=101)
+    cohort_row_b = MagicMock(candidate_assess_id=102)
+    cohort_query = MagicMock()
+    cohort_query.filter.return_value.all.return_value = [
+        cohort_row_a,
+        cohort_row_b,
+    ]
+
+    mock_db.query.side_effect = [target_query, cohort_query]
+
+    fake_sum = MagicMock(side_effect=lambda db, cid: {"id": cid})
+    monkeypatch.setattr(
+        "app.services.reporting_candidate_metrics."
+        "_sum_metrics_for_candidate_assessment",
+        fake_sum,
+    )
+
+    result = get_cohort_summed_metrics(mock_db, candidate_assessment_id=1)
+
+    assert result == [{"id": 101}, {"id": 102}]
+    assert fake_sum.call_count == 2
+    fake_sum.assert_any_call(mock_db, 101)
+    fake_sum.assert_any_call(mock_db, 102)
+
+
+def test_get_cohort_summed_metrics_returns_empty_list_when_no_peers(
+    mock_db, monkeypatch
+):
+    target_row = MagicMock(assessment_id=99)
+    target_query = MagicMock()
+    target_query.filter.return_value.one.return_value = target_row
+
+    cohort_query = MagicMock()
+    cohort_query.filter.return_value.all.return_value = []
+
+    mock_db.query.side_effect = [target_query, cohort_query]
+
+    fake_sum = MagicMock()
+    monkeypatch.setattr(
+        "app.services.reporting_candidate_metrics."
+        "_sum_metrics_for_candidate_assessment",
+        fake_sum,
+    )
+
+    result = get_cohort_summed_metrics(mock_db, candidate_assessment_id=1)
+
+    assert result == []
+    fake_sum.assert_not_called()
 
 
 def test_get_metrics_radar_flags_insufficient_cohort(mock_db, monkeypatch):
