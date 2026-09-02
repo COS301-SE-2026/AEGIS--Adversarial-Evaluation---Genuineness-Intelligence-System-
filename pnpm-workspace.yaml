@@ -1,7 +1,7 @@
 packages:
   - frontend
 
-minimumRealeaseAge: 0
+minimumReleaseAge: 0
 
 allowBuilds:
   sharp: true
