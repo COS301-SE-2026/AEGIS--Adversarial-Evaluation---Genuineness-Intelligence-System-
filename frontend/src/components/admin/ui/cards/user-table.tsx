@@ -11,6 +11,38 @@ interface UserTableProps {
   onToggleStatus: (user: AdminUser) => void;
 }
 
+function RoleSelect({
+  user,
+  disabled,
+  onChange,
+}: {
+  user: AdminUser;
+  disabled: boolean;
+  onChange: (role: UserRole) => void;
+}) {
+  return (
+    <select
+      title="Change this user's role"
+      value={user.role}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value as UserRole)}
+      className="
+        bg-background border border-default-border text-default-text
+        font-jetbrains text-[10px] tracking-wider uppercase rounded-[5px]
+        px-2 py-1 outline-none cursor-pointer
+        hover:bg-tertiary-surface focus:border-system-red
+        disabled:opacity-40 disabled:cursor-not-allowed
+      "
+    >
+      {ALL_ROLES.map((r) => (
+        <option key={r} value={r}>
+          {r}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 export default function UserTable({
   users,
   pendingIds,
