@@ -13,6 +13,37 @@ import { ApiUser, AdminUser, UserRole, normalizeUser } from "@/app/(admin)/types
 export default function CandidatesPage() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
+
+    const loadUsers = useCallback(async () => {
+    try {
+      setLoadingData(true);
+      setDataError(null);
+      const data = await apiGet<ApiUser[]>("/api/v1/users/candidates", {
+        headers: getAuthHeaders(),
+      });
+      setUsers(data.map(normalizeUser));
+    } catch (err) {
+      setDataError(err instanceof Error ? err.message : "Failed to load users.");
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!authChecked) return;
+    loadUsers();
+  }, [authChecked, loadUsers]);
 
   useEffect(() => {
     const checkAuth = async () => {
