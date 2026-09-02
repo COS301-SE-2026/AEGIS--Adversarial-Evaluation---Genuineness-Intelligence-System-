@@ -1,6 +1,8 @@
 packages:
   - frontend
 
+minimumRealeaseAge: 0
+
 allowBuilds:
   sharp: true
   unrs-resolver: true
