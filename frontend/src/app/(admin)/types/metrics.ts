@@ -34,3 +34,11 @@ export interface MetricsRadarResponse {
   cohort_sample_size: number;
   insufficient_cohort_data: boolean;
 }
+
+export type ReviewBand = "low" | "medium" | "high";
+
+export interface ReviewPriorityResponse {
+  score: number;
+  band: ReviewBand;
+  contributing_factors: string[];
+}
