@@ -276,3 +276,21 @@ def test_delete_user_raises_when_user_has_related_records():
         assert str(exc) == (
             "This user cannot be deleted because they have related records"
         )
+
+def test_delete_user_deletes_linked_oauth_records():
+    oauth_record = MagicMock()
+    user = _make_managed_user(user_id=8)
+    user.assessments = []
+    user.sessions = []
+    user.oauths = [oauth_record]
+
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = user
+
+    result = delete_user(mock_db, user_id=8)
+
+    assert result is None
+    mock_db.delete.assert_any_call(oauth_record)
+    mock_db.delete.assert_any_call(user)
+    assert mock_db.delete.call_count == 2
+    mock_db.commit.assert_called_once()

@@ -56,7 +56,7 @@ export default function CandidateFilterBar({
           />
         </div>
 
-        {/* Role chips */}
+        {/* Role chips
         <div className="flex gap-1.5 flex-wrap">
           {roleOptions.map((r) => (
             <button
@@ -76,9 +76,9 @@ export default function CandidateFilterBar({
               {r}
             </button>
           ))}
-        </div>
+        </div> */}
 
-              <div className="flex items-center gap-1.5 flex-wrap">
+        {/* <div className="flex items-center gap-1.5 flex-wrap">
         <span className="font-jetbrains text-[9px] text-white-smoke/40 tracking-wider uppercase mr-1">
           Status
         </span>
@@ -100,7 +100,7 @@ export default function CandidateFilterBar({
             {s}
           </button>
         ))}
-      </div>
+      </div> */}
       
       </div>
     </div>

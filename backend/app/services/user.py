@@ -103,10 +103,12 @@ def delete_user(db: Session, user_id: int) -> None:
     if user is None:
         raise ValueError("User not found")
 
-    if user.assessments or user.sessions or user.oauths:
+    if user.assessments or user.sessions:
         raise ValueError(
             "This user cannot be deleted because they have related records"
         )
+    for oauth_record in user.oauths:
+        db.delete(oauth_record)
 
     db.delete(user)
     db.commit()

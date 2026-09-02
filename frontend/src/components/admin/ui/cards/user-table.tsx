@@ -101,7 +101,7 @@ export default function UserTable({
             <table className="w-full border-collapse">
         <thead>
           <tr className="bg-secondary-surface border-b border-tertiary-surface">
-            {["Name", "Email", "Role", "Status", "Joined", "Actions"].map((h) => (
+            {["Name", "Email", "Role", "Actions"].map((h) => (
               <th
                 key={h}
                 className="text-left font-jetbrains text-[9px] tracking-[0.08em] uppercase text-white-smoke/40 px-4 py-3"
@@ -132,7 +132,7 @@ export default function UserTable({
                     onChange={(role) => onRoleChange(u, role)}
                   />
                 </td>
-                <td className="px-4 py-3">
+                {/* <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <StatusToggle
                       active={u.status === "active"}
@@ -143,10 +143,10 @@ export default function UserTable({
                       {u.status}
                     </span>
                   </div>
-                </td>
-                <td className="px-4 py-3 font-jetbrains text-[10px] text-white-smoke/40">
+                </td> */}
+                {/* <td className="px-4 py-3 font-jetbrains text-[10px] text-white-smoke/40">
                   {u.created_at ? u.created_at.split("T")[0] : "—"}
-                </td>
+                </td> */}
                 <td className="px-4 py-3">
                   <div className="flex gap-1.5">
                     <button
