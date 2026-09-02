@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getRole, isAuthenticated } from "@/lib/auth";
 
@@ -12,20 +12,27 @@ type AccessGateProps = {
 export function AccessGate({ allowedRole, children }: Readonly<AccessGateProps>) {
   const router = useRouter();
   const pathname = usePathname();
-
-  const isAllowed = useMemo(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("aegis_token") : null;
-    const role = getRole();
-
-    return Boolean(token) && isAuthenticated() && role === allowedRole;
-  }, [allowedRole, pathname]);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [isAllowed, setIsAllowed] = useState(false);
 
   useEffect(() => {
-    if (!isAllowed) {
+    const token = localStorage.getItem("aegis_token");
+    const role = getRole();
+
+    const allowed =
+      Boolean(token) && isAuthenticated() && role === allowedRole;
+
+    setIsAllowed(allowed);
+    setIsHydrated(true);
+
+    if (!allowed) {
       router.replace("/auth?mode=login");
     }
-  }, [isAllowed, router]);
+  }, [allowedRole, pathname, router]);
+
+  if (!isHydrated) {
+    return null;
+  }
 
   if (!isAllowed) {
     return (
