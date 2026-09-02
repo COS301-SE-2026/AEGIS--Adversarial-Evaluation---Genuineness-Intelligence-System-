@@ -34,7 +34,59 @@ export default function EditUserModal({ user, onClose, onSave }: EditUserModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 px-4">
-      {/* Modal content  */}
+            <div className="w-full max-w-[420px] bg-secondary-surface border border-tertiary-surface rounded-[6px] p-6">
+        <h2 className="font-staatliches text-[20px] tracking-[0.05em] text-default-text mb-4">
+          EDIT USER
+        </h2>
+
+        <div className="flex flex-col gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="font-jetbrains text-[9px] uppercase tracking-wider text-white-smoke/40">
+              Full Name
+            </span>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="bg-background border border-default-border text-default-text px-3 py-2 font-jetbrains text-[12px] rounded-[5px] outline-none focus:border-system-red"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="font-jetbrains text-[9px] uppercase tracking-wider text-white-smoke/40">
+              Email
+            </span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-background border border-default-border text-default-text px-3 py-2 font-jetbrains text-[12px] rounded-[5px] outline-none focus:border-system-red"
+            />
+          </label>
+
+          {error && (
+            <div className="font-jetbrains text-[10px] text-system-red">{error}</div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2.5 mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 rounded-[5px] font-jetbrains text-[10px] uppercase tracking-wider border border-default-border text-default-text hover:bg-tertiary-surface transition-colors disabled:opacity-40"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="px-4 py-2 rounded-[5px] font-jetbrains text-[10px] uppercase tracking-wider bg-default-text text-background hover:bg-transparent hover:text-system-red border border-transparent hover:border-system-red transition-colors disabled:opacity-40"
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
