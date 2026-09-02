@@ -9,12 +9,14 @@ from app.services.assess_throughput import get_throughput
 from app.schema.dashboard import (
     PerformanceBreakdownResponse,
     QuestionQualityResponse,
-    ThroughputResponse
+    ThroughputResponse,
+    IntegritySummaryResponse
 )
 from app.services.assessment_report import get_question_quality
 from app.services.reporting_performance_breakdown import (
     get_performance_breakdown
 )
+from app.services.integrity_signals import get_integrity_summary
 
 router = APIRouter(prefix="/reporting", tags=["reporting"])
 
@@ -53,3 +55,12 @@ def get_performance_breakdown_report(
 ) -> PerformanceBreakdownResponse:
     require_recruiter(current_user)
     return get_performance_breakdown(db, by=by)
+
+
+@router.get("/integrity-summary")
+def get_integrity_summary_report(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
+) -> IntegritySummaryResponse:
+    require_recruiter(current_user)
+    return get_integrity_summary(db)
