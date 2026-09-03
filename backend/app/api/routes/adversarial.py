@@ -80,6 +80,11 @@ async def get_adversarial_questions_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can view adversarial questions.",
+        )
     return get_adversarial_questions_for_assessment(
         db, assessment_id
     )
@@ -95,6 +100,11 @@ async def get_all_adversarial_questions_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can view adversarial questions.",
+        )
     return get_all_adversarial_questions(db)
 
 
@@ -108,6 +118,11 @@ async def get_every_adversarial_question_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can view adversarial questions.",
+        )
     return get_every_adversarial_question(db)
 
 

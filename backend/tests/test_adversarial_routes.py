@@ -153,12 +153,28 @@ def test_get_adversarial_questions_401_when_no_jwt():
     "app.api.routes.adversarial."
     "get_adversarial_questions_for_assessment"
 )
-def test_get_adversarial_questions_200_empty_list(mock_get):
+def test_get_adversarial_questions_403_for_candidate(mock_get):
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.get(QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    mock_get.assert_not_called()
+
+
+@patch(
+    "app.api.routes.adversarial."
+    "get_adversarial_questions_for_assessment"
+)
+def test_get_adversarial_questions_200_for_recruiter(mock_get):
     mock_get.return_value = []
 
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override(
-        "CANDIDATE"
+        "RECRUITER"
     )
     response = client.get(QUESTIONS_URL)
     app.dependency_overrides.clear()
@@ -214,7 +230,7 @@ def test_get_adversarial_questions_404_when_missing(mock_get):
 
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override(
-        "CANDIDATE"
+        "RECRUITER"
     )
     response = client.get(QUESTIONS_URL)
     app.dependency_overrides.clear()
@@ -521,7 +537,20 @@ def test_save_adversarial_200_on_success(mock_save):
 
 
 @patch("app.api.routes.adversarial.get_all_adversarial_questions")
-def test_get_all_adversarial_questions_200_with_list(mock_get):
+def test_get_all_adversarial_questions_403_for_candidate(mock_get):
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.get(ALL_QUESTIONS_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    mock_get.assert_not_called()
+
+
+@patch("app.api.routes.adversarial.get_all_adversarial_questions")
+def test_get_all_adversarial_questions_200_for_recruiter(mock_get):
     mock_get.return_value = [
         MagicMock(
             adv_question_id=5,
@@ -540,7 +569,7 @@ def test_get_all_adversarial_questions_200_with_list(mock_get):
 
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override(
-        "CANDIDATE"
+        "RECRUITER"
     )
     response = client.get(ALL_QUESTIONS_URL)
     app.dependency_overrides.clear()
@@ -563,7 +592,20 @@ def test_get_every_adversarial_question_401_when_no_jwt():
 
 
 @patch("app.api.routes.adversarial.get_every_adversarial_question")
-def test_get_every_adversarial_question_200_includes_all_statuses(
+def test_get_every_adversarial_question_403_for_candidate(mock_get):
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "CANDIDATE"
+    )
+    response = client.get(EVERY_QUESTION_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 403
+    mock_get.assert_not_called()
+
+
+@patch("app.api.routes.adversarial.get_every_adversarial_question")
+def test_get_every_adversarial_question_200_for_recruiter_all_statuses(
     mock_get,
 ):
     mock_get.return_value = [
@@ -597,7 +639,7 @@ def test_get_every_adversarial_question_200_includes_all_statuses(
 
     app.dependency_overrides[get_db] = _db_override
     app.dependency_overrides[get_current_user] = _auth_override(
-        "CANDIDATE"
+        "RECRUITER"
     )
     response = client.get(EVERY_QUESTION_URL)
     app.dependency_overrides.clear()
