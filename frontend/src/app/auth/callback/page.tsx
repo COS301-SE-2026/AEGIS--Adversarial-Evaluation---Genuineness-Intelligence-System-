@@ -20,7 +20,7 @@ function CallbackInner() {
       localStorage.setItem("aegis_role", role ?? "");
 
       if (role === "RECRUITER") {
-        router.replace("/assessments");
+        router.replace("/dashboard");
       } else if (role === "CANDIDATE") {
         router.replace("/assessment");
       } else {
