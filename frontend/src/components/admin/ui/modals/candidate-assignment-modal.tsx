@@ -97,7 +97,8 @@ const filtered = useMemo(() => {
         !q ||
         c.email.toLowerCase().includes(q) ||
         (c.full_name ?? "").toLowerCase().includes(q);
-      const isAssigned = assignedIds.has(c.user_id);
+      const isAssigned =
+        assignedIds.has(c.user_id) || selected.has(c.user_id);
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "assigned" && isAssigned) ||
