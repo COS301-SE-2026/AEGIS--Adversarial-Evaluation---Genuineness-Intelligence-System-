@@ -19,11 +19,6 @@ export default function AssessmentFilterBar({
 }: AssessmentFilterBarProps) {
   return (
     <div className="flex items-center gap-2.5 mb-5 flex-wrap">
-      {/* Search
-            Default:  bg-background (#0F0F0E) + border-default-border (#989892) + text-default-text
-            Focus:    border-system-red
-            bg-background is the true near-black; tertiary-surface (#30302E) is the hover step up
-      */}
       <div className="relative flex-1 min-w-50 max-w-[320px]">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 text-white-smoke/40"
@@ -52,33 +47,6 @@ export default function AssessmentFilterBar({
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-
-      {/* Status chips
-            Inactive: bg-background + border-default-border + text-default-text/60, hover bg-tertiary-surface
-            Active:   bg-system-red/15 + border-system-red + text-system-red
-      */}
-      <div className="flex gap-1.5 flex-wrap">
-        {FILTER_OPTIONS.map((f) => (
-          <button
-            type="button"
-            key={f}
-            onClick={() => onFilterChange(f)}
-            className={`
-              font-jetbrains text-[10px] tracking-wider px-3 py-1.25
-              rounded-[5px] cursor-pointer border transition-all duration-150 uppercase
-              ${
-                filter === f
-                  ? "bg-system-red/15 border-system-red text-system-red"
-                  : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
-              }
-            `}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
-
-      {/* Sort button — same inactive style as chips */}
       <button 
         type="button"
         className="ml-auto flex items-center gap-1.5 font-jetbrains text-[10px] tracking-wider text-default-text bg-background border border-default-border px-3 py-2 rounded-[5px] cursor-pointer transition-all duration-150 hover:bg-tertiary-surface"
