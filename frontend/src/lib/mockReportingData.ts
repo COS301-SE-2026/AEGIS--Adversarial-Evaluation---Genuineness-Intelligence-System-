@@ -49,13 +49,6 @@ export const MOCK_PERFORMANCE_BREAKDOWN: Record<BreakdownBy, PerformanceBreakdow
       { label: "Hard", avg_success_rate: 0.31, attempt_count: 70 },
     ],
   },
-  adversarial: {
-    by: "adversarial",
-    slices: [
-      { label: "Standard", avg_success_rate: 0.69, attempt_count: 210 },
-      { label: "Adversarial", avg_success_rate: 0.41, attempt_count: 145 },
-    ],
-  },
 };
 
 //  Throughput

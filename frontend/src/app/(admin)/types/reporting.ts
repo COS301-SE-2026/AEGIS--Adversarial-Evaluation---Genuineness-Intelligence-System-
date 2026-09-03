@@ -21,7 +21,7 @@ export interface QuestionQualityResponse {
 
 // GET /reporting/performance-breakdown?by=
 
-export type BreakdownBy = "category" | "difficulty" | "adversarial";
+export type BreakdownBy = "category" | "difficulty";
 
 export interface BreakdownSlice {
   label: string;
