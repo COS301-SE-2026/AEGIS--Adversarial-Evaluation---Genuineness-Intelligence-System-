@@ -43,7 +43,7 @@ export default function DashboardPage() {
           <div className="flex items-start justify-between mb-5">
             <div>
               <h1 className="font-staatliches text-[30px] tracking-[0.06em] leading-none text-default-text">
-                ASSESSMENT INTELLIGENCE REPORTS
+                ASSESSMENT DASHBOARD
               </h1>
             </div>
 
