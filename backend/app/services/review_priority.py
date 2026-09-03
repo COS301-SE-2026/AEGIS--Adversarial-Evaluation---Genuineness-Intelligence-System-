@@ -121,8 +121,6 @@ def _score_and_factor_entries(
     metrics: QuestionMetrics,
     cohort_data: Optional[float],
 ) -> tuple[float, list[tuple[float, str]]]:
-    """Score one question and return its above-threshold contributing
-    factors as (signal_value, sentence) pairs in weight-iteration order."""
     weights = WEIGHTS[question.type]
     label = QUESTION_TYPE_LABELS[question.type]
 
