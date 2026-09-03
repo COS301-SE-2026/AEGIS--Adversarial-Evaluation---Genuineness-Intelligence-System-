@@ -10,15 +10,8 @@ export function TestDescriptionCard({ question }: {question: Question}) {
                 <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
                     
                     <h1 className="text-xl sm:text-2xl wrap-break-word flex-1 min-w-0">
-                        <span className="mr-1.5">{question.questionId}.</span>
                         {question.questionTitle}
                     </h1>
-                    <div className="flex items-center justify-between gap-3 rounded-lg p-3 shrink-0 w-full sm:w-auto sm:justify-start sm:px-4">
-                        <p className="text-sm">
-                            {question.attempted ? "Attempted" : "Not Attempted"}
-                        </p>
-                        <div className={`w-2 h-2 rounded-full border shrink-0 ${question.attempted ? "border-green-500" : "border-red-500"}`}/>
-                    </div>
 
                 </div>
                 <hr className="border-default-border/75" />

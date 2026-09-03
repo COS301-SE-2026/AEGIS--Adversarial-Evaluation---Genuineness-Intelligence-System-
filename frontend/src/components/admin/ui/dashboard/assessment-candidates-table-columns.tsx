@@ -31,8 +31,8 @@ export const candidateColumns: AnalyticsTableColumn<AssessmentCandidateResult>[]
     },
     {
         key: "ai-rating",
-        header: "Ai Rating",
-        render: (candidate) => `${candidate.ai_rating_percent.toFixed(2)}%`,
+        header: "Integrity Flag Signal",
+        render: (candidate) => `${candidate.ai_rating_percent.toFixed()}`,
     },
     {
         key: "answers",

@@ -17,8 +17,8 @@ export function ThroughputStats({ data }: Readonly<ThroughputStatsProps>) {
     { label: "Active", value: data.active_count },
     { label: "Completed", value: data.completed_count },
     { label: "Expired", value: data.expired_count },
-    { label: "Avg. Time to Completion", value: formatSeconds(data.avg_time_to_completion_seconds) },
-    { label: "Avg. Score", value: data.avg_score !== null ? `${data.avg_score.toFixed(1)}%` : "—" },
+    { label: "Average Time to Completion", value: formatSeconds(data.avg_time_to_completion_seconds) },
+    { label: "Average Score", value: data.avg_score !== null ? `${data.avg_score.toFixed(1)}%` : "—" },
     { label: "Completion Rate", value: `${Math.round(data.completion_rate * 100)}%` },
   ];
 

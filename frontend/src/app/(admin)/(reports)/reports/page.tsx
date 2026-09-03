@@ -61,7 +61,7 @@ export default function ReportsPage() {
 
         <InfoCard
           type="percentage"
-          title="AI Usage Rate"
+          title="Average Integrity Signal"
           value={data.ai_usage_rate.percent}
           label={data.ai_usage_rate.level}
           icon="ai"
