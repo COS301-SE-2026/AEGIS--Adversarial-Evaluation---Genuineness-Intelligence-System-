@@ -93,6 +93,7 @@ jobs:
                       --name $CONTAINER_NAME \
                       --network aegis-net \
                       -p $PORT \
+                      - ENVIRONMENT=production \
                       -e PISTON_BASE_URL=http://piston_sandbox:2000 \
                       -e PISTON_ENABLED=true \
                       -e AWS_REGION="${{ secrets.AWS_REGION }}" \
