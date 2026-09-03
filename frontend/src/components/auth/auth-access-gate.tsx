@@ -14,8 +14,11 @@ export function AccessGate({ allowedRole, children }: Readonly<AccessGateProps>)
   const pathname = usePathname();
 
   const isAllowed = useMemo(() => {
-    const token =
-      typeof window !== "undefined" ? localStorage.getItem("aegis_token") : null;
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    const token = localStorage.getItem("aegis_token");
     const role = getRole();
 
     return Boolean(token) && isAuthenticated() && role === allowedRole;
@@ -26,6 +29,10 @@ export function AccessGate({ allowedRole, children }: Readonly<AccessGateProps>)
       router.replace("/auth?mode=login");
     }
   }, [isAllowed, router]);
+
+  if (typeof window === "undefined") {
+    return null;
+  }
 
   if (!isAllowed) {
     return (

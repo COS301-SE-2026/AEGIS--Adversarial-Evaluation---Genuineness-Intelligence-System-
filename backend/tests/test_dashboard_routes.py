@@ -20,7 +20,8 @@ from app.schema.dashboard import (
     AverageScore,
     QuestionQualityResponse,
     QuestionQualityBucket,
-    ThroughputResponse
+    ThroughputResponse,
+    IntegritySummaryResponse
 )
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
@@ -31,13 +32,13 @@ DASHBOARD_ENDPOINTS = [
     "/api/v1/admin/dashboard/score-distribution",
     "/api/v1/admin/dashboard/assessments",
     "/api/v1/admin/dashboard/assessments/101",
-    "/api/v1/admin/dashboard/assessments/101/candidates",
-    
+    "/api/v1/admin/dashboard/assessments/101/candidates",    
 ]
 
 REPORTING_ENDPOINTS = [
     "/api/v1/reporting/question-quality",
-    "/api/v1/reporting/throughput"
+    "/api/v1/reporting/throughput",
+    "/api/v1/reporting/integrity-summary",
 ]
 
 
@@ -554,3 +555,28 @@ def test_throughput_route_rejects_candidate(candidate_client):
     assert response.status_code == 403
     assert "Only recruiters can view reporting data." in response.json()["detail"]
 
+
+def test_integrity_summary_route_returns_200_for_recruiter(
+    recruiter_client, mock_db
+):
+    response_obj = IntegritySummaryResponse(
+        pct_responses_elevated_paste_reliance=0.18,
+        pct_assessments_with_elevated_review=0.24,
+        avg_focus_loss_count=1.7,
+        total_responses_analyzed=312,
+    )
+
+    with patch(
+        "app.api.routes.reporting.get_integrity_summary",
+        return_value=response_obj,
+    ) as mock_service:
+        response = recruiter_client.get("/api/v1/reporting/integrity-summary")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "pct_responses_elevated_paste_reliance": 0.18,
+        "pct_assessments_with_elevated_review": 0.24,
+        "avg_focus_loss_count": 1.7,
+        "total_responses_analyzed": 312,
+    }
+    mock_service.assert_called_once_with(mock_db)
