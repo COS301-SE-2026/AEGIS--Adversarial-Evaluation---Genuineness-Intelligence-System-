@@ -48,3 +48,22 @@ def test_get_integrity_summary_returns_expected_aggregates():
         "avg_focus_loss_count": 2.3333,
         "total_responses_analyzed": 3,
     }
+
+def test_get_integrity_summary_returns_zeroes_when_no_rows():
+    class FakeQuery:
+        def all(self):
+            return []
+
+    class FakeDB:
+        def query(self, model):
+            return FakeQuery()
+
+    db = FakeDB()
+
+    result = get_integrity_summary(db)
+    assert result.model_dump() == {
+        "pct_responses_elevated_paste_reliance": 0.0,
+        "pct_assessments_with_elevated_review": 0.0,
+        "avg_focus_loss_count": 0.0,
+        "total_responses_analyzed": 0,
+    }
