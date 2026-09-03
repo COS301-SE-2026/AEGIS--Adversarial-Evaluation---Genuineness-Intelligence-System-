@@ -8,7 +8,6 @@ import type { BreakdownBy } from "@/app/(admin)/types/reporting";
 const TABS: { key: BreakdownBy; label: string }[] = [
   { key: "category", label: "Category" },
   { key: "difficulty", label: "Difficulty" },
-  { key: "adversarial", label: "Adversarial" },
 ];
 
 export function PerformanceBreakdownContainer() {
