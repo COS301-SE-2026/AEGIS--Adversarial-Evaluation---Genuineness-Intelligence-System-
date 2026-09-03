@@ -39,7 +39,7 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 
 ## Deployment Link & Docs
 - [Deployment Link](https://aegis-cos301.vercel.app/)
-- [Deployment Documentation PDFS](docs/Demo2/Deployment.md)
+- [Deployment Documentation PDFS](docs/Demo3/Deployment.pdf)
 
 ---
 
