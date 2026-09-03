@@ -48,12 +48,12 @@ export function IntegritySummary({ data }: Readonly<IntegritySummaryProps>) {
     <div className="w-full">
       <h2 className="text-xl tracking-wide mb-1">System Integrity Signals</h2>
       <p className="text-xs text-default-border font-jetbrains mb-4">
-        Observed patterns for elevated review — not a determination of misconduct.
+        Observed patterns worth reviewing 
       </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <GaugeTile label="Elevated Paste Reliance" value={data.pct_responses_elevated_paste_reliance} />
-        <GaugeTile label="Assessments w/ Elevated Review" value={data.pct_assessments_with_elevated_review} />
+        <GaugeTile label="High Paste-to-Typed Ratio" value={data.pct_responses_elevated_paste_reliance} />
+        <GaugeTile label="Assessments Flagged for Review" value={data.pct_assessments_with_elevated_review} />
 
         <div className="bg-secondary-surface border border-default-border rounded-lg px-4 py-4 flex flex-col justify-center">
           <p className="font-jetbrains text-[10px] tracking-wider text-default-border uppercase">
