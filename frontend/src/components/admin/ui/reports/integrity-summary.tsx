@@ -57,7 +57,7 @@ export function IntegritySummary({ data }: Readonly<IntegritySummaryProps>) {
 
         <div className="bg-secondary-surface border border-default-border rounded-lg px-4 py-4 flex flex-col justify-center">
           <p className="font-jetbrains text-[10px] tracking-wider text-default-border uppercase">
-            Avg. Focus Loss Count
+            Average Focus Loss Count
           </p>
           <p className="font-staatliches text-2xl tracking-wide text-default-text mt-1">
             {data.avg_focus_loss_count.toFixed(1)}
@@ -66,7 +66,7 @@ export function IntegritySummary({ data }: Readonly<IntegritySummaryProps>) {
 
         <div className="bg-secondary-surface border border-default-border rounded-lg px-4 py-4 flex flex-col justify-center">
           <p className="font-jetbrains text-[10px] tracking-wider text-default-border uppercase">
-            Responses Analyzed
+            Responses Analysed
           </p>
           <p className="font-staatliches text-2xl tracking-wide text-default-text mt-1">
             {data.total_responses_analyzed}

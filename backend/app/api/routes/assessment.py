@@ -59,6 +59,8 @@ class AssessmentListItem(BaseModel):
     duration_mins: int
     status: Optional[str] = None
     created_at: datetime
+    candidates: int = 0
+    completed: int = 0
 
     class Config:
         orm_mode = True
