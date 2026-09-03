@@ -45,3 +45,4 @@ build/
 sandbox/piston_packages/
 
 /node_modules
+frontend/src/lib/mock-dashboard-data.ts
