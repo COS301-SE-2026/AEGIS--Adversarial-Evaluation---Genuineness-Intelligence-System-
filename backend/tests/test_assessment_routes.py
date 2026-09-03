@@ -326,23 +326,57 @@ def test_save_candidate_response_grades_json_correct_answer(
     assert body["is_correct"] == "CORRECT"
 
 
-def test_save_candidate_response_returns_404_for_missing_session(client, mock_db):
+def test_save_candidate_response_returns_404_for_missing_session(
+    auth_client, mock_db,
+):
     # CandidateAssessment not found
     mock_db.query.side_effect = [_mock_query_result(None)]
 
-    response = client.post(
-        "/api/v1/candidate-assessments/999/responses",
-        json={
-            "assessment_question_id": 11,
-            "candidate_answer": "anything",
-        },
-    )
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()):
+        response = auth_client.post(
+            "/api/v1/candidate-assessments/999/responses",
+            json={
+                "assessment_question_id": 11,
+                "candidate_answer": "anything",
+            },
+        )
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Candidate assessment not found"
 
 
-def test_submit_candidate_assessment_updates_scores(client, mock_db):
+def test_save_candidate_response_returns_401_without_jwt(client, mock_db):
+    response = client.post(
+        "/api/v1/candidate-assessments/9/responses",
+        json={
+            "assessment_question_id": 11,
+            "candidate_answer": "Draft answer",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_save_candidate_response_returns_403_for_wrong_candidate(
+    auth_client, mock_db,
+):
+    with patch(
+        _SESSION_GUARD_PATCH,
+        side_effect=HTTPException(status_code=403, detail="Invalid token"),
+    ):
+        response = auth_client.post(
+            "/api/v1/candidate-assessments/9/responses",
+            json={
+                "assessment_question_id": 11,
+                "candidate_answer": "Draft answer",
+            },
+        )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Invalid token"
+
+
+def test_submit_candidate_assessment_updates_scores(auth_client, mock_db):
     mock_session = MagicMock()
     mock_session.candidate_assess_id = 9
     mock_session.access_token = "token-123"
@@ -386,7 +420,25 @@ def test_submit_candidate_assessment_updates_scores(client, mock_db):
     assert body["status"] == "COMPLETED"
 
 
-def test_list_candidate_responses_returns_responses(client, mock_db):
+def test_submit_candidate_assessment_returns_401_without_jwt(client, mock_db):
+    response = client.post("/api/v1/candidate-assessments/9/submit")
+
+    assert response.status_code == 401
+
+
+def test_submit_candidate_assessment_returns_403_for_wrong_candidate(
+    auth_client, mock_db,
+):
+    with patch(
+        _SESSION_GUARD_PATCH,
+        side_effect=HTTPException(status_code=403, detail="Invalid token"),
+    ):
+        response = auth_client.post("/api/v1/candidate-assessments/9/submit")
+
+    assert response.status_code == 403
+
+
+def test_list_candidate_responses_returns_responses(auth_client, mock_db):
     mock_session = MagicMock()
 
     response_one = MagicMock()
