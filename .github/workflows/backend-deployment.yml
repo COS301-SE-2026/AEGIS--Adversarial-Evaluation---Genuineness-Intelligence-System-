@@ -75,8 +75,10 @@ jobs:
                     # 4. Map host ports: 8080 for main, 8081 for dev.
                     if [ "$RAW_TAG" = "main" ]; then
                         PORT="8080:8000"
+                        NGINX_PORT="8080"
                     else
                         PORT="8081:8000"
+                        NGINX_PORT="8081"
                     fi
 
                     # 5. Ensure the Piston sandbox is running from the managed compose file
@@ -100,4 +102,22 @@ jobs:
                       --restart always \
                       $IMAGE
 
+                    # update Nginx configuration
+                    sudo tee /etc/nginx/conf.d/fastapi.conf > /dev/null <<EOF
+
+                      server {
+                        listen 80;
+                        server_name_;
+
+                        location / {
+                            proxy_pass http://127.0.0.1:${NGINX_PORT};
+                            proxy_set_header Host \$host;
+                            proxy_set header X-Real-IP \$remote_addr;
+                            proxy_set header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                            proxy_set_header X-Forwarded-Proto \$scheme;
+                        }
+                      }
+                    EOF
+
+                    sudo nginx -t && sudo systemctl reload nginx
                     docker image prune -f
