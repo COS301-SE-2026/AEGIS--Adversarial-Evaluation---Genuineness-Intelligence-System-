@@ -214,7 +214,12 @@ def _mock_query_result(result):
     return query
 
 
-def test_save_candidate_response_creates_response(client, mock_db):
+_SESSION_GUARD_PATCH = (
+    "app.api.routes.assessment.get_candidate_assessment_session"
+)
+
+
+def test_save_candidate_response_creates_response(auth_client, mock_db):
     mock_session = MagicMock()
 
     # query sequence: CandidateAssessment, CandidateResponse (None), AssessmentQuestion (None)
@@ -227,13 +232,14 @@ def test_save_candidate_response_creates_response(client, mock_db):
     # response_model expects response_id
     mock_db.refresh.side_effect = lambda obj: setattr(obj, "response_id", 101)
 
-    response = client.post(
-        "/api/v1/candidate-assessments/9/responses",
-        json={
-            "assessment_question_id": 11,
-            "candidate_answer": "Draft answer",
-        },
-    )
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()):
+        response = auth_client.post(
+            "/api/v1/candidate-assessments/9/responses",
+            json={
+                "assessment_question_id": 11,
+                "candidate_answer": "Draft answer",
+            },
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -245,7 +251,9 @@ def test_save_candidate_response_creates_response(client, mock_db):
     assert body["is_correct"] is None
 
 
-def test_save_candidate_response_updates_existing_response(client, mock_db):
+def test_save_candidate_response_updates_existing_response(
+    auth_client, mock_db,
+):
     mock_session = MagicMock()
 
     existing_response = MagicMock()
@@ -263,13 +271,14 @@ def test_save_candidate_response_updates_existing_response(client, mock_db):
         _mock_query_result(None),
     ]
 
-    response = client.post(
-        "/api/v1/candidate-assessments/9/responses",
-        json={
-            "assessment_question_id": 11,
-            "candidate_answer": "Updated answer",
-        },
-    )
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()):
+        response = auth_client.post(
+            "/api/v1/candidate-assessments/9/responses",
+            json={
+                "assessment_question_id": 11,
+                "candidate_answer": "Updated answer",
+            },
+        )
 
     assert response.status_code == 200
     body = response.json()

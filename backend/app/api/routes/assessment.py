@@ -42,6 +42,7 @@ from app.schema.review_priority import ReviewPriorityResponse
 from app.services.review_priority import get_review_priority
 from app.schema.metrics_radar import MetricsRadarResponse
 from app.services.reporting_candidate_metrics import get_metrics_radar
+from app.services.candidate import get_candidate_assessment_session
 
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
@@ -297,7 +298,11 @@ async def save_response(
     candidate_assessment_id: int,
     response_in: ResponseCreate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    get_candidate_assessment_session(
+        db, candidate_assessment_id, int(current_user["user_id"]),
+    )
     return save_candidate_response(
         db,
         candidate_assessment_id,
@@ -312,7 +317,11 @@ async def save_response(
 async def list_responses(
     candidate_assessment_id: int,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    get_candidate_assessment_session(
+        db, candidate_assessment_id, int(current_user["user_id"]),
+    )
     return get_candidate_responses(
         db,
         candidate_assessment_id,
@@ -326,7 +335,11 @@ async def list_responses(
 async def submit_assessment(
     candidate_assessment_id: int,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    get_candidate_assessment_session(
+        db, candidate_assessment_id, int(current_user["user_id"]),
+    )
     return submit_candidate_assessment(
         db,
         candidate_assessment_id,
@@ -361,7 +374,26 @@ async def invite_candidate(
     assessment_id: int,
     body: InviteCreate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can invite candidates.",
+        )
+    assessment = get_assessment_by_id(db, assessment_id)
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+    if assessment.creator_id != int(current_user["user_id"]):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You can only invite candidates to assessments you created."
+            ),
+        )
     session = create_candidate_assessment(db, assessment_id, body.candidate_id)
     return {
         "candidate_assess_id": session.candidate_assess_id,
@@ -422,8 +454,12 @@ async def get_candidate_assessment_questions(
 )
 def execute_code(
     payload: ExecuteRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    get_candidate_assessment_session(
+        db, payload.candidate_assessment_id, int(current_user["user_id"]),
+    )
     piston_client = PistonClient()
     return execute_candidate_code(
         db=db,
