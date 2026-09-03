@@ -92,15 +92,15 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
         <div className="font-staatliches text-lg tracking-[0.04em] leading-[1.1] text-white-smoke flex-1 pr-2.5">
           {a.title}
         </div>
-        <StatusBadge status={a.status?.toLowerCase()} />
+        {/* <StatusBadge status={a.status?.toLowerCase()} /> */}
       </div>
 
-      <div className="flex flex-wrap gap-2.5 mb-3 font-jetbrains text-[10px] text-white-smoke/40">
+      {/* <div className="flex flex-wrap gap-2.5 mb-3 font-jetbrains text-[10px] text-white-smoke/40">
         <span className="flex items-center gap-1">{a.role ?? "—"}</span>
         <span className="flex items-center gap-1">{a.difficulty ?? "—"}</span>
         <span className="flex items-center gap-1">{a.questions ?? 0} Qs</span>
         <span className="text-[9px] text-white-smoke/30">{(a.langs ?? []).join(", ")}</span>
-      </div>
+      </div> */}
 
       <div className="flex flex-wrap gap-1.5 mb-3">
         {(a.types ?? []).map((t) => (
@@ -130,14 +130,14 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
             Completed
           </div>
         </div>
-        <div className="text-center">
+        {/* <div className="text-center">
           <div className={`font-staatliches text-[20px] tracking-[0.02em] leading-none ${aiHighlight ? "text-system-red" : "text-white-smoke"}`}>
             {aiRate > 0 ? `${aiRate}%` : "—"}
           </div>
           <div className="font-jetbrains text-[8px] text-white-smoke/40 tracking-[0.06em] uppercase mt-0.5">
             AI Detect
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-tertiary-surface">
@@ -146,7 +146,7 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
         </div>
         <div className="flex gap-1.5">
           
-          <button
+          {/* <button
             type="button"
             aria-label="Edit assessment"
             className="bg-transparent border border-tertiary-surface text-white-smoke/40 p-1 px-2 rounded-[5px] cursor-pointer transition-all duration-150 flex items-center hover:border-system-red hover:text-system-red"
@@ -155,7 +155,7 @@ export default function AssessmentCard({ assessment: a, onAssigned }: Assessment
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
-          </button>
+          </button> */}
 
           <button
             type="button"
