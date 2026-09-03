@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from app.services.reporting_candidate_metrics import (
-    get_review_priority,
     get_metrics_radar,
     get_candidate_summed_metrics,
     get_cohort_summed_metrics,
@@ -16,14 +15,6 @@ from app.services.reporting_candidate_metrics import (
 @pytest.fixture
 def mock_db():
     return MagicMock()
-
-
-def test_get_review_priority_returns_frozen_stub(mock_db):
-    result = get_review_priority(mock_db, candidate_assessment_id=1)
-
-    assert result.score == 0
-    assert result.band == "low"
-    assert result.contributing_factors == []
 
 
 def test_compute_behavioral_ratios_basic_values():

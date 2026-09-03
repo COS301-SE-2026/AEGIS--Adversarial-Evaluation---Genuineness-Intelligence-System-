@@ -5,16 +5,23 @@ import { useParams, useRouter } from "next/navigation";
 import { apiGet, ApiError } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { CandidateMetrics, CandidateAssessmentMetrics } from "@/app/(admin)/types/metrics";
+import type {
+    BehavioralSummary,
+    MetricsTimelineResponse,
+} from "@/app/(admin)/types/reporting-timeline";
 import Button from "@/components/hero/ui/button";
 import MetricsTable from "@/components/admin/ui/cards/metrics-table";
 import MetricsRadar from "@/components/admin/ui/dashboard/assessment-metrics-radar";
 import ReviewPriorityBadge from "@/components/admin/ui/dashboard/review-priority-badge";
+import BehavioralSummaryPanel from "@/components/candidate/ui/cards/BehavioralSummaryPanel";
+import SessionTimeline from "@/components/candidate/ui/cards/SessionTimeline";
 
 const GradeAssessmentMetricsPage = () => {
     const router = useRouter();
     const params = useParams<{id : string}>();
     const [metrics, setMetrics] = useState<CandidateMetrics[]>([]);
     const [behavioralSummary, setBehavioralSummary] = useState<string | null>(null);
+    const [timeline, setTimeline] = useState<MetricsTimelineResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -24,14 +31,25 @@ const GradeAssessmentMetricsPage = () => {
         async function performFetch() {
             try {
                 setIsLoading(true);
-                const data = await apiGet<CandidateAssessmentMetrics>(
-                    `/api/v1/candidate-assessments/${params.id}/metrics`,
-                    { headers: getAuthHeaders()}
-                );
+                const [metricsData, summaryData, timelineData] = await Promise.all([
+                    apiGet<CandidateAssessmentMetrics>(
+                        `/api/v1/candidate-assessments/${params.id}/metrics`,
+                        { headers: getAuthHeaders() }
+                    ),
+                    apiGet<BehavioralSummary>(
+                        `/api/v1/candidate-assessments/${params.id}/behavioral-summary`,
+                        { headers: getAuthHeaders() }
+                    ),
+                    apiGet<MetricsTimelineResponse>(
+                        `/api/v1/candidate-assessments/${params.id}/metrics-timeline`,
+                        { headers: getAuthHeaders() }
+                    ),
+                ]);
 
                 if (isMounted) {
-                    setMetrics(data.metrics);
-                    setBehavioralSummary(data.behavioral_summary);
+                    setMetrics(metricsData.metrics);
+                    setBehavioralSummary(summaryData.summary);
+                    setTimeline(timelineData);
                     setError(null);
                 }
             } catch (err) {
@@ -75,28 +93,21 @@ const GradeAssessmentMetricsPage = () => {
                     Back
                 </Button>
             </div>
-            <div className="mb-4 bg-secondary-surface rounded-lg border border-default-border p-6">
-                <h2 className="font-staatliches text-lg tracking-[0.04em] text-default-text mb-2">
-                    Behavioral Summary
-                </h2>
-                {behavioralSummary ? (
-                    <p className="text-sm text-default-text/80">
-                        {behavioralSummary}
-                    </p>
-                ) : (
-                    <p className="text-sm text-default-text/60">
-                        No behavioral summary has been generated for this
-                        attempt yet.
-                    </p>
-                )}
+            <div className="mb-4">
+                <BehavioralSummaryPanel summary={behavioralSummary} />
             </div>
             <div className="mb-4">
                 <ReviewPriorityBadge />
-            </div>  
+            </div>
             <MetricsRadar />
+            {timeline && (
+                <div className="mt-6">
+                    <SessionTimeline timeline={timeline} />
+                </div>
+            )}
             <div className="mt-6">
                 <MetricsTable metrics={metrics} />
-            </div>          
+            </div>
         </div>
     );
 }

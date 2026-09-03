@@ -72,6 +72,7 @@ def test_review_priority_route_returns_200_for_recruiter(recruiter_client, monke
         "score": 0,
         "band": "low",
         "contributing_factors": [],
+        "notable_question": None,
     }
 
 

@@ -39,7 +39,7 @@ from app.schema.candidate_response import (
 )
 from app.schema.candidate_assessment import CandidateAssessmentResponse
 from app.schema.review_priority import ReviewPriorityResponse
-from app.services.reporting_candidate_metrics import get_review_priority
+from app.services.review_priority import get_review_priority
 from app.schema.metrics_radar import MetricsRadarResponse
 from app.services.reporting_candidate_metrics import get_metrics_radar
 
