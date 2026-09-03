@@ -83,18 +83,24 @@ def test_get_all_assessments_items_have_required_fields():
     mock_a.title = "Test Assessment"
     mock_a.description = "A description"
     mock_a.duration_mins = 60
+    mock_a.status = "Draft"
     mock_a.created_at = datetime(2025, 1, 1)
+    mock_a.sessions = []
 
     mock_db = _make_mock_db_for_all([mock_a])
     result = get_all_assessments(mock_db)
 
     assert len(result) == 1
     item = result[0]
-    assert item.assessment_id == 1
-    assert item.title == "Test Assessment"
-    assert item.description == "A description"
-    assert item.duration_mins == 60
-    assert item.created_at == datetime(2025, 1, 1)
+
+    assert item["assessment_id"] == 1
+    assert item["title"] == "Test Assessment"
+    assert item["description"] == "A description"
+    assert item["duration_mins"] == 60
+    assert item["status"] == "Draft"
+    assert item["created_at"] == datetime(2025, 1, 1)
+    assert item["candidates"] == 0
+    assert item["completed"] == 0
 
 
 def _make_mock_db_chain(final_result):
