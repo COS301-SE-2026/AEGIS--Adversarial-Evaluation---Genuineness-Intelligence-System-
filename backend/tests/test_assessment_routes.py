@@ -289,7 +289,9 @@ def test_save_candidate_response_updates_existing_response(
     assert body["is_correct"] is None
 
 
-def test_save_candidate_response_grades_json_correct_answer(client, mock_db):
+def test_save_candidate_response_grades_json_correct_answer(
+    auth_client, mock_db,
+):
     mock_session = MagicMock()
 
     mock_qb = MagicMock()
@@ -308,13 +310,14 @@ def test_save_candidate_response_grades_json_correct_answer(client, mock_db):
 
     mock_db.refresh.side_effect = lambda obj: setattr(obj, "response_id", 303)
 
-    response = client.post(
-        "/api/v1/candidate-assessments/9/responses",
-        json={
-            "assessment_question_id": 11,
-            "candidate_answer": "b",
-        },
-    )
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()):
+        response = auth_client.post(
+            "/api/v1/candidate-assessments/9/responses",
+            json={
+                "assessment_question_id": 11,
+                "candidate_answer": "b",
+            },
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -371,9 +374,10 @@ def test_submit_candidate_assessment_updates_scores(client, mock_db):
         _mock_query_result([]),
     ]
 
-    response = client.post(
-        "/api/v1/candidate-assessments/9/submit",
-    )
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()):
+        response = auth_client.post(
+            "/api/v1/candidate-assessments/9/submit",
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -406,7 +410,10 @@ def test_list_candidate_responses_returns_responses(client, mock_db):
         _mock_query_result([response_one, response_two]),
     ]
 
-    response = client.get("/api/v1/candidate-assessments/9/responses")
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()):
+        response = auth_client.get(
+            "/api/v1/candidate-assessments/9/responses"
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -418,15 +425,93 @@ def test_list_candidate_responses_returns_responses(client, mock_db):
     assert body[1]["candidate_answer"] == "B"
 
 
-def test_list_candidate_responses_returns_404_for_missing_session(client, mock_db):
+def test_list_candidate_responses_returns_404_for_missing_session(
+    auth_client, mock_db,
+):
     mock_db.query.side_effect = [_mock_query_result(None)]
 
-    response = client.get("/api/v1/candidate-assessments/999/responses")
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()):
+        response = auth_client.get(
+            "/api/v1/candidate-assessments/999/responses"
+        )
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Candidate assessment not found"
 
+
+def test_list_candidate_responses_returns_401_without_jwt(client, mock_db):
+    response = client.get("/api/v1/candidate-assessments/9/responses")
+
+    assert response.status_code == 401
+
+
+def test_list_candidate_responses_returns_403_for_wrong_candidate(
+    auth_client, mock_db,
+):
+    with patch(
+        _SESSION_GUARD_PATCH,
+        side_effect=HTTPException(status_code=403, detail="Invalid token"),
+    ):
+        response = auth_client.get(
+            "/api/v1/candidate-assessments/9/responses"
+        )
+
+    assert response.status_code == 403
+
+
+_EXECUTE_CODE_PATCH = "app.api.routes.assessment.execute_candidate_code"
+
+
+def _execute_payload():
+    return {
+        "candidate_assessment_id": 9,
+        "assessment_question_id": 11,
+        "code": "print(1)",
+    }
+
+
+def test_execute_code_returns_401_without_jwt(client, mock_db):
+    response = client.post(
+        "/api/v1/assessments/execute", json=_execute_payload(),
+    )
+
+    assert response.status_code == 401
+
+
+def test_execute_code_returns_403_for_wrong_candidate(auth_client, mock_db):
+    with patch(
+        _SESSION_GUARD_PATCH,
+        side_effect=HTTPException(status_code=403, detail="Invalid token"),
+    ):
+        response = auth_client.post(
+            "/api/v1/assessments/execute", json=_execute_payload(),
+        )
+
+    assert response.status_code == 403
+
+
+def test_execute_code_returns_200_for_owning_candidate(auth_client, mock_db):
+    exec_result = {
+        "score": 100.0,
+        "is_correct": True,
+        "test_cases_passed": 1,
+        "test_cases_failed": 0,
+        "test_cases_total": 1,
+        "results": [],
+    }
+    with patch(_SESSION_GUARD_PATCH, return_value=MagicMock()), \
+         patch(_EXECUTE_CODE_PATCH, return_value=exec_result) as mock_exec:
+        response = auth_client.post(
+            "/api/v1/assessments/execute", json=_execute_payload(),
+        )
+
+    assert response.status_code == 200
+    assert response.json()["score"] == 100.0
+    mock_exec.assert_called_once()
+
+
 _INVITE_PATCH = "app.api.routes.assessment.create_candidate_assessment"
+_GET_ASSESSMENT_PATCH = "app.api.routes.assessment.get_assessment_by_id"
 
 
 def _make_mock_session(assessment_id=1, candidate_id=2):
@@ -440,20 +525,32 @@ def _make_mock_session(assessment_id=1, candidate_id=2):
     return mock_session
 
 
-def test_invite_candidate_returns_201(client, mock_db):
+def _make_owned_assessment(creator_id=5):
+    assessment = MagicMock()
+    assessment.creator_id = creator_id
+    return assessment
+
+
+def test_invite_candidate_returns_201(recruiter_client, mock_db):
     mock_session = _make_mock_session()
-    with patch(_INVITE_PATCH, return_value=mock_session):
-        response = client.post(
+    with patch(
+        _GET_ASSESSMENT_PATCH, return_value=_make_owned_assessment(),
+    ), patch(_INVITE_PATCH, return_value=mock_session):
+        response = recruiter_client.post(
             "/api/v1/assessments/1/invite",
             json={"candidate_id": 2},
         )
     assert response.status_code == 201
 
 
-def test_invite_candidate_response_includes_access_link(client, mock_db):
+def test_invite_candidate_response_includes_access_link(
+    recruiter_client, mock_db,
+):
     mock_session = _make_mock_session()
-    with patch(_INVITE_PATCH, return_value=mock_session):
-        response = client.post(
+    with patch(
+        _GET_ASSESSMENT_PATCH, return_value=_make_owned_assessment(),
+    ), patch(_INVITE_PATCH, return_value=mock_session):
+        response = recruiter_client.post(
             "/api/v1/assessments/1/invite",
             json={"candidate_id": 2},
         )
@@ -463,10 +560,12 @@ def test_invite_candidate_response_includes_access_link(client, mock_db):
     assert body["access_link"].startswith("http://localhost:3000/assessment/take?token=")
 
 
-def test_invite_candidate_response_fields(client, mock_db):
+def test_invite_candidate_response_fields(recruiter_client, mock_db):
     mock_session = _make_mock_session(assessment_id=1, candidate_id=2)
-    with patch(_INVITE_PATCH, return_value=mock_session):
-        response = client.post(
+    with patch(
+        _GET_ASSESSMENT_PATCH, return_value=_make_owned_assessment(),
+    ), patch(_INVITE_PATCH, return_value=mock_session):
+        response = recruiter_client.post(
             "/api/v1/assessments/1/invite",
             json={"candidate_id": 2},
         )
@@ -478,21 +577,63 @@ def test_invite_candidate_response_fields(client, mock_db):
     assert body["access_token"] == mock_session.access_token
 
 
-def test_invite_candidate_returns_404_when_assessment_not_found(client, mock_db):
-    exc = HTTPException(status_code=404, detail="Assessment not found")
-    with patch(_INVITE_PATCH, side_effect=exc):
-        response = client.post(
+def test_invite_candidate_returns_401_without_jwt(client, mock_db):
+    response = client.post(
+        "/api/v1/assessments/1/invite",
+        json={"candidate_id": 2},
+    )
+    assert response.status_code == 401
+
+
+def test_invite_candidate_returns_403_for_non_recruiter(auth_client, mock_db):
+    response = auth_client.post(
+        "/api/v1/assessments/1/invite",
+        json={"candidate_id": 2},
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "Only recruiters can invite candidates."
+    )
+
+
+def test_invite_candidate_returns_403_for_wrong_recruiter(
+    recruiter_client, mock_db,
+):
+    with patch(
+        _GET_ASSESSMENT_PATCH,
+        return_value=_make_owned_assessment(creator_id=999),
+    ), patch(_INVITE_PATCH) as mock_invite:
+        response = recruiter_client.post(
+            "/api/v1/assessments/1/invite",
+            json={"candidate_id": 2},
+        )
+    assert response.status_code == 403
+    assert "assessments you created" in response.json()["detail"]
+    mock_invite.assert_not_called()
+
+
+def test_invite_candidate_returns_404_when_assessment_not_found(
+    recruiter_client, mock_db,
+):
+    with patch(_GET_ASSESSMENT_PATCH, return_value=None), \
+         patch(_INVITE_PATCH) as mock_invite:
+        response = recruiter_client.post(
             "/api/v1/assessments/999/invite",
             json={"candidate_id": 1},
         )
     assert response.status_code == 404
     assert response.json()["detail"] == "Assessment not found"
+    mock_invite.assert_not_called()
 
 
-def test_invite_candidate_returns_404_when_candidate_not_found(client, mock_db):
+def test_invite_candidate_returns_404_when_candidate_not_found(
+    recruiter_client, mock_db,
+):
     exc = HTTPException(status_code=404, detail="Candidate not found")
-    with patch(_INVITE_PATCH, side_effect=exc):
-        response = client.post(
+    with patch(
+        _GET_ASSESSMENT_PATCH, return_value=_make_owned_assessment(),
+    ), patch(_INVITE_PATCH, side_effect=exc):
+        response = recruiter_client.post(
             "/api/v1/assessments/1/invite",
             json={"candidate_id": 999},
         )
@@ -500,15 +641,19 @@ def test_invite_candidate_returns_404_when_candidate_not_found(client, mock_db):
     assert response.json()["detail"] == "Candidate not found"
 
 
-def test_invite_candidate_returns_400_when_already_invited(client, mock_db):
+def test_invite_candidate_returns_400_when_already_invited(
+    recruiter_client, mock_db,
+):
     with patch(
+        _GET_ASSESSMENT_PATCH, return_value=_make_owned_assessment(),
+    ), patch(
         _INVITE_PATCH,
         side_effect=HTTPException(
             status_code=400,
             detail="Candidate has already been invited to this assessment",
         ),
     ):
-        response = client.post(
+        response = recruiter_client.post(
             "/api/v1/assessments/1/invite",
             json={"candidate_id": 2},
         )
