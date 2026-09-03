@@ -47,16 +47,6 @@ export default function DashboardPage() {
               </h1>
             </div>
 
-            <div className="flex items-center gap-4">
-              <button
-                title="Help documentation coming soon"
-                type="button"
-                className="flex items-center gap-2 bg-tertiary-surface text-default-text border border-default-border hover:bg-secondary-surface px-4 py-2 rounded transition-colors text-sm font-medium uppercase tracking-wide cursor-pointer"
-              >
-                <HelpCircle size={18} />
-                <span>Help</span>
-              </button>
-            </div>
           </div>
 
           <div className="flex flex-col gap-10">
