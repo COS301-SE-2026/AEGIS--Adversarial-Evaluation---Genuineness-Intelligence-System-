@@ -300,9 +300,9 @@ export const NAV_ITEMS: NavItem[] = [
 
 export const DEMO_2_NAV_ITEMS: NavItem[] = [
   { label: "Dashboard",     href: "/dashboard" },
+  {label: "Reports", href: "/reports"},
   { label: "Assessments",   href: "/assessments", active: true },
   { label: "Question Bank", href: "/question-bank" },
-  { label: "CANDIDATES", href: "/candidates" },
   { label: "Adversarial Questions", href: "/adversial-questions"},
-  {label: "Reports", href: "/reports"}
+  { label: "CANDIDATES", href: "/candidates" },
 ];

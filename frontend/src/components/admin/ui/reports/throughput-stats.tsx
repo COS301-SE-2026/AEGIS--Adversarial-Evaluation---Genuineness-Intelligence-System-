@@ -24,7 +24,6 @@ export function ThroughputStats({ data }: Readonly<ThroughputStatsProps>) {
 
   return (
     <div className="w-full">
-      <h2 className="text-xl tracking-wide mb-4">Throughput</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5">
         {tiles.map((tile) => (
           <div
