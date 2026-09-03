@@ -93,7 +93,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
     if (!validate()) return;
     setLoading(true);
 
-    const targetEndpoint = mode === "login" ? "/auth/login" : "/auth/register";
+    const targetEndpoint = mode === "login" ? "/auth?mode=login" : "/auth?mode=register";
 
     try{
       const data = await apiPost<
@@ -127,20 +127,23 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
       localStorage.setItem("aegis_role", data.role);
       
       if(data.role === "RECRUITER") {
-        router.push("/assessments");
+        router.push("/dashboard");
       }
       else if(data.role === "CANDIDATE") {
         router.push("/assessment");
       }
       else {
-        router.push("/auth/login");
+        router.push("/auth?mode=login");
       }
     } catch (error) {
       if (error instanceof ApiError) {
-        const detail = (error.data as {detail?: unknown})?.detail;
-
+        const detail = (error.data as { detail?: unknown })?.detail;
         if (Array.isArray(detail)) {
           setServerError(detail.map((e: { message: string }) => e.message).join(" "));
+        } else if (typeof detail === "string") {
+          setServerError(detail);
+        } else {
+          setServerError("Login failed. Please try again.");
         }
       }
       else {

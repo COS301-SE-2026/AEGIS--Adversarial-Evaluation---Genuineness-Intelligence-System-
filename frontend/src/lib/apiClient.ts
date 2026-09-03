@@ -10,6 +10,7 @@ export type ApiRequestOptions<TBody = unknown> = {
   query?: Record<string, string | number | boolean | null | undefined>;
   credentials?: RequestCredentials;
   signal?: AbortSignal;
+  keepalive?: boolean;
   authToken?: string;
 };
 
@@ -105,14 +106,26 @@ async function parseResponseData(response: Response): Promise<unknown> {
   return text ? JSON.parse(text) : null;
 }
 
-function throwApiError(response: Response, data: unknown): never {
+function throwApiError(response: Response, data: unknown, wasAuthenticated: boolean): never {
   const detail = (data as { detail?: unknown } | null)?.detail;
+
+  if (response.status === 401 && wasAuthenticated) {
+    const message = "Your session has expired due to inactivity. Redirecting to login...";
+    window.dispatchEvent(new CustomEvent("session-expired", { detail: { message } }));
+    setTimeout(() => {
+      localStorage.removeItem("aegis_token");
+      localStorage.removeItem("aegis_role");
+      window.location.href = "/auth?mode=login";
+    }, 1200);
+  }
+
   const message =
     detail && typeof detail === "string"
       ? detail
       : Array.isArray(detail)
       ? "Validation error — check your input"
       : `Request failed with status ${response.status}`;
+
   throw new ApiError(message, response.status, data);
 }
  
@@ -127,6 +140,7 @@ export async function apiFetch<TResponse>(
     query,
     credentials,
     signal,
+    keepalive,
     authToken,
   } = options;
  
@@ -139,6 +153,7 @@ export async function apiFetch<TResponse>(
     body: requestBody,
     credentials,
     signal,
+    keepalive,
   });
  
   if (response.status === 204 || response.status === 205) {
@@ -148,7 +163,7 @@ export async function apiFetch<TResponse>(
   const data = await parseResponseData(response);
  
   if (!response.ok) {
-    throwApiError(response, data);
+    throwApiError(response, data, Boolean(authToken));
   }
  
   return data as TResponse;

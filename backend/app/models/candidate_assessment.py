@@ -1,6 +1,6 @@
 import enum
 from sqlalchemy import (
-    Column, Integer, String, Enum, Float, ForeignKey, TIMESTAMP, func
+    Column, Integer, String, Text, Enum, Float, ForeignKey, TIMESTAMP, func
 )
 from sqlalchemy.orm import relationship
 from app.models.base import Base
@@ -23,6 +23,7 @@ class CandidateAssessment(Base):
     total_score = Column(Float, nullable=True)
     start_time = Column(TIMESTAMP(timezone=True), nullable=True)
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
+    behavioral_summary = Column(Text, nullable=True)
     candidate_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     assessment_id = Column(Integer,
                            ForeignKey("assessments.assessment_id"),

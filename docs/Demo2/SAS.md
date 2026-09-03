@@ -15,7 +15,7 @@ Contains the following:
 - Architectural Constraints
 - Architectural Diagram
 - Quality Requirements Mapping
-
+- [Architectural Requirements PDF](pdfs/Architecture%20Diagram%203.pdf)
 
 
 ### 3. Technology Requirements

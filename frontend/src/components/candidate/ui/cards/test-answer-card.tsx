@@ -8,10 +8,14 @@ type TestAnswerCardProps = {
     question: Question;
     value?: string;
     onChange?: (value: string) => void;
-    candidateAssessId?: string | null;
+    candidateAssessId?: number | null;
+    telemetry?: {
+        recordPasteEvent: (pastedText: string) => void;
+        recordDeleteEvent: (deletedCharacterCount: number) => void;
+    };
 };
 
-export function TestAnswerCard({ question, value, onChange, candidateAssessId }: TestAnswerCardProps) {
+export function TestAnswerCard({ question, value, onChange, candidateAssessId, telemetry }: TestAnswerCardProps) {
     const answerComponent = useMemo(() => {
         return {
             'multiple-choice': (
@@ -34,6 +38,7 @@ export function TestAnswerCard({ question, value, onChange, candidateAssessId }:
                 candidateAssessId={candidateAssessId}
                 questionTitle={question.questionTitle}
                 functionSignature={question.functionSignature}
+                telemetry={telemetry}
             />
             ),
             'fill-in-the-blank': (
@@ -44,7 +49,7 @@ export function TestAnswerCard({ question, value, onChange, candidateAssessId }:
             />
         ),
         } as const;
-    }, [candidateAssessId, onChange, question, value]);
+    }, [candidateAssessId, onChange, question, telemetry, value]);
 
     const selectedComponent = answerComponent[question.type as keyof typeof answerComponent];
     

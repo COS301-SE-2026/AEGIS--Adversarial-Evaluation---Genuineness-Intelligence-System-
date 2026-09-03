@@ -1,10 +1,18 @@
 import os
+from unittest.mock import patch
 
 os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost/test")
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("GOOGLE_REDIRECT_URI", "http://localhost/callback")
+
+# mock AWS secret manager before importing application models
+with patch("boto3.client") as mock_boto:
+    mock_boto.return_value.get_secret_value.return_value = {"SecretString": "{}"}
+
+    import app.models
+    from app.models.base import Base
 
 import pytest
 from sqlalchemy import create_engine, event

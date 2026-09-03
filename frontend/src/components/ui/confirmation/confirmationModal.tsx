@@ -11,6 +11,9 @@ interface ModalProps {
   confirmText?: string;
   cancelText?: string;
   isDanger?: boolean;
+  successMessage?: string;
+  isLoading?: boolean;
+  errorMessage?: string | null;
 }
 
 const ConfirmationModal = ({
@@ -22,7 +25,10 @@ const ConfirmationModal = ({
   description = "Please verify your configurations before confirming.",
   confirmText = "CONFIRM",
   cancelText = "CANCEL",
-  isDanger = false
+  isDanger = false,
+  successMessage,
+  isLoading = false,
+  errorMessage = null,
 }: ModalProps) => {
 
 
@@ -30,11 +36,11 @@ const ConfirmationModal = ({
   useEffect(() => {
     if (!isOpen) return;
 
-      function handleKeyDown(event: KeyboardEvent) {
+    function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         onClose();
       }
-  }
+    }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
@@ -71,45 +77,73 @@ const ConfirmationModal = ({
         </div>
 
         <div className="p-5">
-          <div className="flex gap-4">
-            <div className={`mt-0.5 ${isDanger ? 'text-system-red' : 'text-status-warning'}`}>
-              {isDanger ? <AlertTriangle size={20} /> : <AlertCircle size={20} />}
-            </div>
-            <div>
-              <h3 className="text-default-text text-sm font-semibold mb-2">
-                {title}
-              </h3>
-              <p className="text-default-border text-sm leading-relaxed">
-                {description}
+          {successMessage ? (
+            <div className="py-8 text-center">
+              <div className="font-staatliches text-[18px] tracking-[0.05em] text-status-success">
+                {successMessage}
+              </div>
+
+              <p className="mt-2 font-jetbrains text-[10px] text-white-smoke/50">
+                The user was deleted successfully.
               </p>
             </div>
-          </div>
+          ) : (
+            <div className="flex gap-4">
+              <div
+                className={`mt-0.5 ${
+                  isDanger ? "text-system-red" : "text-status-warning"
+                }`}
+              >
+                {isDanger ? (
+                  <AlertTriangle size={20} />
+                ) : (
+                  <AlertCircle size={20} />
+                )}
+              </div>
+
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-default-text">
+                  {title}
+                </h3>
+
+                <p className="text-sm leading-relaxed text-default-border">
+                  {description}
+                </p>
+
+                {errorMessage && (
+                  <p className="mt-3 text-sm text-system-red">
+                    {errorMessage}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="px-5 py-4 border-t border-tertiary-surface flex items-center justify-end gap-3">
-          <button 
-            type="button"
-            onClick={onClose}
-            className="py-2 px-4 text-center rounded font-staatliches text-sm tracking-wider border transition-all duration-150 border-default-border/45 text-default-border hover:text-default-text hover:border-default-border cursor-pointer"
-          >
-            {cancelText}
-          </button>
-          
-          <button 
-            type="button"
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-            className={`py-2 px-5 text-center rounded font-staatliches text-sm tracking-wider border transition-all duration-150 cursor-pointer ${
-              isDanger 
-                ? 'border-system-red text-system-red bg-system-red/10 hover:bg-system-red/20' 
-                : 'border-status-success text-status-success bg-status-success/10 hover:bg-status-success/20'
-            }`}
-          >
-            {confirmText}
-          </button>
-        </div>
+        {!successMessage && (
+          <div className="flex items-center justify-end gap-3 border-t border-tertiary-surface px-5 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="cursor-pointer rounded border border-default-border/45 px-4 py-2 text-center font-staatliches text-sm tracking-wider text-default-border transition-all duration-150 hover:border-default-border hover:text-default-text"
+            >
+              {cancelText}
+            </button>
+
+            <button
+              type="button"
+              onClick={onConfirm}
+              disabled={isLoading}
+              className={`cursor-pointer rounded border px-5 py-2 text-center font-staatliches text-sm tracking-wider transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${
+                isDanger
+                  ? "border-system-red bg-system-red/10 text-system-red hover:bg-system-red/20"
+                  : "border-status-success bg-status-success/10 text-status-success hover:bg-status-success/20"
+              }`}
+            >
+              {isLoading ? "DELETING..." : confirmText}
+            </button>
+          </div>
+        )}
         
       </div>
     </div>

@@ -18,10 +18,18 @@ from app.api.routes.test_cases import router as test_cases_router
 from app.core.config import settings
 
 from app.api.routes.question_management import router as question_router
-from app.api.routes.candidate_ass import router as candidate_assessment_router
-
+from app.api.routes.candidate_ass import (
+    router as candidate_assessment_router,
+    metrics_router as candidate_response_metrics_router,
+)
+from app.api.routes.dashboard import router as dashboard_router
+from app.api.routes.metrics import router as metrics_router
+from app.api.routes.reporting import router as reporting_router
+from app.api.routes.candidate_report import router as candidate_report_router
 
 app = FastAPI()
+
+API_V1_PREFIX = "/api/v1"
 
 origins = [
     "http://localhost:3000",
@@ -32,25 +40,30 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex="https://.*\\.vercel\\.app",
+    allow_origin_regex="https://.*\\.vercel\\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(auth_router, prefix="/api/v1")
-app.include_router(assessment_router, prefix="/api/v1")
-app.include_router(candidate_response_router, prefix="/api/v1")
-app.include_router(user_router, prefix="/api/v1")
-app.include_router(question_router2, prefix="/api/v1")
-app.include_router(question_router, prefix="/api/v1")
-app.include_router(test_cases_router, prefix="/api/v1")
-app.include_router(category_router, prefix="/api/v1")
-app.include_router(candidate_assessment_router, prefix="/api/v1")
-app.include_router(adversarial_router, prefix="/api/v1")
-app.include_router(assessment_adversarial_router, prefix="/api/v1")
-app.include_router(question_adversarial_router, prefix="/api/v1")
-app.include_router(adversarial_questions_router, prefix="/api/v1")
+app.include_router(auth_router, prefix=API_V1_PREFIX)
+app.include_router(assessment_router, prefix=API_V1_PREFIX)
+app.include_router(candidate_response_router, prefix=API_V1_PREFIX)
+app.include_router(user_router, prefix=API_V1_PREFIX)
+app.include_router(question_router2, prefix=API_V1_PREFIX)
+app.include_router(question_router, prefix=API_V1_PREFIX)
+app.include_router(test_cases_router, prefix=API_V1_PREFIX)
+app.include_router(category_router, prefix=API_V1_PREFIX)
+app.include_router(candidate_assessment_router, prefix=API_V1_PREFIX)
+app.include_router(candidate_response_metrics_router, prefix=API_V1_PREFIX)
+app.include_router(adversarial_router, prefix=API_V1_PREFIX)
+app.include_router(assessment_adversarial_router, prefix=API_V1_PREFIX)
+app.include_router(question_adversarial_router, prefix=API_V1_PREFIX)
+app.include_router(adversarial_questions_router, prefix=API_V1_PREFIX)
+app.include_router(dashboard_router, prefix=API_V1_PREFIX)
+app.include_router(metrics_router, prefix=API_V1_PREFIX)
+app.include_router(reporting_router, prefix=API_V1_PREFIX)
+app.include_router(candidate_report_router, prefix=API_V1_PREFIX)
 
 
 @app.on_event("startup")

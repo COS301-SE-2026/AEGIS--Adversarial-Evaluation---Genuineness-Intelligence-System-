@@ -1,0 +1,123 @@
+name: Build & Deploy Container
+
+on: 
+    push:
+        branches:
+            - dev
+            - main
+
+    pull_request:
+            branches:
+                - dev
+                - main
+
+jobs:
+    build-and-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Configure AWS Credentials
+              uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+              with:
+                aws-access-key-id:  ${{ secrets.AWS_ACCESS_KEY_ID }}
+                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+                aws-region: ${{ secrets.AWS_REGION }}
+
+            - name: Log in to Amazon ECR
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64
+
+            - name: Build and Push Docker Image
+              working-directory: backend
+              env:
+                ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+                ECR_REPOSITORY: aegis/fastapi-app
+                RAW_TAG: ${{ github.head_ref || github.ref_name }}
+              run: |
+                
+                # docker image tags cannot contain forward slashes, so github branch names needed to be converted accordinly.
+                # e.g 'deployment/aws-migration' becomes 'deployment-aws-migration'
+                # a stream editor (sed) is used. '\//' defines what to look for. '/-/' specifies to add a hyphen. 'g' indicates that all forward slashes should be replaced.
+                IMAGE_TAG=$(echo "$RAW_TAG" | sed 's/\//-/g')
+                
+                docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+
+                # only push image to ECR on push events
+                if [ "${{ github.event_name }}" = "push" ]; then
+                    docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+                fi
+            
+            - name: Deploy to Amazon EC2 via SSH
+              if: github.event_name == 'push'
+              uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+              with:
+                host: ${{ secrets.SERVER_HOST }}
+                username: ec2-user
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                script: |
+                    REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+                    # 1. Sanitize branch name so it matches the tag built earlier.
+                    RAW_TAG="${{ github.ref_name }}"
+                    IMAGE_TAG=$(echo "$RAW_TAG" | sed 's/\//-/g')
+
+                    IMAGE="$REGISTRY/aegis/fastapi-app:$IMAGE_TAG"
+                    CONTAINER_NAME="myapp-$IMAGE_TAG"
+
+                    # 2. Ensure shared Docker network exists on the EC2 host.
+                    docker network create aegis-net 2>/dev/null || true
+
+                    # 3. Log into ECR.
+                    aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
+
+                    # 4. Map host ports: 8080 for main, 8081 for dev.
+                    if [ "$RAW_TAG" = "main" ]; then
+                        PORT="8080:8000"
+                        NGINX_PORT="8080"
+                    else
+                        PORT="8081:8000"
+                        NGINX_PORT="8081"
+                    fi
+
+                    # 5. Ensure the Piston sandbox is running from the managed compose file
+                    if [ -f "/opt/aegis/docker-compose.yml" ]; then
+                        (cd /opt/aegis && docker compose up -d)
+                    fi
+
+                    # 6. Pull and restart the backend container.
+                    docker pull $IMAGE
+                    docker stop $CONTAINER_NAME || true
+                    docker rm $CONTAINER_NAME || true
+
+                    docker run -d \
+                      --name $CONTAINER_NAME \
+                      --network aegis-net \
+                      -p $PORT \
+                      -e ENVIRONMENT=production \
+                      -e PISTON_BASE_URL=http://piston_sandbox:2000 \
+                      -e PISTON_ENABLED=true \
+                      -e AWS_REGION="${{ secrets.AWS_REGION }}" \
+                      --restart always \
+                      $IMAGE
+
+                    # update Nginx configuration
+                    sudo tee /etc/nginx/conf.d/fastapi.conf > /dev/null <<EOF
+
+                      server {
+                        listen 80;
+                        server_name_;
+
+                        location / {
+                            proxy_pass http://127.0.0.1:${NGINX_PORT};
+                            proxy_set_header Host \$host;
+                            proxy_set header X-Real-IP \$remote_addr;
+                            proxy_set header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                            proxy_set_header X-Forwarded-Proto \$scheme;
+                        }
+                      }
+                    EOF
+
+                    sudo nginx -t && sudo systemctl reload nginx
+                    docker image prune -f

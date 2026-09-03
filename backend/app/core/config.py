@@ -1,13 +1,73 @@
-from pathlib import Path
+import json
+import os
+import boto3
+
+from botocore.exceptions import ClientError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Resolve backend/.env regardless of where the process is launched from
-_ENV_FILE = Path(__file__).parent.parent.parent / ".env"
+AWS_REGION = os.getenv("AWS_REGION", "af-south-1")
+
+AWS_SECRET_NAME = os.getenv("AWS_SECRET_NAME", "prod/aegis/backend",)
+
+
+def load_aws_secrets() -> None:
+    # this wll load secrets straight from the AWS Secrets Manager.
+
+    client = boto3.client(
+        "secretsmanager",
+        region_name=AWS_REGION,
+    )
+
+    try:
+        response = client.get_secret_value(
+            SecretId=AWS_SECRET_NAME
+        )
+    except ClientError as exc:
+        error_code = exc.response.get(
+            "Error",
+            {}
+        ).get(
+            "Code",
+            "Unknown",
+        )
+        raise RuntimeError(
+            f"Unable to retrieve AWS secret "
+            f"{AWS_SECRET_NAME}. "
+            f"AWS error: {error_code}"
+        ) from exc
+
+    secret_string = response.get("SecretString")
+
+    if not secret_string:
+        raise RuntimeError(
+            f"AWS secret {AWS_SECRET_NAME} does not contain a SecretString."
+        )
+
+    try:
+        secrets = json.loads(secret_string)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            f"AWS secret {AWS_SECRET_NAME} does not contain valid JSON."
+        ) from exc
+
+    if not isinstance(secrets, dict):
+        raise RuntimeError(
+            f"AWS secret {AWS_SECRET_NAME} must contain a JSON object"
+        )
+
+    # make the fetched values Pydantic ready as environment variables.
+    for key, value in secrets.items():
+        os.environ[key] = str(value)
+
+
+if os.getenv("ENVIRONMENT") == "production":
+    load_aws_secrets()
 
 
 class Settings(BaseSettings):
+
     model_config = SettingsConfigDict(
-        env_file=str(_ENV_FILE),
+        env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -23,13 +83,16 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
 
     # How long issued JWTs remain valid in minutes
-    access_token_expire_minutes: int = 30
+    access_token_expire_minutes: int = 60
 
     # FastAPI debug mode
     debug: bool = False
 
-    # Comma separated string of allowed CORS origins
-    allowed_origins: str = "http://localhost:3000,http://localhost:8000"
+    # JSON array string of allowed CORS origins, e.g. ["http://a","http://b"]
+    allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:8000"
+    ]
 
     # Google OAuth credentials
     google_client_id: str

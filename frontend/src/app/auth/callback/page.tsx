@@ -11,7 +11,7 @@ function CallbackInner() {
     const role = searchParams.get("role");
 
     if (!token) {
-      router.replace("/login");
+      router.replace("/auth?mode=login");
       return;
     }
 
@@ -20,14 +20,14 @@ function CallbackInner() {
       localStorage.setItem("aegis_role", role ?? "");
 
       if (role === "RECRUITER") {
-        router.replace("/assessments");
+        router.replace("/dashboard");
       } else if (role === "CANDIDATE") {
         router.replace("/assessment");
       } else {
-        router.replace("/login");
+        router.replace("/auth?mode=login");
       }
     } catch {
-      router.replace("/login");
+      router.replace("/auth?mode=login");
     }
   }, [router, searchParams]);
 
