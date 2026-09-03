@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from "next/navigation"
 import { TestDescriptionCard } from "@/components/candidate/ui/cards/test-description-card";
 import { TestAnswerCard } from "@/components/candidate/ui/cards/test-answer-card";
@@ -146,6 +146,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
    const [candidateAssessId, setCandidateAssessId] = useState<number | null>(null);
    const [questions, setQuestions] = useState<Question[]>([]);
    const [responseIdByQuestionId, setResponseIdByQuestionId] = useState<Record<number, number>>({});
+   const ensuredResponseQuestionIdsRef = useRef<Set<number>>(new Set());
    const [isLoading, setIsLoading] = useState(true);
    const [isSaving, setIsSaving] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
@@ -273,6 +274,52 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
          isMounted = false;
       };
    }, [candidateAssessId, setEndTime]);
+
+   useEffect(() => {
+      if (!candidateAssessId || activeQuestionId === null) {
+         return;
+      }
+
+      if (responseIdByQuestionId[activeQuestionId] !== undefined) {
+         return;
+      }
+
+      if (ensuredResponseQuestionIdsRef.current.has(activeQuestionId)) {
+         return;
+      }
+
+      const questionIdToEnsure = activeQuestionId;
+      ensuredResponseQuestionIdsRef.current.add(questionIdToEnsure);
+
+      const ensureResponseRow = async () => {
+         try {
+            const authToken = getToken() ?? undefined;
+            const created = await apiPost<
+               CandidateResponseApi,
+               { assessment_question_id: number; candidate_answer: string }
+            >(
+               `/api/v1/candidate-assessments/${candidateAssessId}/responses`,
+               {
+                  assessment_question_id: questionIdToEnsure,
+                  candidate_answer: "",
+               },
+               authToken ? { authToken } : {}
+            );
+
+            if (created?.response_id != null) {
+               setResponseIdByQuestionId((prev) =>
+                  prev[questionIdToEnsure] !== undefined
+                     ? prev
+                     : { ...prev, [questionIdToEnsure]: created.response_id }
+               );
+            }
+         } catch {
+            ensuredResponseQuestionIdsRef.current.delete(questionIdToEnsure);
+         }
+      };
+
+      ensureResponseRow();
+   }, [candidateAssessId, activeQuestionId, responseIdByQuestionId]);
 
    const currentQuestion = questions[currentQuestionIndex];
    const totalQuestions = questions.length;
