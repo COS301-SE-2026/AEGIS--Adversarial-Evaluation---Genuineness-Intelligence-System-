@@ -14,6 +14,7 @@ import PageHelpDrawer from "@/components/admin/ui/help/page-help-drawer";
 import { PAGE_HELP_CONTENT } from "@/components/admin/ui/help/page-help-content";
 
 export default function ViewQuestionsPage() {
+  //NOSONAR - this page is a thin wrapper around the shared QuestionListPage component
   const [categories, setCategories] = useState<QuestionCategory[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");

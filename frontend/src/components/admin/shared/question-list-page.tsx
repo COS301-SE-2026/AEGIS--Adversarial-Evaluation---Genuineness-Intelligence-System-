@@ -151,6 +151,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
     };
 
     const loadQuestions = async () => {
+      setLoading(true);
       try {
         const { source, table } = await fetchQuestions();
         if (isMounted) {
@@ -164,7 +165,6 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
       }
     };
 
-    setLoading(true);
     void loadCategories();
     void loadQuestions();
 
