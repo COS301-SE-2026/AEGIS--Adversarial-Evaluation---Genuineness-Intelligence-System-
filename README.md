@@ -33,6 +33,7 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 ## Requirements Specifications
 - [Software Requirements Specification](docs/Demo2/SRS.md)
 - [Software Architecture Specification](docs/Demo2/SAS.md)
+- [Service Contracts](docs/Demo3/Service%20Contract.pdf)
 
 ---
 
