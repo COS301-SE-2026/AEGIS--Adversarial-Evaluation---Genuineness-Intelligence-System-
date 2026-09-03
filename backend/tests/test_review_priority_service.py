@@ -487,40 +487,44 @@ def test_band_thresholds(score, expected_band):
     assert priority_service._band_for_score(score) == expected_band
 
 
-def test_notable_question_populated_when_top_question_exceeds_30():
-    session = make_session()
-
-    aq1 = make_assessment_question(assessment_q_id=1, display_order=1)
-    qb1 = make_question_bank(
-        question_bank_id=501, type=QuestionType.MULTIPLE_CHOICE,
+def _question_row(order, question_type, *, response_id=None, **metric_kwargs):
+    aq = make_assessment_question(assessment_q_id=order, display_order=order)
+    qb = make_question_bank(
+        question_bank_id=500 + order, type=question_type,
     )
-    metrics1 = make_metrics(candidate_response_id=1, focus_loss_time_ms=0)
-
-    aq2 = make_assessment_question(assessment_q_id=2, display_order=2)
-    qb2 = make_question_bank(
-        question_bank_id=502, type=QuestionType.FILL_IN_THE_BLANK,
+    metrics = make_metrics(
+        candidate_response_id=order if response_id is None else response_id,
+        **metric_kwargs,
     )
-    metrics2 = make_metrics(
-        candidate_response_id=2, active_time_ms=100000,
-        focus_loss_time_ms=50000, chars_alnum=100, chars_special=0,
-        paste_char_count=90,
-    )
+    return (MagicMock(), aq, qb, metrics)
 
-    rows = [
-        (MagicMock(), aq1, qb1, metrics1),
-        (MagicMock(), aq2, qb2, metrics2),
-    ]
 
+def _run_review_priority(
+    rows, *, other_completed_count=0, cohort_rows_by_call=None,
+):
     db = MagicMock()
-    _stub_priority_queries(db, session, rows, other_completed_count=0)
+    _stub_priority_queries(
+        db, make_session(), rows,
+        other_completed_count=other_completed_count,
+        cohort_rows_by_call=cohort_rows_by_call,
+    )
+    return get_review_priority(db, candidate_assessment_id=12)
 
-    result = get_review_priority(db, candidate_assessment_id=12)
+
+def test_notable_question_populated_when_top_question_exceeds_30():
+    rows = [
+        _question_row(1, QuestionType.MULTIPLE_CHOICE, focus_loss_time_ms=0),
+        _question_row(
+            2, QuestionType.FILL_IN_THE_BLANK,
+            active_time_ms=100000, focus_loss_time_ms=50000,
+            paste_char_count=90,
+        ),
+    ]
+    result = _run_review_priority(rows)
 
     q2_score = 100 * (9 * 0.5 + 5 * 0.9) / 17.5
-
     assert result.score == round((0.0 + q2_score) / 2)
     assert result.band == "low"
-
     assert result.notable_question is not None
     assert result.notable_question.question_order == 2
     assert result.notable_question.score == pytest.approx(q2_score)
@@ -530,75 +534,39 @@ def test_notable_question_populated_when_top_question_exceeds_30():
 
 
 def test_notable_question_null_when_top_question_is_exactly_30():
-    session = make_session()
-
-    aq = make_assessment_question(assessment_q_id=1, display_order=1)
-    qb = make_question_bank(
-        question_bank_id=501, type=QuestionType.MULTIPLE_CHOICE,
-    )
-    metrics = make_metrics(
-        candidate_response_id=1, active_time_ms=100000,
-        focus_loss_time_ms=40000,
-    )
-    rows = [(MagicMock(), aq, qb, metrics)]
-
-    db = MagicMock()
-    _stub_priority_queries(db, session, rows, other_completed_count=0)
-
-    result = get_review_priority(db, candidate_assessment_id=12)
+    rows = [
+        _question_row(
+            1, QuestionType.MULTIPLE_CHOICE,
+            active_time_ms=100000, focus_loss_time_ms=40000,
+        ),
+    ]
+    result = _run_review_priority(rows)
 
     assert result.score == 30
     assert result.notable_question is None
 
 
 def test_notable_question_null_when_top_question_below_30():
-    session = make_session()
-
-    aq = make_assessment_question(assessment_q_id=1, display_order=1)
-    qb = make_question_bank(
-        question_bank_id=501, type=QuestionType.MULTIPLE_CHOICE,
-    )
-    metrics = make_metrics(
-        candidate_response_id=1, active_time_ms=100000,
-        focus_loss_time_ms=30000,
-    )
-    rows = [(MagicMock(), aq, qb, metrics)]
-
-    db = MagicMock()
-    _stub_priority_queries(db, session, rows, other_completed_count=0)
-
-    result = get_review_priority(db, candidate_assessment_id=12)
+    rows = [
+        _question_row(
+            1, QuestionType.MULTIPLE_CHOICE,
+            active_time_ms=100000, focus_loss_time_ms=30000,
+        ),
+    ]
+    result = _run_review_priority(rows)
 
     assert result.notable_question is None
 
 
 def test_notable_question_picks_actual_highest_scoring_question():
-    session = make_session()
-
-    specs = [
-        (1, 50000, 37.5),
-        (2, 70000, 52.5),
-        (3, 60000, 45.0),
+    rows = [
+        _question_row(
+            order, QuestionType.MULTIPLE_CHOICE,
+            active_time_ms=100000, focus_loss_time_ms=focus_loss_ms,
+        )
+        for order, focus_loss_ms in ((1, 50000), (2, 70000), (3, 60000))
     ]
-    rows = []
-    for q_id, focus_loss_ms, _ in specs:
-        aq = make_assessment_question(
-            assessment_q_id=q_id, display_order=q_id,
-        )
-        qb = make_question_bank(
-            question_bank_id=500 + q_id,
-            type=QuestionType.MULTIPLE_CHOICE,
-        )
-        metrics = make_metrics(
-            candidate_response_id=q_id, active_time_ms=100000,
-            focus_loss_time_ms=focus_loss_ms,
-        )
-        rows.append((MagicMock(), aq, qb, metrics))
-
-    db = MagicMock()
-    _stub_priority_queries(db, session, rows, other_completed_count=0)
-
-    result = get_review_priority(db, candidate_assessment_id=12)
+    result = _run_review_priority(rows)
 
     assert result.notable_question is not None
     assert result.notable_question.question_order == 2
@@ -607,35 +575,17 @@ def test_notable_question_picks_actual_highest_scoring_question():
 
 
 def test_notable_question_does_not_change_overall_score_or_band():
-    session = make_session()
-
-    aq1 = make_assessment_question(assessment_q_id=1, display_order=1)
-    qb1 = make_question_bank(
-        question_bank_id=501, type=QuestionType.MULTIPLE_CHOICE,
-    )
-    metrics1 = make_metrics(
-        candidate_response_id=1, active_time_ms=60000,
-        focus_loss_time_ms=42000,
-    )
-
-    aq2 = make_assessment_question(assessment_q_id=2, display_order=2)
-    qb2 = make_question_bank(
-        question_bank_id=502, type=QuestionType.FILL_IN_THE_BLANK,
-    )
-    metrics2 = make_metrics(
-        candidate_response_id=2, active_time_ms=100000,
-        chars_alnum=100, chars_special=0, paste_char_count=61,
-    )
-
     rows = [
-        (MagicMock(), aq1, qb1, metrics1),
-        (MagicMock(), aq2, qb2, metrics2),
+        _question_row(
+            1, QuestionType.MULTIPLE_CHOICE,
+            active_time_ms=60000, focus_loss_time_ms=42000,
+        ),
+        _question_row(
+            2, QuestionType.FILL_IN_THE_BLANK,
+            active_time_ms=100000, paste_char_count=61,
+        ),
     ]
-
-    db = MagicMock()
-    _stub_priority_queries(db, session, rows, other_completed_count=0)
-
-    result = get_review_priority(db, candidate_assessment_id=12)
+    result = _run_review_priority(rows)
 
     expected_overall = round((52.5 + (100 * 5 * 0.61 / 17.5)) / 2)
     assert result.score == expected_overall
