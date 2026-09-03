@@ -64,6 +64,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<"title" | "category" | "difficulty" | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [loading, setLoading] = useState(true);
 
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
@@ -158,9 +159,12 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
         }
       } catch (error) {
         console.error("Failed to load questions:", error);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
 
+    setLoading(true);
     void loadCategories();
     void loadQuestions();
 
@@ -356,7 +360,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
       <div className="flex-1 min-w-0">
 
         <main className="px-4 sm:px-6 lg:px-8 py-6">
-         
+                  
             <div className="flex flex-col sm:flex-row justify-content items-start sm:items-center gap-4 mb-6 sm:mb-8">
               <button
                 title={config.newButtonLabel.toLowerCase().includes("adverserial") ? "Use AI to weaponise a source question." : config.newButtonLabel}
@@ -429,6 +433,16 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
                 {deleteError}
               </div>
             )}
+
+            {/* Loading State */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="font-jetbrains text-[12px] text-white-smoke/40">
+              Loading questions...
+            </div>
+          </div>
+        ) : (
+          <> 
 
             <div className="overflow-x-auto rounded-lg">
               <QuestionTable
@@ -533,7 +547,8 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
                 </select>
               </div>
             </div>
-         
+         </>
+        )}
         </main>
       </div>
 
