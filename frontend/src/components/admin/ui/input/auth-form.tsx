@@ -127,7 +127,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
       localStorage.setItem("aegis_role", data.role);
       
       if(data.role === "RECRUITER") {
-        router.push("/assessments");
+        router.push("/dashboard");
       }
       else if(data.role === "CANDIDATE") {
         router.push("/assessment");
