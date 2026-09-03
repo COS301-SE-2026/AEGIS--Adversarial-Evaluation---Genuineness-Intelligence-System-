@@ -72,11 +72,11 @@ jobs:
                     # 3. Log into ECR.
                     aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin $REGISTRY
 
-                    # 4. Map host ports: 80 for main, 8080 for dev.
+                    # 4. Map host ports: 8080 for main, 8081 for dev.
                     if [ "$RAW_TAG" = "main" ]; then
-                        PORT="80:8000"
-                    else
                         PORT="8080:8000"
+                    else
+                        PORT="8081:8000"
                     fi
 
                     # 5. Ensure the Piston sandbox is running from the managed compose file
