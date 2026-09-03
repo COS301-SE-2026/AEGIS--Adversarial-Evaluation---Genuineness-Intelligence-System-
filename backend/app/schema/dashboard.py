@@ -43,6 +43,8 @@ class FilterableTableItem(BaseModel):
     total_score_percent: float
     status: CandidateResultStatus
     ai_rating_percent: float
+    integrity_score: int | None = None
+    integrity_band: str | None = None
 
 
 class DashboardSummaryResponse(BaseModel):

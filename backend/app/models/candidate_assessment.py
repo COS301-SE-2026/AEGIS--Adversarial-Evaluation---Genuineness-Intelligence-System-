@@ -24,6 +24,8 @@ class CandidateAssessment(Base):
     start_time = Column(TIMESTAMP(timezone=True), nullable=True)
     end_time = Column(TIMESTAMP(timezone=True), nullable=True)
     behavioral_summary = Column(Text, nullable=True)
+    integrity_score = Column(Integer, nullable=True)
+    integrity_band = Column(Text, nullable=True)
     candidate_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     assessment_id = Column(Integer,
                            ForeignKey("assessments.assessment_id"),
