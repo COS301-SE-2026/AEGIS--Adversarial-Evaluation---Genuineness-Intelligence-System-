@@ -23,6 +23,7 @@ export default function ViewQuestionsPage() {
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   const [sortColumn, setSortColumn] = useState<"title"|"category"|"difficulty"|null>(null);
   const [sortDirection, setSortDirection] = useState<"asc"|"desc">("asc");
+  const [loading, setLoading] = useState(true);
   
   const [questions, setQuestions] = useState<QuestionBank[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
@@ -64,6 +65,8 @@ export default function ViewQuestionsPage() {
       }
       catch(err) {
         console.error(err);
+      } finally {
+         if (mounted) setLoading(false);
       }
     };
 
@@ -330,6 +333,15 @@ export default function ViewQuestionsPage() {
               </div>
             )}
 
+            {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="font-jetbrains text-[12px] text-white-smoke/40">
+                    Loading questions...
+                  </div>
+                </div>
+              ) : (
+                <>
+
             <QuestionTable
               questions={sectionedQuestions}
               categoryMap={categoriesMap}  
@@ -418,6 +430,8 @@ export default function ViewQuestionsPage() {
                 </select>
               </div>
             </div>
+            </>
+              )}
           </div>
         </main> 
       </div>
