@@ -30,4 +30,4 @@ USER appuser
 EXPOSE 8000
 
 # command to run the FastAPI app using Uvicorn on any port Render assigns at runtime
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips '127.0.0.1'"]

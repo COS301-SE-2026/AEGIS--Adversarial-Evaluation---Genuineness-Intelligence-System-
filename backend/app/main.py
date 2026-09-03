@@ -27,7 +27,11 @@ from app.api.routes.metrics import router as metrics_router
 from app.api.routes.reporting import router as reporting_router
 from app.api.routes.candidate_report import router as candidate_report_router
 
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
 app = FastAPI()
+
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["127.0.0.1"])
 
 API_V1_PREFIX = "/api/v1"
 
