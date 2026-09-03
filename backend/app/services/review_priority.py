@@ -9,7 +9,10 @@ from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response import CandidateResponse
 from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.question_bank import QuestionBank, QuestionType
-from app.schema.review_priority import ReviewPriorityResponse
+from app.schema.review_priority import (
+    NotableQuestion,
+    ReviewPriorityResponse,
+)
 
 MIN_COHORT_CANDIDATES = 3
 
@@ -113,11 +116,13 @@ def _describe_signal(
     )
 
 
-def get_question_review_score(
+def _score_and_factor_entries(
     question: QuestionInfo,
     metrics: QuestionMetrics,
     cohort_data: Optional[float],
-) -> tuple[float, list[str]]:
+) -> tuple[float, list[tuple[float, str]]]:
+    """Score one question and return its above-threshold contributing
+    factors as (signal_value, sentence) pairs in weight-iteration order."""
     weights = WEIGHTS[question.type]
     label = QUESTION_TYPE_LABELS[question.type]
 
@@ -137,7 +142,7 @@ def get_question_review_score(
 
     weighted_sum = 0.0
     weight_total = 0.0
-    factors: list[str] = []
+    entries: list[tuple[float, str]] = []
 
     for name, weight in weights.items():
         value = candidate_signals[name]
@@ -146,14 +151,26 @@ def get_question_review_score(
         weighted_sum += weight * value
         weight_total += weight
         if value > 0.4:
-            factors.append(
-                _describe_signal(name, question.order, label, value, metrics)
-            )
+            entries.append((
+                value,
+                _describe_signal(
+                    name, question.order, label, value, metrics,
+                ),
+            ))
 
     if weight_total == 0:
-        return 0.0, factors
+        return 0.0, entries
 
-    return 100 * weighted_sum / weight_total, factors
+    return 100 * weighted_sum / weight_total, entries
+
+
+def get_question_review_score(
+    question: QuestionInfo,
+    metrics: QuestionMetrics,
+    cohort_data: Optional[float],
+) -> tuple[float, list[str]]:
+    score, entries = _score_and_factor_entries(question, metrics, cohort_data)
+    return score, [sentence for _, sentence in entries]
 
 
 def _band_for_score(score: int) -> str:
@@ -290,6 +307,7 @@ def get_review_priority(
 
     question_scores: list[float] = []
     contributing_factors: list[str] = []
+    per_question: list[tuple[int, float, Optional[str]]] = []
 
     for position, (_, aq, question_bank, metrics) in enumerate(rows, start=1):
         cohort_avg_active_time_ms = (
@@ -311,16 +329,34 @@ def get_review_priority(
             copy_event_count=metrics.copy_event_count if metrics else 0,
         )
 
-        score, factors = get_question_review_score(
+        score, entries = _score_and_factor_entries(
             question_info, question_metrics, cohort_avg_active_time_ms,
         )
         question_scores.append(score)
-        contributing_factors.extend(factors)
+        contributing_factors.extend(sentence for _, sentence in entries)
+
+        top_factor = (
+            max(entries, key=lambda entry: entry[0])[1] if entries else None
+        )
+        per_question.append((position, score, top_factor))
 
     overall_score = round(sum(question_scores) / len(question_scores))
+
+    notable_question = None
+    if per_question:
+        best_order, best_score, best_top_factor = max(
+            per_question, key=lambda entry: entry[1],
+        )
+        if best_score > 30:
+            notable_question = NotableQuestion(
+                question_order=best_order,
+                score=best_score,
+                top_factor=best_top_factor,
+            )
 
     return ReviewPriorityResponse(
         score=overall_score,
         band=_band_for_score(overall_score),
         contributing_factors=contributing_factors,
+        notable_question=notable_question,
     )

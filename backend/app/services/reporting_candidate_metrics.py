@@ -6,21 +6,9 @@ from sqlalchemy.orm import Session
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.schema.metrics_radar import MetricsRadarResponse, RadarAxis
-from app.schema.review_priority import ReviewPriorityResponse
 
 
 MIN_COHORT_SIZE = 3
-
-
-def get_review_priority(
-        db: Session,
-        candidate_assessment_id: int
-) -> ReviewPriorityResponse:
-    return ReviewPriorityResponse(
-        score=0,
-        band="low",
-        contributing_factors=[]
-    )
 
 
 def _sum_metrics_for_candidate_assessment(
