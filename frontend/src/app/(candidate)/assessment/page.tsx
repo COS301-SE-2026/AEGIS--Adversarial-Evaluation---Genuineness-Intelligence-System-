@@ -62,7 +62,7 @@ function AssessmentPageContent() {
   useEffect(() => {
     const checkAuth = async () => {
       if (!isAuthenticated() || getRole() !== "CANDIDATE") {
-        router.replace("/login");
+        router.replace("/auth?mode=login");
         return;
       }
       setAuthChecked(true);

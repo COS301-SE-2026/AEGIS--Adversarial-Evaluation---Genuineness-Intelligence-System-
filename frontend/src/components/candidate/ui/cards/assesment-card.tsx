@@ -82,16 +82,19 @@ export function AssessmentCard({
                     <p>Status: {formatStatus(status)}</p>
                 </div>
             </div>
-            <div className="mt-auto">
-                <StartAssessmentButton 
-                    onClick={() => setIsModalOpen(true)} 
-                    disabled={isStarting} 
+            <div
+                className="inline-block"
+                title={
+                    status.toUpperCase() === "COMPLETED" || "EXPIRED"
+                        ? "This assessment has already been completed"
+                        : undefined
+                }
+            >
+                <StartAssessmentButton
+                    onClick={() => setIsModalOpen(true)}
+                    disabled={isStarting || status.toUpperCase() === "COMPLETED"}
                     isStarting={isStarting}
-                
                 />
-                {startError && (
-                    <p className="mt-2 text-sm text-system-red">{startError}</p>
-                )}
             </div>
             
             {isModalOpen && (
