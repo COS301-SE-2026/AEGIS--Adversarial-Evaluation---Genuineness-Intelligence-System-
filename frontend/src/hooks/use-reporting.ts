@@ -22,9 +22,8 @@ import {
   MOCK_INTEGRITY_SUMMARY,
 } from "@/lib/mockReportingData";
 
-// to do for backend: flip this to false once BE-A's routes in backend/app/api/routes/reporting.py are live. Every hook below already makes the real apiGet call behind this flag 
 
-const USE_MOCK_REPORTING_DATA = true;
+const USE_MOCK_REPORTING_DATA = false;
 
 const MOCK_LATENCY_MS = 300;
 
