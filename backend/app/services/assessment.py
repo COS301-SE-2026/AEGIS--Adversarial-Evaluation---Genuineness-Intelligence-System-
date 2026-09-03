@@ -22,13 +22,16 @@ from app.models.coding_test_cases import CodingTestCase
 from app.models.user import User
 from app.schema.candidate_response import ResponseCreate
 import ast
+from app.services.cohort_metrics import (
+    MIN_COHORT_CANDIDATES,
+    cohort_average_active_time_ms,
+    count_other_completed_sessions,
+)
 from app.services.test_cases import get_test_cases_by_question_id
 
 _logger = logging.getLogger(__name__)
 
 ASSESSMENT_NOT_FOUND = "Assessment not found"
-
-_MIN_COHORT_CANDIDATES = 3
 
 _BEHAVIORAL_SUMMARY_MODEL = "gemini-3.1-flash-lite"
 
@@ -755,60 +758,6 @@ def _fetch_behavioral_summary_rows(
     )
 
 
-def _count_other_completed_sessions(
-    db: Session,
-    assessment_id: int,
-    candidate_assessment_id: int,
-) -> int:
-    return (
-        db.query(CandidateAssessment)
-        .filter(
-            CandidateAssessment.assessment_id == assessment_id,
-            CandidateAssessment.candidate_assess_id != candidate_assessment_id,
-            CandidateAssessment.status == SessionStatus.COMPLETED,
-        )
-        .count()
-    )
-
-
-def _cohort_average_active_time_ms(
-    db: Session,
-    assessment_question_id: int,
-    exclude_candidate_assessment_id: int,
-) -> Optional[float]:
-    cohort_metrics = (
-        db.query(CandidateResponseMetrics)
-        .join(
-            CandidateResponse,
-            CandidateResponse.response_id
-            == CandidateResponseMetrics.candidate_response_id,
-        )
-        .join(
-            CandidateAssessment,
-            CandidateAssessment.candidate_assess_id
-            == CandidateResponse.candidate_assessment_id,
-        )
-        .filter(
-            CandidateResponse.assessment_question_id
-            == assessment_question_id,
-            CandidateResponse.candidate_assessment_id
-            != exclude_candidate_assessment_id,
-            CandidateAssessment.status == SessionStatus.COMPLETED,
-        )
-        .all()
-    )
-
-    active_times = [
-        m.active_time_ms for m in cohort_metrics
-        if m.active_time_ms is not None
-    ]
-
-    if not active_times:
-        return None
-
-    return sum(active_times) / len(active_times)
-
-
 def _took_bait(candidate_answer: str | None, predicted_wrong: str) -> bool:
     return (
         (candidate_answer or "").strip().lower()
@@ -829,10 +778,10 @@ def _gather_behavioral_summary_data(
         return []
 
     enough_cohort_data = (
-        _count_other_completed_sessions(
+        count_other_completed_sessions(
             db, session.assessment_id, candidate_assessment_id,
         )
-        >= _MIN_COHORT_CANDIDATES
+        >= MIN_COHORT_CANDIDATES
     )
 
     question_behaviors: list[QuestionBehavior] = []
@@ -850,7 +799,7 @@ def _gather_behavioral_summary_data(
         )
 
         cohort_avg_active_time_ms = (
-            _cohort_average_active_time_ms(
+            cohort_average_active_time_ms(
                 db, aq.assessment_q_id, candidate_assessment_id,
             )
             if enough_cohort_data
