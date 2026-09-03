@@ -82,13 +82,13 @@ export function PerformanceBreakdownChart({ data }: Readonly<PerformanceBreakdow
             }}
             formatter={(value, _name, item) => [
               `${Number(value).toFixed(1)}% (${item?.payload?.attempt_count ?? 0} attempts)`,
-              "Avg Success Rate",
+              "Success Rate",
             ]}
           />
 
           <Bar
             dataKey="success_percent"
-            name="Avg Success Rate"
+            name="Success Rate"
             fill="var(--color-default-text)"
             barSize={14}
             radius={[0, 4, 4, 0]}

@@ -52,24 +52,24 @@ export function IntegritySummary({ data }: Readonly<IntegritySummaryProps>) {
       </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <GaugeTile label="High Paste-to-Typed Ratio" value={data.pct_responses_elevated_paste_reliance} />
+        <GaugeTile label="Responses with High Paste rates" value={data.pct_responses_elevated_paste_reliance} />
         <GaugeTile label="Assessments Flagged for Review" value={data.pct_assessments_with_elevated_review} />
 
         <div className="bg-secondary-surface border border-default-border rounded-lg px-4 py-4 flex flex-col justify-center">
-          <p className="font-jetbrains text-[10px] tracking-wider text-default-border uppercase">
-            Average Focus Loss Count
-          </p>
-          <p className="font-staatliches text-2xl tracking-wide text-default-text mt-1">
+          <p className="font-staatliches text-2xl tracking-wide text-default-text mt-1 text-center">
             {data.avg_focus_loss_count.toFixed(1)}
+          </p>
+          <p className="font-jetbrains text-[10px] tracking-wider text-default-border uppercase text-center">
+            Average Focus Loss Count
           </p>
         </div>
 
         <div className="bg-secondary-surface border border-default-border rounded-lg px-4 py-4 flex flex-col justify-center">
-          <p className="font-jetbrains text-[10px] tracking-wider text-default-border uppercase">
-            Responses Analysed
-          </p>
-          <p className="font-staatliches text-2xl tracking-wide text-default-text mt-1">
+          <p className="font-staatliches text-2xl tracking-wide text-default-text mt-1 text-center">
             {data.total_responses_analyzed}
+          </p>
+          <p className="font-jetbrains text-[10px] tracking-wider text-default-border uppercase text-center">
+            Responses Analysed
           </p>
         </div>
       </div>
