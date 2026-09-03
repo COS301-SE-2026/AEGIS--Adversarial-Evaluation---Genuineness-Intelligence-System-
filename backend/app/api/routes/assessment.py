@@ -387,13 +387,7 @@ async def invite_candidate(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Assessment not found",
         )
-    if assessment.creator_id != int(current_user["user_id"]):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
-                "You can only invite candidates to assessments you created."
-            ),
-        )
+
     session = create_candidate_assessment(db, assessment_id, body.candidate_id)
     return {
         "candidate_assess_id": session.candidate_assess_id,

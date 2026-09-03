@@ -13,10 +13,13 @@ from app.models.candidate_assessment import CandidateAssessment, SessionStatus
 from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.candidate_test_results import CandidateTestResult
 from app.models.coding_test_cases import CodingTestCase
-from app.models.candidate_response import CorrectnessStatus
+from app.models.candidate_response import CandidateResponse, CorrectnessStatus
+from app.models.question_bank import QuestionBank
 from app.models.user import User
 from app.schema.candidate_response import CandidateResponseResponse
 from app.services.assessment import (
+    QuestionBehavior,
+    _gather_behavioral_summary_data,
     activate_assessment,
     add_question_to_assessment,
     create_assessment,
@@ -1271,7 +1274,29 @@ def test_execute_candidate_code_non_coding_question(monkeypatch):
     assert exc_info.value.status_code == 400
 
 
-def test_submit_candidate_assessment_fetches_response_metrics_for_attempt():
+def _make_question_behavior(**overrides):
+    fields = {
+        "question_order": 1,
+        "question_type": "CODING",
+        "is_adversarial": False,
+        "pattern_used": None,
+        "matched_predicted_wrong_answer": None,
+        "active_time_ms": 90000,
+        "cohort_avg_active_time_ms": None,
+        "paste_event_count": 3,
+        "paste_char_count": 450,
+        "copy_event_count": 2,
+        "copy_char_count": 75,
+        "backspace_count": 15,
+        "focus_loss_count": 4,
+        "focus_loss_time_ms": 20000,
+        "unique_keys_count": 30,
+    }
+    fields.update(overrides)
+    return QuestionBehavior(**fields)
+
+
+def test_submit_candidate_assessment_forwards_gathered_behavior_to_summary():
     mock_db = MagicMock()
 
     mock_resp_1 = MagicMock()
@@ -1291,28 +1316,27 @@ def test_submit_candidate_assessment_fetches_response_metrics_for_attempt():
     mock_assessment.assessment_questions = [mock_aq]
     mock_session.assessment = mock_assessment
 
-    metrics_row = CandidateResponseMetrics(candidate_response_id=101)
-    session_query = _mock_query_result(mock_session)
-    metrics_query = _mock_query_result([metrics_row])
-    mock_db.query.side_effect = [session_query, metrics_query]
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
+
+    behaviors = [_make_question_behavior()]
 
     with patch(
         "app.services.assessment.get_gemini_client",
         return_value=MagicMock(),
-    ):
+    ), patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=behaviors,
+    ) as mock_gather, patch(
+        "app.services.assessment._generate_behavioral_summary",
+        return_value="summary text",
+    ) as mock_generate:
         result = submit_candidate_assessment(mock_db, 9)
 
     assert result is mock_session
     assert mock_session.status == SessionStatus.COMPLETED
-    assert mock_db.query.call_count == 2
-    assert mock_db.query.call_args_list[1].args == (CandidateResponseMetrics,)
-
-    expected_filter = CandidateResponseMetrics.candidate_response_id.in_(
-        [101, 102]
-    )
-    actual_filter = metrics_query.filter.call_args.args[0]
-    assert actual_filter.compare(expected_filter)
-
+    mock_gather.assert_called_once_with(mock_db, mock_session, 9)
+    mock_generate.assert_called_once_with(behaviors)
+    assert mock_session.behavioral_summary == "summary text"
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(mock_session)
 
@@ -1389,54 +1413,71 @@ def _make_submit_ready_session(response_id=101):
 def test_submit_candidate_assessment_generates_and_stores_behavioral_summary():
     mock_db = MagicMock()
     mock_session = _make_submit_ready_session(response_id=101)
-    metrics_row = _make_metrics_row(
-        101, paste_event_count=3, copy_event_count=2, copy_char_count=75,
-    )
 
-    mock_db.query.side_effect = [
-        _mock_query_result(mock_session),
-        _mock_query_result([metrics_row]),
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
+
+    behaviors = [
+        _make_question_behavior(
+            question_order=1,
+            question_type="CODING",
+            is_adversarial=True,
+            pattern_used="SYMBOL_REDEFINITION",
+            matched_predicted_wrong_answer=True,
+            active_time_ms=90000,
+            cohort_avg_active_time_ms=120000.0,
+            paste_event_count=3,
+            paste_char_count=450,
+            copy_event_count=2,
+            copy_char_count=75,
+        ),
     ]
 
     mock_client = MagicMock()
     mock_client.models.generate_content.return_value = MagicMock(
-        text="  The candidate pasted heavily and typed steadily.  ",
+        text="  Question 1 showed heavy pasting.  ",
     )
 
     with patch(
         "app.services.assessment.get_gemini_client",
         return_value=mock_client,
+    ), patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=behaviors,
     ):
         result = submit_candidate_assessment(mock_db, 9)
 
-    assert result.behavioral_summary == (
-        "The candidate pasted heavily and typed steadily."
-    )
+    assert result.behavioral_summary == "Question 1 showed heavy pasting."
 
     call_kwargs = mock_client.models.generate_content.call_args.kwargs
     assert call_kwargs["model"] == "gemini-3.1-flash-lite"
     assert call_kwargs["config"].temperature == 0.0
-    assert "3 paste event(s)" in call_kwargs["contents"]
-    assert "450 pasted character(s)" in call_kwargs["contents"]
-    assert "2 copy event(s)" in call_kwargs["contents"]
-    assert "75 copied character(s)" in call_kwargs["contents"]
+    contents = call_kwargs["contents"]
+    assert "Question 1 (CODING)" in contents
+    assert "3 paste event(s) totalling 450 pasted character(s)" in contents
+    assert "2 copy event(s) totalling 75 copied character(s)" in contents
+    assert (
+        "Cohort average active time on this question: 120.0s." in contents
+    )
+    assert "adversarial (pattern: SYMBOL_REDEFINITION)" in contents
+    assert "matched the predicted wrong answer" in contents
     mock_db.commit.assert_called_once()
 
 
-def test_submit_candidate_assessment_skips_gemini_when_no_metrics_flushed():
+def test_submit_candidate_assessment_skips_gemini_when_no_behavior_gathered():
     mock_db = MagicMock()
     mock_session = _make_submit_ready_session(response_id=201)
 
-    mock_db.query.side_effect = [
-        _mock_query_result(mock_session),
-        _mock_query_result([]),
-    ]
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
 
     with patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=[],
+    ) as mock_gather, patch(
         "app.services.assessment.get_gemini_client"
     ) as mock_get_client:
         result = submit_candidate_assessment(mock_db, 9)
 
+    mock_gather.assert_called_once()
     mock_get_client.assert_not_called()
     assert result.behavioral_summary is None
     mock_db.commit.assert_called_once()
@@ -1445,14 +1486,13 @@ def test_submit_candidate_assessment_skips_gemini_when_no_metrics_flushed():
 def test_submit_candidate_assessment_summary_null_on_gemini_failure():
     mock_db = MagicMock()
     mock_session = _make_submit_ready_session(response_id=301)
-    metrics_row = _make_metrics_row(301)
 
-    mock_db.query.side_effect = [
-        _mock_query_result(mock_session),
-        _mock_query_result([metrics_row]),
-    ]
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
 
     with patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=[_make_question_behavior()],
+    ), patch(
         "app.services.assessment.get_gemini_client",
         side_effect=RuntimeError("Gemini is unreachable"),
     ):
@@ -1463,3 +1503,153 @@ def test_submit_candidate_assessment_summary_null_on_gemini_failure():
     assert result.behavioral_summary is None
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(mock_session)
+
+
+def _make_gather_row(
+    *,
+    candidate_answer="B",
+    assessment_q_id=1,
+    predicted_wrong_answer=None,
+    pattern_used=None,
+    question_type=QuestionType.MULTIPLE_CHOICE,
+    active_time_ms=60000,
+    with_metrics=True,
+):
+    response = CandidateResponse(candidate_answer=candidate_answer)
+    aq = AssessmentQuestion(assessment_q_id=assessment_q_id, display_order=1)
+    adv = AdversarialQuestion(
+        predicted_wrong_answer=predicted_wrong_answer,
+        pattern_used=pattern_used,
+    )
+    question_bank = QuestionBank(question_bank_id=501, type=question_type)
+    metrics = (
+        _make_metrics_row(1, active_time_ms=active_time_ms)
+        if with_metrics
+        else None
+    )
+    return (response, aq, adv, question_bank, metrics)
+
+
+def _stub_gather_queries(
+    mock_db, rows, other_completed_count, cohort_rows_by_call=None,
+):
+    cohort_rows_by_call = cohort_rows_by_call or []
+
+    rows_query = MagicMock(**{
+        "join.return_value.join.return_value.join.return_value"
+        ".outerjoin.return_value.filter.return_value.order_by.return_value"
+        ".all.return_value": rows,
+    })
+    count_query = MagicMock(
+        **{"filter.return_value.count.return_value": other_completed_count},
+    )
+    cohort_queries = [
+        MagicMock(**{
+            "join.return_value.join.return_value.filter.return_value"
+            ".all.return_value": cohort_rows,
+        })
+        for cohort_rows in cohort_rows_by_call
+    ]
+
+    mock_db.query.side_effect = [rows_query, count_query] + cohort_queries
+
+
+def test_gather_behavioral_summary_data_includes_pattern_bait_and_cohort():
+    session = CandidateAssessment(candidate_assess_id=12, assessment_id=99)
+
+    adversarial_row = _make_gather_row(
+        candidate_answer="B",
+        assessment_q_id=1,
+        predicted_wrong_answer="B",
+        pattern_used="NEGATION_INJECTION",
+        active_time_ms=80000,
+    )
+    plain_row = _make_gather_row(
+        candidate_answer="A",
+        assessment_q_id=2,
+        predicted_wrong_answer=None,
+        active_time_ms=50000,
+    )
+
+    mock_db = MagicMock()
+    _stub_gather_queries(
+        mock_db,
+        rows=[adversarial_row, plain_row],
+        other_completed_count=3,
+        cohort_rows_by_call=[
+            [_make_metrics_row(2, active_time_ms=40000),
+             _make_metrics_row(3, active_time_ms=60000)],
+            [_make_metrics_row(4, active_time_ms=100000)],
+        ],
+    )
+
+    result = _gather_behavioral_summary_data(mock_db, session, 12)
+
+    assert [item.question_order for item in result] == [1, 2]
+    assert result[0].question_type == "MULTIPLE_CHOICE"
+
+    assert result[0].is_adversarial is True
+    assert result[0].pattern_used == "NEGATION_INJECTION"
+    assert result[0].matched_predicted_wrong_answer is True
+    assert result[0].cohort_avg_active_time_ms == 50000.0
+
+    assert result[1].is_adversarial is False
+    assert result[1].pattern_used is None
+    assert result[1].matched_predicted_wrong_answer is None
+    assert result[1].cohort_avg_active_time_ms == 100000.0
+
+
+def test_gather_behavioral_summary_data_bait_not_taken():
+    session = CandidateAssessment(candidate_assess_id=12, assessment_id=99)
+
+    row = _make_gather_row(
+        candidate_answer="D",
+        predicted_wrong_answer="B",
+        pattern_used="NEGATION_INJECTION",
+    )
+
+    mock_db = MagicMock()
+    _stub_gather_queries(mock_db, rows=[row], other_completed_count=0)
+
+    result = _gather_behavioral_summary_data(mock_db, session, 12)
+
+    assert result[0].is_adversarial is True
+    assert result[0].matched_predicted_wrong_answer is False
+
+
+def test_gather_behavioral_summary_data_omits_cohort_when_insufficient():
+    session = CandidateAssessment(candidate_assess_id=12, assessment_id=99)
+
+    row = _make_gather_row(predicted_wrong_answer="B", pattern_used="X")
+
+    mock_db = MagicMock()
+    _stub_gather_queries(mock_db, rows=[row], other_completed_count=2)
+
+    result = _gather_behavioral_summary_data(mock_db, session, 12)
+
+    assert result[0].cohort_avg_active_time_ms is None
+    assert mock_db.query.call_count == 2
+
+
+def test_gather_behavioral_summary_data_empty_when_no_metrics_rows():
+    session = CandidateAssessment(candidate_assess_id=12, assessment_id=99)
+
+    row = _make_gather_row(with_metrics=False)
+
+    mock_db = MagicMock()
+    _stub_gather_queries(mock_db, rows=[row], other_completed_count=5)
+
+    result = _gather_behavioral_summary_data(mock_db, session, 12)
+
+    assert result == []
+
+
+def test_gather_behavioral_summary_data_empty_when_no_rows():
+    session = CandidateAssessment(candidate_assess_id=12, assessment_id=99)
+
+    mock_db = MagicMock()
+    _stub_gather_queries(mock_db, rows=[], other_completed_count=5)
+
+    result = _gather_behavioral_summary_data(mock_db, session, 12)
+
+    assert result == []

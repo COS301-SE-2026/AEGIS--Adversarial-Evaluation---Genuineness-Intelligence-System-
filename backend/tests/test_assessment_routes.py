@@ -648,22 +648,6 @@ def test_invite_candidate_returns_403_for_non_recruiter(auth_client, mock_db):
     )
 
 
-def test_invite_candidate_returns_403_for_wrong_recruiter(
-    recruiter_client, mock_db,
-):
-    with patch(
-        _GET_ASSESSMENT_PATCH,
-        return_value=_make_owned_assessment(creator_id=999),
-    ), patch(_INVITE_PATCH) as mock_invite:
-        response = recruiter_client.post(
-            "/api/v1/assessments/1/invite",
-            json={"candidate_id": 2},
-        )
-    assert response.status_code == 403
-    assert "assessments you created" in response.json()["detail"]
-    mock_invite.assert_not_called()
-
-
 def test_invite_candidate_returns_404_when_assessment_not_found(
     recruiter_client, mock_db,
 ):

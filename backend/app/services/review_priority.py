@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.assessment_question import AssessmentQuestion
-from app.models.candidate_assessment import CandidateAssessment, SessionStatus
+from app.models.candidate_assessment import CandidateAssessment
 from app.models.candidate_response import CandidateResponse
 from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.question_bank import QuestionBank, QuestionType
@@ -13,8 +13,11 @@ from app.schema.review_priority import (
     NotableQuestion,
     ReviewPriorityResponse,
 )
-
-MIN_COHORT_CANDIDATES = 3
+from app.services.cohort_metrics import (
+    MIN_COHORT_CANDIDATES,
+    cohort_average_active_time_ms,
+    count_other_completed_sessions,
+)
 
 WEIGHTS: dict[QuestionType, dict[str, float]] = {
     QuestionType.MULTIPLE_CHOICE: {"focus": 9, "copy": 3, "speed": 2},
@@ -121,8 +124,6 @@ def _score_and_factor_entries(
     metrics: QuestionMetrics,
     cohort_data: Optional[float],
 ) -> tuple[float, list[tuple[float, str]]]:
-    """Score one question and return its above-threshold contributing
-    factors as (signal_value, sentence) pairs in weight-iteration order."""
     weights = WEIGHTS[question.type]
     label = QUESTION_TYPE_LABELS[question.type]
 
@@ -221,60 +222,6 @@ def _fetch_question_rows(db: Session, candidate_assessment_id: int):
     )
 
 
-def _count_other_completed_sessions(
-    db: Session,
-    session: CandidateAssessment,
-    candidate_assessment_id: int,
-) -> int:
-    return (
-        db.query(CandidateAssessment)
-        .filter(
-            CandidateAssessment.assessment_id == session.assessment_id,
-            CandidateAssessment.candidate_assess_id != candidate_assessment_id,
-            CandidateAssessment.status == SessionStatus.COMPLETED,
-        )
-        .count()
-    )
-
-
-def _cohort_average_active_time_ms(
-    db: Session,
-    assessment_question_id: int,
-    exclude_candidate_assessment_id: int,
-) -> Optional[float]:
-    cohort_metrics = (
-        db.query(CandidateResponseMetrics)
-        .join(
-            CandidateResponse,
-            CandidateResponse.response_id
-            == CandidateResponseMetrics.candidate_response_id,
-        )
-        .join(
-            CandidateAssessment,
-            CandidateAssessment.candidate_assess_id
-            == CandidateResponse.candidate_assessment_id,
-        )
-        .filter(
-            CandidateResponse.assessment_question_id
-            == assessment_question_id,
-            CandidateResponse.candidate_assessment_id
-            != exclude_candidate_assessment_id,
-            CandidateAssessment.status == SessionStatus.COMPLETED,
-        )
-        .all()
-    )
-
-    active_times = [
-        m.active_time_ms for m in cohort_metrics
-        if m.active_time_ms is not None
-    ]
-
-    if not active_times:
-        return None
-
-    return sum(active_times) / len(active_times)
-
-
 def get_review_priority(
     db: Session,
     candidate_assessment_id: int,
@@ -300,8 +247,8 @@ def get_review_priority(
             score=0, band="low", contributing_factors=[],
         )
 
-    other_completed_count = _count_other_completed_sessions(
-        db, session, candidate_assessment_id,
+    other_completed_count = count_other_completed_sessions(
+        db, session.assessment_id, candidate_assessment_id,
     )
     enough_cohort_data = other_completed_count >= MIN_COHORT_CANDIDATES
 
@@ -311,7 +258,7 @@ def get_review_priority(
 
     for position, (_, aq, question_bank, metrics) in enumerate(rows, start=1):
         cohort_avg_active_time_ms = (
-            _cohort_average_active_time_ms(
+            cohort_average_active_time_ms(
                 db, aq.assessment_q_id, candidate_assessment_id,
             )
             if enough_cohort_data

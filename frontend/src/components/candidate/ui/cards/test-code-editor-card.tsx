@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from "react";
 import { Editor } from "@monaco-editor/react";
-import { apiPost } from "@/lib/apiClient"
+import { apiPost } from "@/lib/apiClient";
+import { getToken } from "@/lib/auth";
 
 
 interface CodeEditorProps {
@@ -157,6 +158,8 @@ export default function CodeEditorCard({
                 message: "Executing code...",
             });
 
+            const authToken = getToken() ?? undefined;
+
             const response = await apiPost<ExecuteResponse, {
                 candidate_assessment_id: number;
                 assessment_question_id: number;
@@ -167,7 +170,8 @@ export default function CodeEditorCard({
                     candidate_assessment_id: candidateAssessId,
                     assessment_question_id: questionId,
                     code,
-                }
+                },
+                authToken ? { authToken } : {}
             );
 
             const results = response?.results;
