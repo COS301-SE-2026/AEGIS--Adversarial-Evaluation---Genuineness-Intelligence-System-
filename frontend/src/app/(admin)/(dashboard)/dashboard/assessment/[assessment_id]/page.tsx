@@ -104,7 +104,7 @@ export default function AssessmentPage() {
 
         <InfoCard 
           type="percentage"
-          title="AI Usage"
+          title="Average Signal Average"
           value={data.ai_usage.percent}
           label={data.ai_usage.level}
           icon="ai"

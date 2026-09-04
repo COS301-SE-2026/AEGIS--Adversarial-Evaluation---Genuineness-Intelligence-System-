@@ -47,19 +47,6 @@ export default function AssessmentFilterBar({
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-      <button 
-        type="button"
-        className="ml-auto flex items-center gap-1.5 font-jetbrains text-[10px] tracking-wider text-default-text bg-background border border-default-border px-3 py-2 rounded-[5px] cursor-pointer transition-all duration-150 hover:bg-tertiary-surface"
-      >
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="6" y1="12" x2="18" y2="12" />
-          <line x1="9" y1="18" x2="15" y2="18" />
-        </svg>
-
-        SORT: RECENT
-
-      </button>
     </div>
   );
 }

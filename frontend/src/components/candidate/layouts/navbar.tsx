@@ -55,8 +55,6 @@ export function Navbar() {
                             <SearchBar />
                         </Suspense>
                            
-                        <NotificationBell />
-                        <UserIcon />
                     </div>
                     
                 </nav>
