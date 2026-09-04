@@ -33,12 +33,18 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 ## Requirements Specifications
 - [Software Requirements Specification](docs/Demo2/SRS.md)
 - [Software Architecture Specification](docs/Demo2/SAS.md)
+- [Service Contracts](docs/Demo3/Service%20Contract.pdf)
 
 ---
 
-## Deployment
-- [Deployment Documentation PDFS](docs/Demo2/Deployment.md)
+## Deployment Link & Docs
+- [Deployment Link](https://aegis-cos301.vercel.app/)
+- [Deployment Documentation PDFS](docs/Demo3/Deployment.pdf)
 
+---
+## NON FUNCTIONAL REQUIREMENTS
+- [NON-FUNCTIONAL-REQUIREMENTS](docs/Demo2/pdfs/NON%20FUNCTIONAL%20REQUIREMENTS.pdf)
+- [NFR TRACEABILITY MATRIX](docs/Demo3/NFR%20MATRIX.pdf)
 ---
 
 ## Brand Style Guide

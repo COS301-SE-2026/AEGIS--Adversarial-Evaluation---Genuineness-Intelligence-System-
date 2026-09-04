@@ -20,6 +20,8 @@ interface ApiAssessment {
   description?: string | null;
   duration_mins: number;
   created_at: string;
+  candidates: number;
+  completed: number;
 }
 
 export default function AssessmentsPage() {

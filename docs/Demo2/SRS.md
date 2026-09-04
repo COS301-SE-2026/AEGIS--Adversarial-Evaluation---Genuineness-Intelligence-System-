@@ -11,7 +11,7 @@ AEGIS is an adversarial assessment platform designed to close this gap. The syst
 - [User Stories/User Characteristics PDF](pdfs/Copy%20of%20AEGIS%20-%20User%20Stories.pdf)
 
 ### 3. Use Cases
-- [Use Case Diagram PDF](pdfs/AEGIS_Demo_2_Use_Cases.pdf)
+- [Use Case Diagram PDF](../Demo3/AEGIS_demo3_Use_Case_Diagram.pdf)
 
 ### 4. Functional Requirements
 - [Functional Requirements PDF](pdfs/FUNCTIONAL%20REQUIREMENTS.pdf)

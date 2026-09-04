@@ -547,7 +547,23 @@ def get_all_assessments(
         query = query.offset(offset)
     if limit is not None:
         query = query.limit(limit)
-    return query.all()
+    assessments = query.all()
+    return [
+        {
+            "assessment_id": assessment.assessment_id,
+            "title": assessment.title,
+            "description": assessment.description,
+            "duration_mins": assessment.duration_mins,
+            "status": assessment.status,
+            "created_at": assessment.created_at,
+            "candidates": len(assessment.sessions),
+            "completed": sum(
+                session.status == SessionStatus.COMPLETED
+                for session in assessment.sessions
+            ),
+        }
+        for assessment in assessments
+    ]
 
 
 def get_assessment_by_id(
