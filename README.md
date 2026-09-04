@@ -42,6 +42,10 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 - [Deployment Documentation PDFS](docs/Demo2/Deployment.md)
 
 ---
+## NON FUNCTIONAL REQUIREMENTS
+- [NON-FUNCTIONAL-REQUIREMENTS](docs/Demo2/pdfs/NON%20FUNCTIONAL%20REQUIREMENTS.pdf)
+- [NFR TRACEABILITY MATRIX](docs/Demo3/NFR%20MATRIX.pdf)
+---
 
 ## Brand Style Guide
 - [Brand Style Guide PDF](docs/Demo2/pdfs/AEGIS%20Brand%20Style%20Guide%20v3.0.pdf)
