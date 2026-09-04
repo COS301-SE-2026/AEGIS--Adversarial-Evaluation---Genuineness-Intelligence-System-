@@ -424,6 +424,8 @@ def _get_assessment_detail_table_items(
             total_score_percent.label("total_score_percent"),
             result_status,
             ai_rating_percent,
+            CandidateAssessment.integrity_score.label("integrity_score"),
+            CandidateAssessment.integrity_band.label("integrity_band"),
         )
         .join(
             User,
@@ -459,6 +461,8 @@ def _get_assessment_detail_table_items(
         CandidateAssessment.candidate_assess_id,
         CandidateAssessment.candidate_score,
         CandidateAssessment.total_score,
+        CandidateAssessment.integrity_score,
+        CandidateAssessment.integrity_band,
     )
 
     if status:
@@ -485,6 +489,8 @@ def _get_assessment_detail_table_items(
                 row.ai_rating_percent or 0.0,
                 2,
             ),
+            integrity_score=row.integrity_score,
+            integrity_band=row.integrity_band,
         )
         for row in rows
     ]
