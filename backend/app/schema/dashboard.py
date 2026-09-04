@@ -43,6 +43,8 @@ class FilterableTableItem(BaseModel):
     total_score_percent: float
     status: CandidateResultStatus
     ai_rating_percent: float
+    integrity_score: int | None = None
+    integrity_band: str | None = None
 
 
 class DashboardSummaryResponse(BaseModel):
@@ -114,3 +116,8 @@ class IntegritySummaryResponse(BaseModel):
     pct_assessments_with_elevated_review: float
     avg_focus_loss_count: float
     total_responses_analyzed: int
+
+
+class IntegrityScoreAverageResponse(BaseModel):
+    average_integrity_score: int | None
+    scored_candidate_count: int

@@ -1335,7 +1335,10 @@ def test_submit_candidate_assessment_forwards_gathered_behavior_to_summary():
     ) as mock_gather, patch(
         "app.services.assessment._generate_behavioral_summary",
         return_value="summary text",
-    ) as mock_generate:
+    ) as mock_generate, patch(
+        "app.services.assessment.get_review_priority",
+        return_value=MagicMock(score=55, band="medium"),
+    ):
         result = submit_candidate_assessment(mock_db, 9)
 
     assert result is mock_session
@@ -1449,6 +1452,9 @@ def test_submit_candidate_assessment_generates_and_stores_behavioral_summary():
     ), patch(
         "app.services.assessment._gather_behavioral_summary_data",
         return_value=behaviors,
+    ), patch(
+        "app.services.assessment.get_review_priority",
+        return_value=MagicMock(score=55, band="medium"),
     ):
         result = submit_candidate_assessment(mock_db, 9)
 
@@ -1480,7 +1486,10 @@ def test_submit_candidate_assessment_skips_gemini_when_no_behavior_gathered():
         return_value=[],
     ) as mock_gather, patch(
         "app.services.assessment.get_gemini_client"
-    ) as mock_get_client:
+    ) as mock_get_client, patch(
+        "app.services.assessment.get_review_priority",
+        return_value=MagicMock(score=12, band="low"),
+    ):
         result = submit_candidate_assessment(mock_db, 9)
 
     mock_gather.assert_called_once()
@@ -1501,6 +1510,9 @@ def test_submit_candidate_assessment_summary_null_on_gemini_failure():
     ), patch(
         "app.services.assessment.get_gemini_client",
         side_effect=RuntimeError("Gemini is unreachable"),
+    ), patch(
+        "app.services.assessment.get_review_priority",
+        return_value=MagicMock(score=40, band="medium"),
     ):
         result = submit_candidate_assessment(mock_db, 9)
 
@@ -1509,6 +1521,79 @@ def test_submit_candidate_assessment_summary_null_on_gemini_failure():
     assert result.behavioral_summary is None
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(mock_session)
+
+
+def test_submit_candidate_assessment_stores_integrity_score_and_band():
+    mock_db = MagicMock()
+    mock_session = _make_submit_ready_session(response_id=401)
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
+
+    with patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=[],
+    ), patch(
+        "app.services.assessment.get_gemini_client"
+    ), patch(
+        "app.services.assessment.get_review_priority",
+        return_value=MagicMock(score=72, band="high"),
+    ) as mock_priority:
+        result = submit_candidate_assessment(mock_db, 9)
+
+    mock_priority.assert_called_once_with(mock_db, 9)
+    assert result is mock_session
+    assert mock_session.status == SessionStatus.COMPLETED
+    assert mock_session.integrity_score == 72
+    assert mock_session.integrity_band == "high"
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_session)
+
+
+def test_submit_candidate_assessment_integrity_null_on_scoring_failure():
+    mock_db = MagicMock()
+    mock_session = _make_submit_ready_session(response_id=402)
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
+
+    with patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=[],
+    ), patch(
+        "app.services.assessment.get_gemini_client"
+    ), patch(
+        "app.services.assessment.get_review_priority",
+        side_effect=RuntimeError("scoring blew up"),
+    ):
+        result = submit_candidate_assessment(mock_db, 9)
+
+    assert result is mock_session
+    assert mock_session.status == SessionStatus.COMPLETED
+    assert mock_session.integrity_score is None
+    assert mock_session.integrity_band is None
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_session)
+
+
+def test_submit_candidate_assessment_skips_integrity_when_no_responses():
+    mock_db = MagicMock()
+
+    mock_session = MagicMock()
+    mock_session.responses = []
+    mock_assessment = MagicMock()
+    mock_assessment.assessment_questions = []
+    mock_session.assessment = mock_assessment
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
+
+    with patch(
+        "app.services.assessment.get_gemini_client"
+    ), patch(
+        "app.services.assessment.get_review_priority",
+    ) as mock_priority:
+        result = submit_candidate_assessment(mock_db, 9)
+
+    mock_priority.assert_not_called()
+    assert result is mock_session
+    assert mock_session.status == SessionStatus.COMPLETED
+    assert mock_session.integrity_score is None
+    assert mock_session.integrity_band is None
 
 
 def _make_gather_row(

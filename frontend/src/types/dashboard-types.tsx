@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { ReviewBand } from "@/app/(admin)/types/metrics";
 
 export interface TopPerformer {
     candidate_name: string,
@@ -88,6 +89,8 @@ export interface AssessmentCandidateResult {
     total_score_percent: number;
     status: "PASS" | "FAIL";
     ai_rating_percent: number;
+    integrity_score: number | null;
+    integrity_band: ReviewBand | null;
 }
 
 export interface DashboardGraphResponse {
@@ -113,6 +116,8 @@ export interface AssessmentCandidateResult {
   total_score_percent: number;
   status: "PASS" | "FAIL";
   ai_rating_percent: number;
+  integrity_score: number | null;
+  integrity_band: ReviewBand | null;
 }
 
 export interface AssessmentDetailTableResponse {

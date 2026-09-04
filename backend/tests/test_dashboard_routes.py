@@ -365,6 +365,8 @@ def test_get_assessment_detail_table_returns_filtered_rows(
                 total_score_percent=87.46,
                 status=CandidateResultStatus.PASS,
                 ai_rating_percent=91.23,
+                integrity_score=64,
+                integrity_band="high",
             )
         ],
         page=1,
@@ -396,6 +398,8 @@ def test_get_assessment_detail_table_returns_filtered_rows(
                 "total_score_percent": 87.46,
                 "status": "PASS",
                 "ai_rating_percent": 91.23,
+                "integrity_score": 64,
+                "integrity_band": "high",
             }
         ],
         "page": 1,

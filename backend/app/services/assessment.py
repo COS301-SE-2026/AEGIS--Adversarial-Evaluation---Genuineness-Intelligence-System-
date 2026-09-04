@@ -27,6 +27,7 @@ from app.services.cohort_metrics import (
     cohort_average_active_time_ms,
     count_other_completed_sessions,
 )
+from app.services.review_priority import get_review_priority
 from app.services.test_cases import get_test_cases_by_question_id
 
 _logger = logging.getLogger(__name__)
@@ -978,6 +979,27 @@ def submit_candidate_assessment(
             behavioral_summary = None
 
     session.behavioral_summary = behavioral_summary
+
+    integrity_score = None
+    integrity_band = None
+    if session.responses:
+        try:
+            review_priority = get_review_priority(
+                db, candidate_assessment_id
+            )
+            integrity_score = review_priority.score
+            integrity_band = review_priority.band
+        except Exception:
+            _logger.exception(
+                "Failed to compute integrity score for "
+                "candidate_assessment_id=%s",
+                candidate_assessment_id,
+            )
+            integrity_score = None
+            integrity_band = None
+
+    session.integrity_score = integrity_score
+    session.integrity_band = integrity_band
 
     db.commit()
     db.refresh(session)
