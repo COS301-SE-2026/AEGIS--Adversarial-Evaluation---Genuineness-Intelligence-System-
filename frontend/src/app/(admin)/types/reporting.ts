@@ -83,3 +83,10 @@ export interface IntegritySummaryResponse {
   avg_focus_loss_count: number;
   total_responses_analyzed: number;
 }
+
+//integrity-score-average
+
+export interface IntegrityScoreAverageResponse {
+  average_integrity_score: number | null;
+  scored_candidate_count: number;
+}

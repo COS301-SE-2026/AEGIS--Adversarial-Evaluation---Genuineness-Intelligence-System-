@@ -12,6 +12,7 @@ import type {
   ScoreTrendGranularity,
   TrapPatternEffectivenessResponse,
   IntegritySummaryResponse,
+  IntegrityScoreAverageResponse,
 } from "@/app/(admin)/types/reporting";
 import {
   MOCK_QUESTION_QUALITY,
@@ -113,6 +114,20 @@ export function useIntegritySummary() {
       return apiGet<IntegritySummaryResponse>("/api/v1/reporting/integrity-summary", {
         headers: getAuthHeaders(),
       });
+    },
+  });
+}
+
+export function useIntegrityScoreAverage() {
+  return useQuery({
+    queryKey: ["reporting", "integrity-score-average"],
+    queryFn: async (): Promise<IntegrityScoreAverageResponse> => {
+      return apiGet<IntegrityScoreAverageResponse>(
+        "/api/v1/reporting/integrity-score-average",
+        {
+          headers: getAuthHeaders(),
+        },
+      );
     },
   });
 }

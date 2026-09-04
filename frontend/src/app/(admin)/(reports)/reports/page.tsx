@@ -4,6 +4,7 @@ import { InfoCard } from "@/components/candidate/ui/cards/report-info-card";
 import { AssessmentBarChartContainer } from "@/components/admin/ui/dashboard/assessment-bar-chart-container";
 import { AssessmentAnalyticsTableContainer } from "@/components/admin/ui/dashboard/assessment-analytics-table-container";
 import { useDashboardSummary } from "@/hooks/dashboard-summary-hook";
+import { useIntegrityScoreAverage } from "@/hooks/use-reporting";
 import { useState } from "react";
 import { getUserId } from "@/lib/auth";
 
@@ -12,6 +13,8 @@ export default function ReportsPage() {
 
   const { data, isLoading, isError, error } =
     useDashboardSummary(recruiterId);
+
+  const { data: integrityScoreAverage } = useIntegrityScoreAverage();
 
   if (recruiterId === null || isLoading) {
     return (
@@ -60,10 +63,11 @@ export default function ReportsPage() {
         />
 
         <InfoCard
-          type="percentage"
-          title="Average Integrity Signal"
-          value={data.ai_usage_rate.percent}
-          label={data.ai_usage_rate.level}
+          type="metric"
+          title="Average Integrity Score"
+          value={
+            integrityScoreAverage?.average_integrity_score ?? "—"
+          }
           icon="ai"
         />
       </div>
