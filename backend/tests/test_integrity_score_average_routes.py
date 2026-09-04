@@ -8,46 +8,31 @@ from app.database.database import get_db
 from app.main import app
 from app.schema.dashboard import IntegrityScoreAverageResponse
 
-
-@pytest.fixture
-def mock_db():
-    return MagicMock()
+ENDPOINT = "/api/v1/reporting/integrity-score-average"
 
 
 @pytest.fixture
-def recruiter_client(mock_db):
-    def override_get_db():
-        return mock_db
-
-    def override_get_current_user():
-        return {
+def client_for_role():
+    def _build(role):
+        app.dependency_overrides[get_db] = lambda: MagicMock()
+        app.dependency_overrides[get_current_user] = lambda: {
             "user_id": "7",
-            "role": "RECRUITER",
+            "role": role,
         }
+        return TestClient(app)
 
-    app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_current_user] = override_get_current_user
-
-    yield TestClient(app)
+    yield _build
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def candidate_client(mock_db):
-    def override_get_db():
-        return mock_db
+def recruiter_client(client_for_role):
+    return client_for_role("RECRUITER")
 
-    def override_get_current_user():
-        return {
-            "user_id": "7",
-            "role": "CANDIDATE",
-        }
 
-    app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[get_current_user] = override_get_current_user
-
-    yield TestClient(app)
-    app.dependency_overrides.clear()
+@pytest.fixture
+def candidate_client(client_for_role):
+    return client_for_role("CANDIDATE")
 
 
 def test_integrity_score_average_returns_200_for_recruiter(
@@ -63,9 +48,7 @@ def test_integrity_score_average_returns_200_for_recruiter(
         lambda *args, **kwargs: expected,
     )
 
-    response = recruiter_client.get(
-        "/api/v1/reporting/integrity-score-average"
-    )
+    response = recruiter_client.get(ENDPOINT)
 
     assert response.status_code == 200
     assert response.json() == {
@@ -87,9 +70,7 @@ def test_integrity_score_average_returns_null_when_no_scores(
         lambda *args, **kwargs: expected,
     )
 
-    response = recruiter_client.get(
-        "/api/v1/reporting/integrity-score-average"
-    )
+    response = recruiter_client.get(ENDPOINT)
 
     assert response.status_code == 200
     assert response.json() == {
@@ -99,9 +80,7 @@ def test_integrity_score_average_returns_null_when_no_scores(
 
 
 def test_integrity_score_average_returns_403_for_candidate(candidate_client):
-    response = candidate_client.get(
-        "/api/v1/reporting/integrity-score-average"
-    )
+    response = candidate_client.get(ENDPOINT)
 
     assert response.status_code == 403
     assert (
