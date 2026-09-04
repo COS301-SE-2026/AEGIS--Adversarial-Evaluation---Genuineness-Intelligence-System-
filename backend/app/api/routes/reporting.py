@@ -10,13 +10,15 @@ from app.schema.dashboard import (
     PerformanceBreakdownResponse,
     QuestionQualityResponse,
     ThroughputResponse,
-    IntegritySummaryResponse
+    IntegritySummaryResponse,
+    IntegrityScoreAverageResponse
 )
 from app.services.assessment_report import get_question_quality
 from app.services.reporting_performance_breakdown import (
     get_performance_breakdown
 )
 from app.services.integrity_signals import get_integrity_summary
+from app.services.integrity_score_average import get_integrity_score_average
 
 router = APIRouter(prefix="/reporting", tags=["reporting"])
 
@@ -64,3 +66,13 @@ def get_integrity_summary_report(
 ) -> IntegritySummaryResponse:
     require_recruiter(current_user)
     return get_integrity_summary(db)
+
+
+@router.get("/integrity-score-average")
+def get_integrity_score_average_report(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
+) -> IntegrityScoreAverageResponse:
+    require_recruiter(current_user)
+    recruiter_id = int(current_user["user_id"])
+    return get_integrity_score_average(db, recruiter_id)

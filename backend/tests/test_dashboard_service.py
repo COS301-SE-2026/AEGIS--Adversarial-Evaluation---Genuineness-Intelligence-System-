@@ -375,6 +375,8 @@ def test_get_assessment_detail_table_items_returns_candidate_rows():
     row.total_score_percent = 87.456
     row.status = "PASS"
     row.ai_rating_percent = 91.234
+    row.integrity_score = 72
+    row.integrity_band = "high"
 
     mock_db = MagicMock()
     mock_db.query.return_value = _make_query([row])
@@ -400,6 +402,62 @@ def test_get_assessment_detail_table_items_returns_candidate_rows():
     assert item.total_score_percent == 87.46
     assert item.status == "PASS"
     assert item.ai_rating_percent == 91.23
+    assert item.integrity_score == 72
+    assert item.integrity_band == "high"
+
+
+def test_get_assessment_detail_table_items_reads_stored_integrity_snapshot():
+    row = MagicMock()
+    row.candidate_id = 5
+    row.candidate_name = "Bob"
+    row.total_score_percent = 40.0
+    row.status = "FAIL"
+    row.ai_rating_percent = 0.0
+    row.integrity_score = 18
+    row.integrity_band = "low"
+
+    mock_db = MagicMock()
+    mock_db.query.return_value = _make_query([row])
+
+    result = dashboard_service._get_assessment_detail_table_items(
+        db=mock_db,
+        assessment_id=101,
+        status=None,
+        search=None,
+        page=1,
+        page_size=8,
+    )
+
+    item = result.items[0]
+    assert item.integrity_score == 18
+    assert item.integrity_band == "low"
+
+
+def test_get_assessment_detail_table_items_handles_null_integrity_snapshot():
+    row = MagicMock()
+    row.candidate_id = 9
+    row.candidate_name = "Carol"
+    row.total_score_percent = 61.0
+    row.status = "PASS"
+    row.ai_rating_percent = 0.0
+    row.integrity_score = None
+    row.integrity_band = None
+
+    mock_db = MagicMock()
+    mock_db.query.return_value = _make_query([row])
+
+    result = dashboard_service._get_assessment_detail_table_items(
+        db=mock_db,
+        assessment_id=101,
+        status=None,
+        search=None,
+        page=1,
+        page_size=8,
+    )
+
+    item = result.items[0]
+    assert item.integrity_score is None
+    assert item.integrity_band is None
 
 
 def test_get_assessment_detail_table_items_returns_empty_list():
@@ -427,6 +485,8 @@ def test_get_assessment_detail_table_items_supports_filters_and_pagination():
     row.total_score_percent = 55.0
     row.status = "PASS"
     row.ai_rating_percent = 80.0
+    row.integrity_score = 50
+    row.integrity_band = "medium"
 
     mock_db = MagicMock()
     query = _make_query([row])

@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { InfoCard } from "@/components/candidate/ui/cards/report-info-card";
 import { AssessmentCandidateTableContainer } from "@/components/admin/ui/dashboard/assessment-candidate-table-container";
 import { useAssessmentDetails } from "@/hooks/dashboard-assessment-details-hook";
+import { useAssessmentCandidate } from "@/hooks/dashboard-assessment-candidates-hook";
 import { FileQuestion } from "lucide-react";
 import { ApiError } from "@/lib/apiClient";
 import Button from "@/components/hero/ui/button";
@@ -15,6 +16,20 @@ export default function AssessmentPage() {
   
   const { data, isLoading, isError, error } =
     useAssessmentDetails(assessmentId);
+
+  const { data: candidatesData } = useAssessmentCandidate(assessmentId);
+
+  const integrityScores = (candidatesData?.items ?? [])
+    .map((candidate) => candidate.integrity_score)
+    .filter((score): score is number => score !== null);
+
+  const averageIntegrityScore =
+    integrityScores.length > 0
+      ? Math.round(
+          integrityScores.reduce((sum, score) => sum + score, 0) /
+            integrityScores.length,
+        )
+      : null;
 
   if (isLoading) {
     return (
@@ -102,11 +117,10 @@ export default function AssessmentPage() {
           icon="chart"
         />
 
-        <InfoCard 
-          type="percentage"
-          title="Average Signal Average"
-          value={data.ai_usage.percent}
-          label={data.ai_usage.level}
+        <InfoCard
+          type="metric"
+          title="Average Integrity Score"
+          value={averageIntegrityScore === null ? "—" : averageIntegrityScore}
           icon="ai"
         />
       </div>
