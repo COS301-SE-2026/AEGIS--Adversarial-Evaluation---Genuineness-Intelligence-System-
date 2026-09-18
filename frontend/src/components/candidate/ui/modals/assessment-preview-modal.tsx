@@ -80,48 +80,51 @@ export function AssessmentPreviewModal({
             <div className="shrink-0 border-t border-default-border rounded-full"></div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 space-y-6 mb-6 min-h-0">
-            <div className="space-y-2">
-              <h3 className="text-2xl text-default-text tracking-widest mb-3">
-                {assessment.title}
-              </h3>
-              <p className="text-default-text leading-relaxed mb-6">
-                {assessment.description}
-              </p>
-            </div>
+          <div className="flex-1 overflow-y-auto pr-2 mb-6 min-h-0">
+            <div className="flex flex-col sm:flex-row items-start gap-6">
+              
+              <div className="flex-1 space-y-3">
+                <h3 className="text-2xl text-default-text tracking-widest">
+                  {assessment.title}
+                </h3>
+                <p className="text-default-text leading-relaxed">
+                  {assessment.description}
+                </p>
+              </div>
 
-            <div className="flex items-center border border-status-success/80 rounded-md p-4 w-36">
-              <div className="flex items-center flex-1">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="mr-3 text-default-text mb-5"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                <div>
-                  <p>Duration</p>
-                  <p>
-                    {(() => {
-                      const mins = assessment.durationMins;
-                      if (mins < 60) return `${mins} min`;
+              <div className="flex items-center border border-system-red rounded-md p-4 sm:w-36 shrink-0">
+                <div className="flex items-center flex-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="mr-3 text-default-text mb-5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <div>
+                    <p>Duration</p>
+                    <p>
+                      {(() => {
+                        const mins = assessment.durationMins;
+                        if (mins < 60) return `${mins} min`;
 
-                      const hours = Math.floor(mins / 60);
-                      const remainderMins = mins % 60;
+                        const hours = Math.floor(mins / 60);
+                        const remainderMins = mins % 60;
 
-                      return remainderMins > 0
-                        ? `${hours}H ${remainderMins}min`
-                        : `${hours}H`;
-                    })()}
-                  </p>
+                        return remainderMins > 0
+                          ? `${hours}H ${remainderMins}min`
+                          : `${hours}H`;
+                      })()}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
