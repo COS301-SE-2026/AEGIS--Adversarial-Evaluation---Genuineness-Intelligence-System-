@@ -466,18 +466,39 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
 
             </div>
 
-            <footer className="flex justify-between items-center mt-8">
+            <footer className="flex justify-between items-center mt-8 relative">
                <div className="mx-auto flex flex-row items-center gap-4">
                   <TestPreviousButton handlePrevious={handlePrevious} />
-                  <p>{currentQuestionIndex + 1} / {totalQuestions}</p>
+
+                  <p className='text-sm text-default-text/70 font-medium tabular-nums'>
+                     {currentQuestionIndex + 1} / {totalQuestions}
+                  </p>
+
                   <TestNextButton handleNext={handleNext} />
+
                   {isSaving && (
-                     <span className="text-xs text-default-text/70">Saving...</span>
-                  )}
+                     <div className="flex items-center gap-2 ml-2 px-3 py-1.5 rounded-full bg-status-info/20">
+                        <svg
+                           className="animate-spin h-3.5 w-3.5 text-status-info"
+                           xmlns="http://www.w3.org/2000/svg"
+                           fill="none"
+                           viewBox="0 0 24 24"
+                        >
+                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12Hc0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                        <span className="text-xs text-status-info tracking-wide">Saving...</span>
+                     </div>
+                  )}  
                </div>
-               <div className="absolute right-18">
+
+               <div className="absolute right-0 sm:right-18">
                   {isLastQuestion && (
-                     <TestSubmitButton onClick={handleSubmit} disabled={isSaving || isSubmitting} isSubmitting={isSubmitting} />
+                     <TestSubmitButton 
+                        onClick={handleSubmit} 
+                        disabled={isSaving || isSubmitting} 
+                        isSubmitting={isSubmitting} 
+                     />
                   )}
                </div>
             </footer>
