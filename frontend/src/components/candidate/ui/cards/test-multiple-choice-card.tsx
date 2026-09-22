@@ -39,7 +39,7 @@ export function TestMultipleChoiceCard({ question, value, onChange }: MultipleCh
                     <label 
                         key={index} 
                         className={`flex items-center gap-4 p-4 rounded-md cursor-pointer border-2 transition-colors ${
-                            selectedIndex === index ? 'border-blue-500' : 'border-default-border'
+                            selectedIndex === index ? 'border-status-info' : 'border-default-border'
                         }`}
                     >
                         <input
