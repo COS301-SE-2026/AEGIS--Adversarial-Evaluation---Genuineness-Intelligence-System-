@@ -49,3 +49,31 @@ class IntegrityWeightResponse(BaseModel):
         default=None,
         ge=0,
     )
+
+
+class IntegrityWeightRecommendationResponse(BaseModel):
+    assessment_q_id: int
+    adv_question_id: int
+    ai_suggested_weight: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+    recommendation_status: RecommendationStatus
+    ai_recommendation: str | None = None
+    ai_generated_at: datetime | None = None
+    evidence_status: EvidenceStatus
+    historical_sample_size: int | None = Field(
+        default=None,
+        ge=0,
+    )
+
+
+class IntegrityWeightRecommendationsResponse(BaseModel):
+    assessment_id: int
+    recommendations: list[IntegrityWeightRecommendationResponse]
+
+
+class IntegrityWeightsResponse(BaseModel):
+    assessment_id: int
+    weights: list[IntegrityWeightResponse]
