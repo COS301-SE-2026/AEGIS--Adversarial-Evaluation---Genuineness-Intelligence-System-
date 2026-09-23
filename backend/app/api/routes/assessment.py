@@ -43,6 +43,8 @@ from app.services.review_priority import get_review_priority
 from app.schema.metrics_radar import MetricsRadarResponse
 from app.services.reporting_candidate_metrics import get_metrics_radar
 from app.services.candidate import get_candidate_assessment_session
+from app.schema.integrity_weight import IntegrityWeightsResponse
+from app.services.assessment import get_integrity_weights
 
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
@@ -498,3 +500,24 @@ def read_metrics_radar(
             detail="Only recruiters can access candidate metrics radar.",
         )
     return get_metrics_radar(db, candidate_assessment_id)
+
+
+@router.get(
+    "/{assessment_id}/integrity-weights",
+    response_model=IntegrityWeightsResponse,
+)
+async def get_assessment_integrity_weights(
+    assessment_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can view integrity weights.",
+        )
+    return get_integrity_weights(
+        db,
+        assessment_id,
+        int(current_user["user_id"]),
+    )
