@@ -1,6 +1,7 @@
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
+
 # all the metrics are specific to the question
 class QuestionAnalyticsMetrics(BaseModel):
     active_time_ms: int = Field(
