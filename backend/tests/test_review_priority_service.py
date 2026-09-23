@@ -484,7 +484,7 @@ def test_get_review_priority_uses_per_question_cohort_average(monkeypatch):
     [(0, "low"), (29, "low"), (30, "medium"), (59, "medium"), (60, "high"), (100, "high")],
 )
 def test_band_thresholds(score, expected_band):
-    assert priority_service._band_for_score(score) == expected_band
+    assert priority_service.band_for_score(score) == expected_band
 
 
 def _question_row(order, question_type, *, response_id=None, **metric_kwargs):
