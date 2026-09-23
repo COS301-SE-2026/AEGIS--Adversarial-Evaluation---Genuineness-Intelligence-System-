@@ -29,6 +29,12 @@ from app.services.cohort_metrics import (
 )
 from app.services.review_priority import get_review_priority
 from app.services.test_cases import get_test_cases_by_question_id
+from app.schema.integrity_weight import (
+    EvidenceStatus,
+    IntegrityWeightResponse,
+    IntegrityWeightsResponse,
+)
+from app.models.assessment_question import RecommendationStatus
 
 _logger = logging.getLogger(__name__)
 
@@ -1328,3 +1334,83 @@ def activate_assessment(db: Session, assessment_id: int) -> Assessment:
     db.commit()
     db.refresh(assessment)
     return assessment
+
+def _evidence_status_for(
+    recommendation_status: RecommendationStatus,
+) -> EvidenceStatus:
+    if recommendation_status == RecommendationStatus.INSUFFICIENT_DATA:
+        return EvidenceStatus.INSUFFICIENT_DATA
+
+    if recommendation_status == RecommendationStatus.FAILED:
+        return EvidenceStatus.FAILED
+
+    if recommendation_status in {
+        RecommendationStatus.ACCEPTED,
+        RecommendationStatus.MODIFIED,
+        RecommendationStatus.REJECTED,
+    }:
+        return EvidenceStatus.AVAILABLE
+
+    return EvidenceStatus.NOT_AVAILABLE
+
+def get_integrity_weights(
+    db: Session,
+    assessment_id: int,
+    recruiter_id: int,
+) -> IntegrityWeightsResponse:
+    assessment = (
+        db.query(Assessment)
+        .options(
+            selectinload(Assessment.assessment_questions),
+        )
+        .filter(
+            Assessment.assessment_id == assessment_id,
+            Assessment.creator_id == recruiter_id,
+        )
+        .first()
+    )
+
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+
+    questions = sorted(
+        assessment.assessment_questions,
+        key=lambda question: (
+            question.display_order is None,
+            question.display_order or 0,
+            question.assessment_q_id,
+        ),
+    )
+
+    weights = [
+        IntegrityWeightResponse(
+            assessment_q_id=question.assessment_q_id,
+            adv_question_id=question.adv_question_id,
+            display_order=question.display_order,
+            default_weight=1.0,
+            recruiter_weight=question.recruiter_weight,
+            ai_suggested_weight=question.ai_suggested_weight,
+            approved_weight=question.approved_weight,
+            effective_weight=(
+                question.approved_weight
+                if question.approved_weight is not None
+                else 1.0
+            ),
+            recommendation_status=question.recommendation_status,
+            ai_recommendation=question.ai_recommendation,
+            ai_generated_at=question.ai_generated_at,
+            evidence_status=_evidence_status_for(
+                question.recommendation_status,
+            ),
+            historical_sample_size=None,
+        )
+        for question in questions
+    ]
+
+    return IntegrityWeightsResponse(
+        assessment_id=assessment.assessment_id,
+        weights=weights,
+    )
