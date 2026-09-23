@@ -28,7 +28,7 @@ export const assessmentColumns: AnalyticsTableColumn<AssessmentAnalyticsTableIte
         header: "View",
         render: (assessment) => (
                 <Link
-                    href={`/dashboard/assessment/${assessment.assessment_id}`}
+                    href={`/reports/assessment/${assessment.assessment_id}`}
                 >
                     <ReportViewButton/>
                 </Link>
