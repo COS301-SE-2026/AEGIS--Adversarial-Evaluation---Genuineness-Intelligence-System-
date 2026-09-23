@@ -11,6 +11,7 @@ interface AssessmentPreviewModalProps {
   >;
   onClose: () => void;
   onStart: () => void;
+  isStarting?: boolean;
 }
 
 const TestRules = [
@@ -25,6 +26,7 @@ export function AssessmentPreviewModal({
   assessment,
   onClose,
   onStart,
+  isStarting = false,
 }: AssessmentPreviewModalProps) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -43,6 +45,7 @@ export function AssessmentPreviewModal({
         type="button"
         aria-label="Close modal"
         onClick={onClose}
+        disabled={isStarting}
         className="fixed inset-0 z-9998 bg-background/80 backdrop-blur-sm cursor-default"
       />
 
@@ -55,6 +58,7 @@ export function AssessmentPreviewModal({
         <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg border-2 border-default-border bg-background p-6 sm:p-8 shadow-2xl">
           <button
             onClick={onClose}
+            disabled={isStarting}
             className="absolute top-4 right-4 text-default-text opacity-50 hover:opacity-100 p-2 transition-opacity"
             aria-label="Close"
           >
@@ -158,13 +162,18 @@ export function AssessmentPreviewModal({
             <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end items-center">
               <button
                 onClick={onClose}
+                disabled={isStarting}
                 className="flex items-center justify-center w-full sm:w-auto h-11 px-6 rounded-md border-2 border-default-border text-default-text hover:bg-tertiary-surface font-staatliches font-medium sm:text-base tracking-wider transition-colors duration-300 cursor-pointer"
               >
                 Cancel
               </button>
 
               <div className="w-full sm:w-auto flex justify-center sm:block sm:-mt-4">
-                <StartAssessmentButton onClick={onStart} />
+                  <StartAssessmentButton 
+                    onClick={onStart}  
+                    disabled={isStarting}
+                    isStarting={isStarting}
+                  />
               </div>
             </div>
           </div>
