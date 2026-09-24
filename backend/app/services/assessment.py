@@ -35,6 +35,9 @@ from app.schema.integrity_weight import (
     IntegrityWeightsResponse,
 )
 from app.models.assessment_question import RecommendationStatus
+from app.schema.integrity_weight import (
+    IntegrityWeightDraft,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -1335,6 +1338,7 @@ def activate_assessment(db: Session, assessment_id: int) -> Assessment:
     db.refresh(assessment)
     return assessment
 
+
 def _evidence_status_for(
     recommendation_status: RecommendationStatus,
 ) -> EvidenceStatus:
@@ -1352,6 +1356,7 @@ def _evidence_status_for(
         return EvidenceStatus.AVAILABLE
 
     return EvidenceStatus.NOT_AVAILABLE
+
 
 def get_integrity_weights(
     db: Session,
@@ -1413,4 +1418,76 @@ def get_integrity_weights(
     return IntegrityWeightsResponse(
         assessment_id=assessment.assessment_id,
         weights=weights,
+    )
+
+
+def update_integrity_weight_drafts(
+    db: Session,
+    assessment_id: int,
+    recruiter_id: int,
+    weights: list[IntegrityWeightDraft],
+) -> IntegrityWeightsResponse:
+    assessment = (
+        db.query(Assessment)
+        .filter(
+            Assessment.assessment_id == assessment_id,
+            Assessment.creator_id == recruiter_id,
+        )
+        .first()
+    )
+
+    if assessment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=ASSESSMENT_NOT_FOUND,
+        )
+
+    question_ids = [item.assessment_q_id for item in weights]
+
+    if len(question_ids) != len(set(question_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Each assessment question may appear only once.",
+        )
+
+    questions = (
+        db.query(AssessmentQuestion)
+        .filter(
+            AssessmentQuestion.assessments_id == assessment_id,
+            AssessmentQuestion.assessment_q_id.in_(question_ids),
+        )
+        .all()
+    )
+
+    questions_by_id = {
+        question.assessment_q_id: question
+        for question in questions
+    }
+
+    missing_ids = [
+        question_id
+        for question_id in question_ids
+        if question_id not in questions_by_id
+    ]
+
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                "Assessment question(s) not found in this assessment: "
+                f"{missing_ids}"
+            ),
+        )
+
+    for item in weights:
+        questions_by_id[item.assessment_q_id].recruiter_weight = (
+            item.recruiter_weight
+        )
+
+    db.commit()
+
+    return get_integrity_weights(
+        db,
+        assessment_id,
+        recruiter_id,
     )
