@@ -1856,3 +1856,83 @@ def test_update_integrity_weight_drafts_clears_explicit_null():
     assert question.approved_weight == 0.5
     mock_db.commit.assert_called_once()
 
+
+def test_update_integrity_weight_drafts_rejects_duplicate_ids():
+    mock_db = MagicMock()
+    assessment = MagicMock()
+
+    mock_db.query.return_value.filter.return_value.first.return_value = (
+        assessment
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        update_integrity_weight_drafts(
+            db=mock_db,
+            assessment_id=28,
+            recruiter_id=5,
+            weights=[
+                IntegrityWeightDraft(
+                    assessment_q_id=12,
+                    recruiter_weight=0.4,
+                ),
+                IntegrityWeightDraft(
+                    assessment_q_id=12,
+                    recruiter_weight=0.6,
+                ),
+            ],
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Each assessment question may appear only once."
+    )
+    mock_db.commit.assert_not_called()
+
+
+def test_update_integrity_weight_drafts_rejects_question_from_other_assessment():
+    assessment = MagicMock()
+
+    mock_db = MagicMock()
+    mock_db.query.side_effect = [
+        _make_integrity_query(assessment),
+        _make_integrity_query([]),
+    ]
+
+    with pytest.raises(HTTPException) as exc_info:
+        update_integrity_weight_drafts(
+            db=mock_db,
+            assessment_id=28,
+            recruiter_id=5,
+            weights=[
+                IntegrityWeightDraft(
+                    assessment_q_id=999,
+                    recruiter_weight=0.8,
+                )
+            ],
+        )
+
+    assert exc_info.value.status_code == 404
+    assert "not found in this assessment" in exc_info.value.detail
+    mock_db.commit.assert_not_called()
+
+
+def test_update_integrity_weight_drafts_rejects_unowned_assessment():
+    mock_db = MagicMock()
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+
+    with pytest.raises(HTTPException) as exc_info:
+        update_integrity_weight_drafts(
+            db=mock_db,
+            assessment_id=28,
+            recruiter_id=5,
+            weights=[
+                IntegrityWeightDraft(
+                    assessment_q_id=12,
+                    recruiter_weight=0.8,
+                )
+            ],
+        )
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Assessment not found"
+    mock_db.commit.assert_not_called()
