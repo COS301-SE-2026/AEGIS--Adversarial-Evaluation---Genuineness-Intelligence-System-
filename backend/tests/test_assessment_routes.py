@@ -1298,3 +1298,60 @@ def test_activate_assessment_returns_400_when_not_draft(
             "/api/v1/assessments/10/activate"
         )
     assert response.status_code == 400
+
+
+_INTEGRITY_WEIGHTS_PATCH = (
+    "app.api.routes.assessment.get_integrity_weights"
+)
+
+
+def test_get_integrity_weights_returns_configuration(
+    recruiter_client, mock_db
+):
+    payload = {
+        "assessment_id": 42,
+        "weights": [
+            {
+                "assessment_q_id": 7,
+                "adv_question_id": 99,
+                "display_order": 1,
+                "default_weight": 1.0,
+                "recruiter_weight": None,
+                "ai_suggested_weight": None,
+                "approved_weight": None,
+                "effective_weight": 1.0,
+                "recommendation_status": "not_requested",
+                "ai_recommendation": None,
+                "ai_generated_at": None,
+                "evidence_status": "not_available",
+                "historical_sample_size": None,
+            }
+        ],
+    }
+
+    with patch(_INTEGRITY_WEIGHTS_PATCH, return_value=payload) as mock_get:
+        response = recruiter_client.get(
+            "/api/v1/assessments/42/integrity-weights"
+        )
+    assert response.status_code == 200
+    assert response.json() == payload
+    mock_get.assert_called_once_with(mock_db, 42, 5)
+
+
+def test_get_integrity_weights_rejects_non_recruiter(
+    auth_client, mock_db
+):
+    response = auth_client.get(
+        "/api/v1/assessments/42/integrity-weights"
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "Only recruiters can view integrity weights."
+    )
+
+
+def test_get_integrity_weights_requires_authentication(client):
+    response = client.get(
+        "/api/v1/assessments/42/integrity-weights"
+    )
+    assert response.status_code == 401
