@@ -14,7 +14,7 @@ from app.schema.assessment import (
     AssessmentQuestionCreate,
     AssessmentQuestionCreatedResponse,
     AssessmentUpdate,
-    ExecuteRequest
+    ExecuteRequest,
 )
 from app.services.assessment import (
     get_all_assessments,
@@ -32,7 +32,6 @@ from app.services.assessment import (
     activate_assessment,
     add_question_to_assessment,
     remove_question_from_assessment,
-    update_integrity_weight_drafts
 )
 from app.schema.candidate_response import (
     CandidateResponseResponse,
@@ -45,16 +44,22 @@ from app.schema.metrics_radar import MetricsRadarResponse
 from app.services.reporting_candidate_metrics import get_metrics_radar
 from app.services.candidate import get_candidate_assessment_session
 from app.schema.integrity_weight import (
-    IntegrityWeightsResponse,
-    IntegrityWeightsUpdateRequest
+    PreAssessmentIntegrityWeightRequest,
+    PreAssessmentIntegrityWeightResponse,
 )
-from app.services.assessment import get_integrity_weights
+from app.services.assessment import (
+    request_pre_assessment_integrity_recommendations,
+)
 
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 candidate_response_router = APIRouter(
     prefix="/candidate-assessments",
     tags=["candidate-assessments"],
+)
+integrity_weights_router = APIRouter(
+    prefix="/integrity-weights",
+    tags=["integrity-weights"],
 )
 
 
@@ -506,46 +511,24 @@ def read_metrics_radar(
     return get_metrics_radar(db, candidate_assessment_id)
 
 
-@router.get(
-    "/{assessment_id}/integrity-weights",
-    response_model=IntegrityWeightsResponse,
+@integrity_weights_router.post(
+    "/recommendations",
+    response_model=PreAssessmentIntegrityWeightResponse,
 )
-async def get_assessment_integrity_weights(
-    assessment_id: int,
+async def request_pre_assessment_integrity_recommendations_route(
+    payload: PreAssessmentIntegrityWeightRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     if current_user.get("role") != "RECRUITER":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only recruiters can view integrity weights.",
-        )
-    return get_integrity_weights(
-        db,
-        assessment_id,
-        int(current_user["user_id"]),
-    )
-
-
-@router.put(
-    "/{assessment_id}/integrity-weights",
-    response_model=IntegrityWeightsResponse,
-)
-async def update_assessment_integrity_weights(
-    assessment_id: int,
-    payload: IntegrityWeightsUpdateRequest,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
-):
-    if current_user.get("role") != "RECRUITER":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only recruiters can update integrity weights.",
+            detail=(
+                "Only recruiters can request integrity recommendations."
+            ),
         )
 
-    return update_integrity_weight_drafts(
+    return request_pre_assessment_integrity_recommendations(
         db=db,
-        assessment_id=assessment_id,
-        recruiter_id=int(current_user["user_id"]),
-        weights=payload.weights,
+        adv_question_ids=payload.adv_question_ids,
     )

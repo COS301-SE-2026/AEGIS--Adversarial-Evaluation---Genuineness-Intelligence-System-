@@ -11,66 +11,11 @@ class EvidenceStatus(str, Enum):
     FAILED = "failed"
 
 
-class IntegrityWeightResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    assessment_q_id: int
-    adv_question_id: int
-    display_order: int | None = None
-    default_weight: float = Field(
-        default=1.0,
-        ge=0.0,
-        le=1.0,
-    )
-    recruiter_weight: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-    )
-    ai_suggested_weight: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-    )
-    approved_weight: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-    )
-    effective_weight: float = Field(
-        default=1.0,
-        ge=0.0,
-        le=1.0,
-    )
-    recommendation_status: RecommendationStatus
-    ai_recommendation: str | None = None
-    ai_generated_at: datetime | None = None
-    evidence_status: EvidenceStatus = EvidenceStatus.NOT_AVAILABLE
-    historical_sample_size: int | None = Field(
-        default=None,
-        ge=0,
-    )
+class PreAssessmentIntegrityWeightRequest(BaseModel):
+    adv_question_ids: list[int] = Field(..., min_length=1)
 
 
-class IntegrityWeightsResponse(BaseModel):
-    assessment_id: int
-    weights: list[IntegrityWeightResponse]
-
-
-class IntegrityWeightDraft(BaseModel):
-    assessment_q_id: int
-    recruiter_weight: float | None = Field(
-        default=None,
-        ge=0.0,
-        le=1.0,
-    )
-
-
-class IntegrityWeightsUpdateRequest(BaseModel):
-    weights: list[IntegrityWeightDraft]
-
-
-class IntegrityWeightRecommendationResponse(BaseModel):
-    assessment_q_id: int
+class PreAssessmentIntegrityWeightRecommendation(BaseModel):
     adv_question_id: int
     ai_suggested_weight: float | None = Field(
         default=None,
@@ -81,17 +26,9 @@ class IntegrityWeightRecommendationResponse(BaseModel):
     ai_recommendation: str | None = None
     ai_generated_at: datetime | None = None
     evidence_status: EvidenceStatus
-    historical_sample_size: int | None = Field(
-        default=None,
-        ge=0,
-    )
+    historical_sample_size: int = Field(ge=0)
     failure_details: str | None = None
 
 
-class IntegrityWeightRecommendationsResponse(BaseModel):
-    assessment_id: int
-    recommendations: list[IntegrityWeightRecommendationResponse]
-
-
-class IntegrityWeightRecommendationsRequest(BaseModel):
-    assessment_q_ids: list[int] | None = None
+class PreAssessmentIntegrityWeightResponse(BaseModel):
+    recommendations: list[PreAssessmentIntegrityWeightRecommendation]
