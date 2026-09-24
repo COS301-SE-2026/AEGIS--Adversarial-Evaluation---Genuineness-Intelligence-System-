@@ -77,3 +77,16 @@ class IntegrityWeightRecommendationsResponse(BaseModel):
 class IntegrityWeightsResponse(BaseModel):
     assessment_id: int
     weights: list[IntegrityWeightResponse]
+
+
+class IntegrityWeightDraft(BaseModel):
+    assessment_q_id: int
+    recruiter_weight: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+
+
+class IntegrityWeightsUpdateRequest(BaseModel):
+    weights: list[IntegrityWeightDraft]
