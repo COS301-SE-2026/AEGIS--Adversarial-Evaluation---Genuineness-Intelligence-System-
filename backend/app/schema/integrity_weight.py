@@ -90,3 +90,25 @@ class IntegrityWeightDraft(BaseModel):
 
 class IntegrityWeightsUpdateRequest(BaseModel):
     weights: list[IntegrityWeightDraft]
+
+
+class IntegrityWeightRecommendationResponse(BaseModel):
+    assessment_q_id: int
+    adv_question_id: int
+    ai_suggested_weight: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+    recommendation_status: RecommendationStatus
+    ai_recommendation: str | None = None
+    ai_generated_at: datetime | None = None
+    evidence_status: EvidenceStatus
+    historical_sample_size: int | None = Field(
+        default=None,
+        ge=0,
+    )
+    failure_details: str | None = None
+
+class IntegrityWeightRecommendationsRequest(BaseModel):
+    assessment_q_ids: list[int] | None = None
