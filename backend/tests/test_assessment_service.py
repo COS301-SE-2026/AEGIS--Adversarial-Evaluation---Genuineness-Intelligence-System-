@@ -17,6 +17,7 @@ from app.models.candidate_response import CandidateResponse, CorrectnessStatus
 from app.models.question_bank import QuestionBank
 from app.models.user import User
 from app.schema.candidate_response import CandidateResponseResponse
+from app.schema.integrity_weight import IntegrityWeightDraft
 from app.services.assessment import (
     QuestionBehavior,
     _gather_behavioral_summary_data,
@@ -38,10 +39,12 @@ from app.services.assessment import (
     start_candidate_assessment,
     submit_candidate_assessment,
     update_assessment,
-    get_integrity_weights
+    get_integrity_weights,
+    update_integrity_weight_drafts
 )
 from app.schema.candidate_response import ResponseCreate
 from app.models.question_bank import QuestionType
+from app.schema.integrity_weight import IntegrityWeightDraft
 
 
 def _make_mock_db_for_all(assessments):
@@ -1767,3 +1770,89 @@ def test_get_integrity_weights_passes_recruiter_ownership(mock_db):
             .filter.call_args
         )
         assert filter_call is not None
+
+
+def _make_integrity_query(result):
+    query = MagicMock()
+    query.filter.return_value.first.return_value = result
+    query.filter.return_value.all.return_value = result
+    return query
+
+
+def test_update_integrity_weight_drafts_updates_only_recruiter_weight():
+    assessment = MagicMock()
+    assessment.assessment_id = 28
+
+    question = MagicMock()
+    question.assessment_q_id = 12
+    question.recruiter_weight = None
+    question.approved_weight = 0.4
+    question.ai_suggested_weight = 0.7
+    question.recommendation_status = "pending"
+    question.ai_recommendation = "Historical evidence"
+    question.ai_generated_at = None
+
+    mock_db = MagicMock()
+    mock_db.query.side_effect = [
+        _make_integrity_query(assessment),
+        _make_integrity_query([question]),
+    ]
+    expected_response = MagicMock()
+    with patch(
+        "app.services.assessment.get_integrity_weights",
+        return_value=expected_response,
+    ) as mock_get:
+        result = update_integrity_weight_drafts(
+            db=mock_db,
+            assessment_id=28,
+            recruiter_id=5,
+            weights=[
+                IntegrityWeightDraft(
+                    assessment_q_id=12,
+                    recruiter_weight=0.8,
+                )
+            ],
+        )
+    assert result is expected_response
+    assert question.recruiter_weight == 0.8
+    assert question.approved_weight == 0.4
+    assert question.ai_suggested_weight == 0.7
+    assert question.recommendation_status == "pending"
+    assert question.ai_recommendation == "Historical evidence"
+    mock_db.commit.assert_called_once()
+    mock_get.assert_called_once_with(mock_db, 28, 5)
+
+
+def test_update_integrity_weight_drafts_clears_explicit_null():
+    assessment = MagicMock()
+    question = MagicMock()
+    question.assessment_q_id = 13
+    question.recruiter_weight = 0.6
+    question.approved_weight = 0.5
+
+    mock_db = MagicMock()
+    mock_db.query.side_effect = [
+        _make_integrity_query(assessment),
+        _make_integrity_query([question]),
+    ]
+
+    with patch(
+        "app.services.assessment.get_integrity_weights",
+        return_value=MagicMock(),
+    ):
+        update_integrity_weight_drafts(
+            db=mock_db,
+            assessment_id=28,
+            recruiter_id=5,
+            weights=[
+                IntegrityWeightDraft(
+                    assessment_q_id=13,
+                    recruiter_weight=None,
+                )
+            ],
+        )
+
+    assert question.recruiter_weight is None
+    assert question.approved_weight == 0.5
+    mock_db.commit.assert_called_once()
+
