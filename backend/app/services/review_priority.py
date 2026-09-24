@@ -174,7 +174,7 @@ def get_question_review_score(
     return score, [sentence for _, sentence in entries]
 
 
-def _band_for_score(score: int) -> str:
+def band_for_score(score: int) -> str:
     if score < 30:
         return "low"
     if score < 60:
@@ -303,7 +303,7 @@ def get_review_priority(
 
     return ReviewPriorityResponse(
         score=overall_score,
-        band=_band_for_score(overall_score),
+        band=band_for_score(overall_score),
         contributing_factors=contributing_factors,
         notable_question=notable_question,
     )

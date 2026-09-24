@@ -43,7 +43,8 @@ from app.services.review_priority import get_review_priority
 from app.schema.metrics_radar import MetricsRadarResponse
 from app.services.reporting_candidate_metrics import get_metrics_radar
 from app.services.candidate import get_candidate_assessment_session
-
+from app.schema.question_analytics import QuestionAnalyticsResponse
+from app.services.question_analytics import get_question_analytics
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 candidate_response_router = APIRouter(
@@ -498,3 +499,20 @@ def read_metrics_radar(
             detail="Only recruiters can access candidate metrics radar.",
         )
     return get_metrics_radar(db, candidate_assessment_id)
+
+
+@candidate_response_router.get(
+    "/{candidate_assessment_id}/question-analytics",
+    response_model=QuestionAnalyticsResponse,
+)
+def read_question_analytics(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can access question analytics.",
+        )
+    return get_question_analytics(db, candidate_assessment_id)
