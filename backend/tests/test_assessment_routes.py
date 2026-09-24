@@ -1355,3 +1355,82 @@ def test_get_integrity_weights_requires_authentication(client):
         "/api/v1/assessments/42/integrity-weights"
     )
     assert response.status_code == 401
+
+
+_INTEGRITY_WEIGHTS_UPDATE_PATCH = (
+    "app.api.routes.assessment.update_integrity_weight_drafts"
+)
+
+
+def test_update_integrity_weights_returns_persisted_configuration(
+    recruiter_client,
+    mock_db,
+):
+    payload = {
+        "assessment_id": 28,
+        "weights": [
+            {
+                "assessment_q_id": 12,
+                "adv_question_id": 101,
+                "display_order": 1,
+                "default_weight": 1.0,
+                "recruiter_weight": 0.8,
+                "ai_suggested_weight": None,
+                "approved_weight": None,
+                "effective_weight": 1.0,
+                "recommendation_status": "not_requested",
+                "ai_recommendation": None,
+                "ai_generated_at": None,
+                "evidence_status": "not_available",
+                "historical_sample_size": None,
+            }
+        ],
+    }
+
+    with patch(
+        _INTEGRITY_WEIGHTS_UPDATE_PATCH,
+        return_value=payload,
+    ) as mock_update:
+        response = recruiter_client.put(
+            "/api/v1/assessments/28/integrity-weights",
+            json={
+                "weights": [
+                    {
+                        "assessment_q_id": 12,
+                        "recruiter_weight": 0.8,
+                    }
+                ]
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json() == payload
+    mock_update.assert_called_once()
+    args = mock_update.call_args.kwargs
+    assert args["db"] is mock_db
+    assert args["assessment_id"] == 28
+    assert args["recruiter_id"] == 5
+    assert len(args["weights"]) == 1
+    assert args["weights"][0].assessment_q_id == 12
+    assert args["weights"][0].recruiter_weight == 0.8
+
+
+def test_update_integrity_weights_rejects_non_recruiter(
+    auth_client,
+    mock_db,
+):
+    response = auth_client.put(
+        "/api/v1/assessments/28/integrity-weights",
+        json={
+            "weights": [
+                {
+                    "assessment_q_id": 12,
+                    "recruiter_weight": 0.8,
+                }
+            ]
+        },
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "Only recruiters can update integrity weights."
+    )
