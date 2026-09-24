@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import keyword
 import logging
+import math
 import uuid
 from typing import Any, Optional
 from fastapi import HTTPException, status
@@ -31,19 +32,21 @@ from app.services.review_priority import get_review_priority
 from app.services.test_cases import get_test_cases_by_question_id
 from app.schema.integrity_weight import (
     EvidenceStatus,
+    IntegrityWeightRecommendationResponse,
+    IntegrityWeightRecommendationsResponse,
     IntegrityWeightResponse,
     IntegrityWeightsResponse,
-)
-from app.models.assessment_question import RecommendationStatus
-from app.schema.integrity_weight import (
     IntegrityWeightDraft,
 )
+from app.models.assessment_question import RecommendationStatus
 
 _logger = logging.getLogger(__name__)
 
 ASSESSMENT_NOT_FOUND = "Assessment not found"
 
 _BEHAVIORAL_SUMMARY_MODEL = "gemini-3.1-flash-lite"
+_INTEGRITY_WEIGHT_MODEL = "gemini-3.1-flash-lite"
+MIN_WEIGHT_RECOMMENDATION_SAMPLES = 3
 
 _BEHAVIORAL_SUMMARY_SYSTEM_PROMPT = (
     "You are summarising behavioral telemetry captured during a "
@@ -79,7 +82,6 @@ _BEHAVIORAL_SUMMARY_SYSTEM_PROMPT = (
     "or used AI — only describe what the data shows. Keep the "
     "whole summary to at most two short paragraphs."
 )
-
 
 def _norm(v):
     return str(v).strip().lower()
@@ -1491,3 +1493,96 @@ def update_integrity_weight_drafts(
         assessment_id,
         recruiter_id,
     )
+
+
+def _historical_integrity_evidence(
+    db: Session,
+    assessment_q_id: int,
+) -> dict[str, float | int]:
+    rows = (
+        db.query(
+            CandidateAssessment.candidate_assess_id,
+            CandidateResponseMetrics.active_time_ms,
+            CandidateResponseMetrics.focus_loss_time_ms,
+            CandidateResponseMetrics.paste_char_count,
+            CandidateResponseMetrics.chars_alnum,
+            CandidateResponseMetrics.chars_special,
+            CandidateResponseMetrics.copy_char_count,
+            CandidateResponseMetrics.copy_event_count,
+        )
+        .join(
+            CandidateResponse,
+            CandidateResponse.candidate_assessment_id
+            == CandidateAssessment.candidate_assess_id,
+        )
+        .join(
+            CandidateResponseMetrics,
+            CandidateResponseMetrics.candidate_response_id
+            == CandidateResponse.response_id,
+        )
+        .filter(
+            CandidateResponse.assessment_question_id == assessment_q_id,
+            CandidateAssessment.status == SessionStatus.COMPLETED,
+        )
+        .all()
+    )
+
+    if not rows:
+        return {"sample_size": 0}
+
+    def average(attribute: str) -> float:
+        values = [
+            float(getattr(row, attribute) or 0)
+            for row in rows
+        ]
+        return sum(values) / len(values)
+
+    return {
+        "sample_size": len({row[0] for row in rows}),
+        "active_time_ms": average("active_time_ms"),
+        "focus_loss_time_ms": average("focus_loss_time_ms"),
+        "paste_char_count": average("paste_char_count"),
+        "copy_char_count": average("copy_char_count"),
+        "copy_event_count": average("copy_event_count"),
+    }
+
+
+def _parse_integrity_recommendations(
+    raw_text: str,
+    expected_question_ids: set[int],
+) -> dict[int, tuple[float, str]]:
+    try:
+        result = json.loads(raw_text)
+        items = result["recommendations"]
+        if not isinstance(items, list):
+            raise ValueError("recommendations must be a list")
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
+        raise ValueError("Invalid AI recommendation format") from error
+
+    recommendations: dict[int, tuple[float, str]] = {}
+    for item in items:
+        try:
+            question_id = int(item["assessment_q_id"])
+            suggested_weight = float(item["suggested_weight"])
+            recommendation = str(item["recommendation"]).strip()
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError("Invalid AI recommendation item") from error
+
+        if question_id in recommendations:
+            raise ValueError("AI returned duplicate assessment question IDs")
+        if not 0.0 <= suggested_weight <= 1.0:
+            raise ValueError("AI suggested weights must be between 0 and 1")
+        if not recommendation:
+            raise ValueError("AI recommendation text cannot be empty")
+        recommendations[question_id] = (suggested_weight, recommendation)
+
+    if set(recommendations) != expected_question_ids:
+        raise ValueError(
+            "AI recommendations must contain exactly the requested questions"
+        )
+
+    total = sum(weight for weight, _ in recommendations.values())
+    if not math.isclose(total, 1.0, abs_tol=1e-6):
+        raise ValueError("AI recommendations must sum to 1.0")
+
+    return recommendations
