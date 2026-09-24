@@ -38,6 +38,7 @@ from app.services.assessment import (
     start_candidate_assessment,
     submit_candidate_assessment,
     update_assessment,
+    get_integrity_weights
 )
 from app.schema.candidate_response import ResponseCreate
 from app.models.question_bank import QuestionType
@@ -1744,3 +1745,25 @@ def test_gather_behavioral_summary_data_empty_when_no_rows():
     result = _gather_behavioral_summary_data(mock_db, session, 12)
 
     assert result == []
+
+def test_get_integrity_weights_passes_recruiter_ownership(mock_db):
+    with patch(
+        "app.services.assessment.IntegrityWeightsResponse"
+    ) as response_model:
+        assessment = MagicMock()
+        assessment.assessment_id = 42
+        assessment.assessment_questions = []
+
+        (
+            mock_db.query.return_value
+            .options.return_value
+            .filter.return_value
+            .first.return_value
+        ) = assessment
+        get_integrity_weights(mock_db, 42, 5)
+        filter_call = (
+            mock_db.query.return_value
+            .options.return_value
+            .filter.call_args
+        )
+        assert filter_call is not None
