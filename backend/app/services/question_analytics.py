@@ -68,39 +68,11 @@ def _build_analytics_metrics(
     )
 
 
-def _build_answer(
-    response: CandidateResponse,
-) -> QuestionAnalyticsAnswer:
-    return QuestionAnalyticsAnswer(
-        candidate_answer=response.candidate_answer,
-        score=response.score,
-        is_correct=(
-            response.is_correct.value
-            if response.is_correct is not None
-            else None
-        ),
-    )
-
-
-def get_question_analytics(
+def _build_question_analytics_items(
     db: Session,
     candidate_assessment_id: int,
-) -> QuestionAnalyticsResponse:
-    session = (
-        db.query(CandidateAssessment)
-        .filter(
-            CandidateAssessment.candidate_assess_id
-            == candidate_assessment_id
-        )
-        .first()
-    )
-
-    if session is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment session not found",
-        )
-
+    session: CandidateAssessment,
+) -> list[QuestionAnalyticsItem]:
     rows = (
         db.query(
             AssessmentQuestion,
@@ -235,7 +207,47 @@ def get_question_analytics(
             )
         )
 
+    return questions
+
+
+def _build_answer(
+    response: CandidateResponse,
+) -> QuestionAnalyticsAnswer:
+    return QuestionAnalyticsAnswer(
+        candidate_answer=response.candidate_answer,
+        score=response.score,
+        is_correct=(
+            response.is_correct.value
+            if response.is_correct is not None
+            else None
+        ),
+    )
+
+
+def get_question_analytics(
+    db: Session,
+    candidate_assessment_id: int,
+) -> QuestionAnalyticsResponse:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id
+        )
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment session not found",
+        )
+
     return QuestionAnalyticsResponse(
         candidate_assessment_id=candidate_assessment_id,
-        questions=questions,
+        questions=_build_question_analytics_items(
+            db,
+            candidate_assessment_id,
+            session,
+        ),
     )
