@@ -32,6 +32,7 @@ from app.services.assessment import (
     activate_assessment,
     add_question_to_assessment,
     remove_question_from_assessment,
+    update_integrity_weight_drafts
 )
 from app.schema.candidate_response import (
     CandidateResponseResponse,
@@ -43,7 +44,10 @@ from app.services.review_priority import get_review_priority
 from app.schema.metrics_radar import MetricsRadarResponse
 from app.services.reporting_candidate_metrics import get_metrics_radar
 from app.services.candidate import get_candidate_assessment_session
-from app.schema.integrity_weight import IntegrityWeightsResponse
+from app.schema.integrity_weight import (
+    IntegrityWeightsResponse,
+    IntegrityWeightsUpdateRequest
+)
 from app.services.assessment import get_integrity_weights
 
 
@@ -520,4 +524,28 @@ async def get_assessment_integrity_weights(
         db,
         assessment_id,
         int(current_user["user_id"]),
+    )
+
+
+@router.put(
+    "/{assessment_id}/integrity-weights",
+    response_model=IntegrityWeightsResponse,
+)
+async def update_assessment_integrity_weights(
+    assessment_id: int,
+    payload: IntegrityWeightsUpdateRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can update integrity weights.",
+        )
+
+    return update_integrity_weight_drafts(
+        db=db,
+        assessment_id=assessment_id,
+        recruiter_id=int(current_user["user_id"]),
+        weights=payload.weights,
     )
