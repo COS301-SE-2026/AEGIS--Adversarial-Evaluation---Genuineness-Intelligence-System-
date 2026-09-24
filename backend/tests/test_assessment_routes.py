@@ -1434,3 +1434,71 @@ def test_update_integrity_weights_rejects_non_recruiter(
     assert response.json()["detail"] == (
         "Only recruiters can update integrity weights."
     )
+
+
+def test_update_integrity_weights_requires_authentication(client):
+    response = client.put(
+        "/api/v1/assessments/28/integrity-weights",
+        json={
+            "weights": [
+                {
+                    "assessment_q_id": 12,
+                    "recruiter_weight": 0.8,
+                }
+            ]
+        },
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.parametrize("invalid_weight", [-0.1, 1.1])
+def test_update_integrity_weights_rejects_invalid_values(
+    recruiter_client,
+    mock_db,
+    invalid_weight,
+):
+    with patch(_INTEGRITY_WEIGHTS_UPDATE_PATCH) as mock_update:
+        response = recruiter_client.put(
+            "/api/v1/assessments/28/integrity-weights",
+            json={
+                "weights": [
+                    {
+                        "assessment_q_id": 12,
+                        "recruiter_weight": invalid_weight,
+                    }
+                ]
+            },
+        )
+    assert response.status_code == 422
+    mock_update.assert_not_called()
+
+
+def test_update_integrity_weights_accepts_explicit_null(
+    recruiter_client,
+    mock_db,
+):
+    with patch(
+        _INTEGRITY_WEIGHTS_UPDATE_PATCH,
+        return_value={
+            "assessment_id": 28,
+            "weights": [],
+        },
+    ) as mock_update:
+        response = recruiter_client.put(
+            "/api/v1/assessments/28/integrity-weights",
+            json={
+                "weights": [
+                    {
+                        "assessment_q_id": 13,
+                        "recruiter_weight": None,
+                    }
+                ]
+            },
+        )
+    assert response.status_code == 200
+    mock_update.assert_called_once()
+    submitted_weight = (
+        mock_update.call_args.kwargs["weights"][0]
+    )
+    assert submitted_weight.assessment_q_id == 13
+    assert submitted_weight.recruiter_weight is None
