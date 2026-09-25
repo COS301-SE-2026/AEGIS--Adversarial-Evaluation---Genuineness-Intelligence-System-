@@ -3,8 +3,8 @@ import { Question } from "./question.type";
 export function TestDescriptionCard({ question }: {question: Question}) {
     return (
         <div>
-            <div className="flex flex-col items-center bg-code-editor w-24 h-14 border-b p-4">
-                    <h2>Description</h2>
+            <div className="flex flex-col items-center bg-code-editor tracking-widest w-36 h-14 border-b p-4">
+                    <h1>Description</h1>
             </div>
             <div className="flex-1 w-full max-w-xl min-h-175 bg-code-editor p-6 rounded-md">
                 <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between min-w-0">

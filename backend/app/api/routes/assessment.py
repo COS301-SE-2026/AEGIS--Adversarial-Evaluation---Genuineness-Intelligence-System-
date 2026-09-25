@@ -47,13 +47,14 @@ from app.schema.integrity_weight import (
     PreAssessmentIntegrityWeightRequest,
     PreAssessmentIntegrityWeightResponse,
     PreAssessmentWeightDecisionsRequest,
-    PreAssessmentWeightDecisionsResponse
+    PreAssessmentWeightDecisionsResponse,
 )
 from app.services.assessment import (
     request_pre_assessment_integrity_recommendations,
-    apply_pre_assessment_weight_decisions
+    apply_pre_assessment_weight_decisions,
 )
-
+from app.schema.question_analytics import QuestionAnalyticsResponse
+from app.services.question_analytics import get_question_analytics
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 candidate_response_router = APIRouter(
@@ -557,4 +558,24 @@ async def apply_pre_assessment_weight_decisions_route(
         db=db,
         recruiter_id=int(current_user["user_id"]),
         payload=payload,
+    )
+
+
+@candidate_response_router.get(
+    "/{candidate_assessment_id}/question-analytics",
+    response_model=QuestionAnalyticsResponse,
+)
+def read_question_analytics(
+    candidate_assessment_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can access question analytics.",
+        )
+
+    return get_question_analytics(
+        db, candidate_assessment_id,
     )
