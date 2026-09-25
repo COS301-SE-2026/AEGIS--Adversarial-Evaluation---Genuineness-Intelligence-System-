@@ -576,7 +576,8 @@ const handleRejectSuggestion = (questionId: string) => {
             {[
               { id: 0, label: "Basic", sub: "details" },
               { id: 1, label: "Questions", sub: "select" },
-              { id: 2, label: "Confirm", sub: "final" },
+              { id: 2, label: "Weighting", sub: "integrity" },
+              { id: 3, label: "Confirm", sub: "final" },
             ].map((s) => {
               let stepCircleClass = "border-default-border text-default-border";
 
@@ -796,8 +797,148 @@ const handleRejectSuggestion = (questionId: string) => {
   </div>
 )}
 
+{step === 2 && (
+  <div className="mb-6">
+    <div className={sectionTitleCls}>Integrity Weighting</div>
+    <div className="font-jetbrains text-[10px] text-white-smoke/40 mb-4 leading-relaxed">
+      Set the approved integrity weight for each question. AI suggestions are
+      reference only — accepting, editing, or rejecting is always an explicit
+      action and never changes the approved weight on its own.
+    </div>
+
+    {weightsLoading && (
+      <div className="flex items-center justify-center py-10 font-jetbrains text-[12px] text-white-smoke/40">
+        Loading recommendations...
+      </div>
+    )}
+
+    {weightsError && (
+      <div className="mb-3 font-jetbrains text-[10px] text-status-warning">
+        Recommendations unavailable ({weightsError}) — weights default to 0.5 and can still be set manually.
+      </div>
+    )}
+
+    {!weightsLoading && selectedIds.length === 0 && (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="font-staatliches text-[18px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1.5">
+          NO QUESTIONS SELECTED
+        </div>
+        <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.22)]">
+          Go back and select at least one question to configure weighting.
+        </div>
+      </div>
+    )}
+
+    <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
+      {selectedIds.map((rawId) => {
+        const id = String(rawId);
+        const question = questions.find((q) => q.adv_question_id === rawId);
+        const rec = recommendations[id];
+        const approved = approvedWeights[id] ?? rec?.current_approved_weight ?? 0.5;
+        const decision = weightDecisions[id];
+        const label = question
+          ? question.content.length > 90
+            ? `${question.content.slice(0, 90)}...`
+            : question.content
+          : `Question #${id}`;
+
+        return (
+          <div key={id} className="border border-default-border rounded-[5px] px-4 py-3.5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke min-w-0 truncate">
+                {label}
+              </div>
+              {rec && (
+                <span
+                  className={`shrink-0 font-jetbrains text-[9px] px-2 py-0.5 rounded border uppercase tracking-wide ${EVIDENCE_STYLE[rec.evidence_status]}`}
+                >
+                  {EVIDENCE_LABEL[rec.evidence_status]}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5">
+              <div>
+                <label className={`${labelCls} block mb-1.5`}>Approved Weight</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={approved}
+                  onChange={(e) =>
+                    handleWeightChange(id, Math.min(1, Math.max(0, Number(e.target.value))))
+                  }
+                  className={inputCls}
+                />
+                {decision && (
+                  <div
+                    className={`mt-1.5 font-jetbrains text-[9px] uppercase tracking-wide ${
+                      decision === "REJECT" ? "text-white-smoke/40" : "text-status-success"
+                    }`}
+                  >
+                    {decision === "ACCEPT"
+                      ? "Suggestion accepted"
+                      : decision === "MODIFY"
+                      ? "Manually set"
+                      : "Suggestion rejected"}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={`${labelCls} block mb-1.5`}>AI Suggested Weight</label>
+                {rec?.recommendation_available && rec.ai_suggested_weight !== null ? (
+                  <>
+                    <div className="bg-tertiary-surface border border-default-border rounded-[5px] px-3.5 py-2.5 font-ibm text-[13px] text-white-smoke/80">
+                      {rec.ai_suggested_weight.toFixed(2)}
+                    </div>
+                    {rec.recommendation_reason && (
+                      <div className="mt-1.5 font-jetbrains text-[9px] text-white-smoke/40 leading-relaxed">
+                        {rec.recommendation_reason}
+                      </div>
+                    )}
+                    <div className="flex gap-1.5 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAcceptSuggestion(rec)}
+                        className={`font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase transition-colors duration-150 ${
+                          decision === "ACCEPT"
+                            ? "bg-status-success-dim/20 border-status-success text-status-success"
+                            : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+                        }`}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRejectSuggestion(id)}
+                        className={`font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase transition-colors duration-150 ${
+                          decision === "REJECT"
+                            ? "bg-system-red/15 border-system-red text-system-red"
+                            : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+                        }`}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-tertiary-surface border border-default-border rounded-[5px] px-3.5 py-2.5 font-jetbrains text-[10px] text-white-smoke/40">
+                    No recommendation — {rec ? EVIDENCE_LABEL[rec.evidence_status].toLowerCase() : "not yet loaded"}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+
             {/* Section 3 */}
-            {step === 2 && (
+            {step === 3 && (
               <div>
                 <div className="font-staatliches text-base tracking-[0.07em] mb-4 flex items-center gap-2">
                   READY TO GO
