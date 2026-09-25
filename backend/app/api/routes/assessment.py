@@ -46,9 +46,12 @@ from app.services.candidate import get_candidate_assessment_session
 from app.schema.integrity_weight import (
     PreAssessmentIntegrityWeightRequest,
     PreAssessmentIntegrityWeightResponse,
+    PreAssessmentWeightDecisionsRequest,
+    PreAssessmentWeightDecisionsResponse
 )
 from app.services.assessment import (
     request_pre_assessment_integrity_recommendations,
+    apply_pre_assessment_weight_decisions
 )
 
 
@@ -530,5 +533,28 @@ async def request_pre_assessment_integrity_recommendations_route(
 
     return request_pre_assessment_integrity_recommendations(
         db=db,
-        adv_question_ids=payload.adv_question_ids,
+        recruiter_id=int(current_user["user_id"]),
+        questions=payload.questions,
+    )
+
+
+@integrity_weights_router.post(
+    "/decisions",
+    response_model=PreAssessmentWeightDecisionsResponse,
+)
+async def apply_pre_assessment_weight_decisions_route(
+    payload: PreAssessmentWeightDecisionsRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can decide integrity weights.",
+        )
+
+    return apply_pre_assessment_weight_decisions(
+        db=db,
+        recruiter_id=int(current_user["user_id"]),
+        payload=payload,
     )
