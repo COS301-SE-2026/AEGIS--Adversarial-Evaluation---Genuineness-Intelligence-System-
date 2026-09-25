@@ -17,7 +17,7 @@ from app.models.candidate_response import CandidateResponse, CorrectnessStatus
 from app.models.question_bank import QuestionBank
 from app.models.user import User
 from app.schema.candidate_response import CandidateResponseResponse
-from app.schema.integrity_weight import IntegrityWeightDraft
+
 from app.services.assessment import (
     QuestionBehavior,
     _gather_behavioral_summary_data,
@@ -39,12 +39,9 @@ from app.services.assessment import (
     start_candidate_assessment,
     submit_candidate_assessment,
     update_assessment,
-    get_integrity_weights,
-    update_integrity_weight_drafts
 )
 from app.schema.candidate_response import ResponseCreate
 from app.models.question_bank import QuestionType
-from app.schema.integrity_weight import IntegrityWeightDraft
 
 
 def _make_mock_db_for_all(assessments):
