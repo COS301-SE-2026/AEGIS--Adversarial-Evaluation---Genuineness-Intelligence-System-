@@ -1933,3 +1933,36 @@ def test_parse_integrity_recommendations_accepts_valid_allocation():
         491: (0.7, "Higher review priority."),
         492: (0.3, "Lower review priority."),
     }
+
+def test_persist_pre_assessment_recommendations_creates_set_and_items():
+    db = MagicMock()
+    recommendation_id = uuid.uuid4()
+    def refresh(obj):
+        obj.recommendation_id = recommendation_id
+    db.refresh.side_effect = refresh
+    recommendations = [
+        PreAssessmentIntegrityWeightRecommendation(
+            adv_question_id=491,
+            recruiter_weight=0.8,
+            ai_suggested_weight=0.7,
+            recommendation_status=RecommendationStatus.PENDING,
+            ai_recommendation="Higher priority.",
+            evidence_status=EvidenceStatus.AVAILABLE,
+            historical_sample_size=5,
+        ),
+    ]
+    result = _persist_pre_assessment_recommendations(
+        db,
+        recruiter_id=5,
+        recommendations=recommendations,
+    )
+    assert result.recommendation_id == str(recommendation_id)
+    assert len(result.recommendations) == 1
+    db.add.assert_called_once()
+    db.commit.assert_called_once()
+    stored_set = db.add.call_args.args[0]
+    assert stored_set.recruiter_id == 5
+    assert len(stored_set.items) == 1
+    assert stored_set.items[0].adv_question_id == 491
+    assert stored_set.items[0].recruiter_weight == 0.8
+    assert stored_set.items[0].ai_suggested_weight == 0.7
