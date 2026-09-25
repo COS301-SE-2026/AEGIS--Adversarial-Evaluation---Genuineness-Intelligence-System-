@@ -367,6 +367,21 @@ const allFilteredSelected =
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
+  
+  const handleWeightChange = (questionId: string, value: number) => {
+  setApprovedWeights((prev) => ({ ...prev, [questionId]: value }));
+  setWeightDecisions((prev) => ({ ...prev, [questionId]: "MODIFY" }));
+};
+
+const handleAcceptSuggestion = (rec: IntegrityWeightRecommendation) => {
+  if (rec.ai_suggested_weight === null) return;
+  setApprovedWeights((prev) => ({ ...prev, [rec.question_id]: rec.ai_suggested_weight as number }));
+  setWeightDecisions((prev) => ({ ...prev, [rec.question_id]: "ACCEPT" }));
+};
+
+const handleRejectSuggestion = (questionId: string) => {
+  setWeightDecisions((prev) => ({ ...prev, [questionId]: "REJECT" }));
+};
 
   const createIt = async () => {
     setCreateError(null);
