@@ -1298,3 +1298,63 @@ def test_activate_assessment_returns_400_when_not_draft(
             "/api/v1/assessments/10/activate"
         )
     assert response.status_code == 400
+
+
+_INTEGRITY_RECOMMENDATIONS_PATCH = (
+    "app.api.routes.assessment."
+    "request_pre_assessment_integrity_recommendations"
+)
+
+_INTEGRITY_DECISIONS_PATCH = (
+    "app.api.routes.assessment."
+    "apply_pre_assessment_weight_decisions"
+)
+
+
+def test_integrity_recommendations_requires_authentication(
+    client,
+    mock_db,
+):
+    response = client.post(
+        "/api/v1/integrity-weights/recommendations",
+        json={
+            "questions": [
+                {
+                    "adv_question_id": 491,
+                    "recruiter_weight": 0.5,
+                },
+                {
+                    "adv_question_id": 492,
+                    "recruiter_weight": 0.5,
+                },
+            ]
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_integrity_recommendations_rejects_non_recruiter(
+    auth_client,
+    mock_db,
+):
+    response = auth_client.post(
+        "/api/v1/integrity-weights/recommendations",
+        json={
+            "questions": [
+                {
+                    "adv_question_id": 491,
+                    "recruiter_weight": 0.5,
+                },
+                {
+                    "adv_question_id": 492,
+                    "recruiter_weight": 0.5,
+                },
+            ]
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == (
+        "Only recruiters can request integrity recommendations."
+    )
