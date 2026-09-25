@@ -6,7 +6,7 @@ import type {
   Difficulty,
 } from "../../../../app/(admin)/types/assessment";
 import { TARGET_ROLES } from "../../../../app/(admin)/types/mock-data";
-import { apiGet, apiPost } from "@/lib/apiClient";
+import { apiGet, apiPost, apiPut } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { X, Search, Check } from "lucide-react";
 
@@ -41,6 +41,33 @@ interface AdversarialQuestionOption {
   pattern_used?: string | null;
   validation_status: string;
 }
+
+type EvidenceStatus =
+  | "SUFFICIENT_DATA"
+  | "LIMITED_DATA"
+  | "INSUFFICIENT_DATA"
+  | "UNAVAILABLE";
+
+type IntegrityDecision = "ACCEPT" | "MODIFY" | "REJECT";
+
+interface IntegrityWeightRecommendation {
+  question_id: string;
+  current_approved_weight: number;
+  ai_suggested_weight: number | null;
+  recommendation_reason: string | null;
+  evidence_status: EvidenceStatus;
+  recommendation_available: boolean;
+}
+
+interface IntegrityWeightRecommendationsResponse {
+  assessment_id: string;
+  recommendations: IntegrityWeightRecommendation[];
+}
+
+// BACKEND Note: recommendations/decisions/weights endpoints are scoped to  assessment_id, but questions are chosen 
+// before the assessment exists in this wizard. Weighting state is held locally and only PUT/POSTed to the real endpoints
+// after assessment creation. Needs a draft-assessment or question-id-only recommendations path before real integration.
+const USE_MOCK_INTEGRITY_DATA = true;
 
 //type FilterValue = string;
 
