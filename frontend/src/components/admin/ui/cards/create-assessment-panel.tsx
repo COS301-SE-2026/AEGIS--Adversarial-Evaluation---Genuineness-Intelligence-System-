@@ -367,7 +367,7 @@ const allFilteredSelected =
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
-  
+
   const handleWeightChange = (questionId: string, value: number) => {
   setApprovedWeights((prev) => ({ ...prev, [questionId]: value }));
   setWeightDecisions((prev) => ({ ...prev, [questionId]: "MODIFY" }));
@@ -426,6 +426,39 @@ const handleRejectSuggestion = (questionId: string) => {
         );
       } catch {}
     }
+
+    if (!USE_MOCK_INTEGRITY_DATA) {
+  const weightsPayload = {
+    weights: selectedIds.map((id) => {
+      const key = String(id);
+      return { question_id: key, weight: approvedWeights[key] ?? 0.5 };
+    }),
+  };
+  const decisionsPayload = {
+    decisions: selectedIds
+      .map(String)
+      .filter((key) => weightDecisions[key])
+      .map((key) => ({
+        question_id: key,
+        decision: weightDecisions[key],
+        ...(weightDecisions[key] !== "REJECT" ? { approved_weight: approvedWeights[key] } : {}),
+      })),
+  };
+  try {
+    await apiPut(
+      `/api/v1/assessments/${createdAssessmentId}/integrity-weights`,
+      weightsPayload,
+      { headers: getAuthHeaders() },
+    );
+    await apiPost(
+      `/api/v1/assessments/${createdAssessmentId}/integrity-weights/decisions`,
+      decisionsPayload,
+      { headers: getAuthHeaders() },
+    );
+  } catch {
+    // Integrity-weight submission failure must not block assessment creation.
+  }
+}
 
     setIsCreating(false);
     await onCreated?.();
