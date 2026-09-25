@@ -1358,3 +1358,101 @@ def test_integrity_recommendations_rejects_non_recruiter(
     assert response.json()["detail"] == (
         "Only recruiters can request integrity recommendations."
     )
+
+
+def test_integrity_recommendations_calls_service_for_recruiter(
+    recruiter_client,
+    mock_db,
+):
+    service_response = {
+        "recommendation_id": "00000000-0000-0000-0000-000000000001",
+        "recommendations": [],
+    }
+
+    with patch(
+        _INTEGRITY_RECOMMENDATIONS_PATCH,
+        return_value=service_response,
+    ) as mock_request:
+        response = recruiter_client.post(
+            "/api/v1/integrity-weights/recommendations",
+            json={
+                "questions": [
+                    {
+                        "adv_question_id": 491,
+                        "recruiter_weight": 0.5,
+                    },
+                    {
+                        "adv_question_id": 492,
+                        "recruiter_weight": 0.5,
+                    },
+                ]
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json() == service_response
+    mock_request.assert_called_once()
+    assert mock_request.call_args.kwargs["db"] is mock_db
+    assert mock_request.call_args.kwargs["recruiter_id"] == 5
+    questions = mock_request.call_args.kwargs["questions"]
+    assert len(questions) == 2
+    assert questions[0].adv_question_id == 491
+    assert questions[0].recruiter_weight == 0.5
+
+
+def test_integrity_decisions_requires_authentication(client, mock_db):
+    response = client.post(
+        "/api/v1/integrity-weights/decisions",
+        json={
+            "recommendation_id": (
+                "00000000-0000-0000-0000-000000000001"
+            ),
+            "decisions": [
+                {
+                    "adv_question_id": 491,
+                    "decision": "accept",
+                }
+            ],
+        },
+    )
+    assert response.status_code == 401
+
+
+def test_integrity_decisions_calls_service_for_recruiter(
+    recruiter_client,
+    mock_db,
+):
+    service_response = {
+        "recommendation_id": (
+            "00000000-0000-0000-0000-000000000001"
+        ),
+        "approved_weights": [
+            {
+                "adv_question_id": 491,
+                "approved_weight": 1.0,
+                "decision": "accept",
+            }
+        ],
+        "total_approved_weight": 1.0,
+        "ready_for_assessment_creation": True,
+    }
+    with patch(
+        _INTEGRITY_DECISIONS_PATCH,
+        return_value=service_response,
+    ) as mock_decide:
+        response = recruiter_client.post(
+            "/api/v1/integrity-weights/decisions",
+            json={
+                "recommendation_id": (
+                    "00000000-0000-0000-0000-000000000001"
+                ),
+                "decisions": [
+                    {
+                        "adv_question_id": 491,
+                        "decision": "accept",
+                    }
+                ],
+            },
+        )
+    assert response.status_code == 200
+    assert response.json() == service_response
