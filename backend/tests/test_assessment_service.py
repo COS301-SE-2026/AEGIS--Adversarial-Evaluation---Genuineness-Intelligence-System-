@@ -39,9 +39,30 @@ from app.services.assessment import (
     start_candidate_assessment,
     submit_candidate_assessment,
     update_assessment,
+    _evidence_status_for,
+    _historical_adversarial_integrity_evidence,
+    _historical_integrity_evidence,
+    _parse_integrity_recommendations,
+    _persist_pre_assessment_recommendations,
+    apply_pre_assessment_weight_decisions,
+    request_pre_assessment_integrity_recommendations,
 )
 from app.schema.candidate_response import ResponseCreate
 from app.models.question_bank import QuestionType
+from app.models.integrity_weight_recommendation import (
+    IntegrityWeightRecommendationItem,
+    IntegrityWeightRecommendationSet,
+    RecommendationSetStatus,
+)
+from app.models.assessment_question import RecommendationStatus
+from app.schema.integrity_weight import (
+    EvidenceStatus,
+    PreAssessmentIntegrityWeightInput,
+    PreAssessmentIntegrityWeightRecommendation,
+    PreAssessmentWeightDecision,
+    PreAssessmentWeightDecisionsRequest,
+    WeightDecision,
+)
 
 
 def _make_mock_db_for_all(assessments):
@@ -1745,3 +1766,143 @@ def test_gather_behavioral_summary_data_empty_when_no_rows():
     result = _gather_behavioral_summary_data(mock_db, session, 12)
 
     assert result == []
+
+
+@pytest.mark.parametrize(
+    ("recommendation_status", "expected"),
+    [
+        (
+            RecommendationStatus.INSUFFICIENT_DATA,
+            EvidenceStatus.INSUFFICIENT_DATA,
+        ),
+        (
+            RecommendationStatus.FAILED,
+            EvidenceStatus.FAILED,
+        ),
+        (
+            RecommendationStatus.ACCEPTED,
+            EvidenceStatus.AVAILABLE,
+        ),
+        (
+            RecommendationStatus.MODIFIED,
+            EvidenceStatus.AVAILABLE,
+        ),
+        (
+            RecommendationStatus.REJECTED,
+            EvidenceStatus.AVAILABLE,
+        ),
+        (
+            RecommendationStatus.PENDING,
+            EvidenceStatus.NOT_AVAILABLE,
+        ),
+        (
+            RecommendationStatus.NOT_REQUESTED,
+            EvidenceStatus.NOT_AVAILABLE,
+        ),
+    ],
+)
+
+
+def test_evidence_status_for(recommendation_status, expected):
+    assert _evidence_status_for(recommendation_status) == expected
+
+
+def test_historical_integrity_evidence_returns_zero_when_empty():
+    query = MagicMock()
+    query.join.return_value = query
+    query.filter.return_value = query
+    query.all.return_value = []
+    db = MagicMock()
+    db.query.return_value = query
+    assert _historical_integrity_evidence(db, 10) == {
+        "sample_size": 0
+    }
+
+
+def test_historical_integrity_evidence_averages_metrics():
+    row_one = MagicMock(
+        __getitem__=lambda self, index: 1,
+        active_time_ms=100,
+        focus_loss_time_ms=20,
+        paste_char_count=10,
+        chars_alnum=90,
+        chars_special=10,
+        copy_char_count=4,
+        copy_event_count=1,
+    )
+    row_two = MagicMock(
+        __getitem__=lambda self, index: 2,
+        active_time_ms=300,
+        focus_loss_time_ms=40,
+        paste_char_count=30,
+        chars_alnum=110,
+        chars_special=10,
+        copy_char_count=8,
+        copy_event_count=3,
+    )
+
+    query = MagicMock()
+    query.join.return_value = query
+    query.filter.return_value = query
+    query.all.return_value = [row_one, row_two]
+
+    db = MagicMock()
+    db.query.return_value = query
+    result = _historical_integrity_evidence(db, 10)
+    assert result["sample_size"] == 2
+    assert result["active_time_ms"] == pytest.approx(200.0)
+    assert result["focus_loss_time_ms"] == pytest.approx(30.0)
+    assert result["paste_char_count"] == pytest.approx(20.0)
+    assert result["copy_char_count"] == pytest.approx(6.0)
+    assert result["copy_event_count"] == pytest.approx(2.0)
+
+
+def test_historical_adversarial_integrity_evidence_returns_zero_without_links():
+    query = MagicMock()
+    query.filter.return_value = query
+    query.all.return_value = []
+    db = MagicMock()
+    db.query.return_value = query
+    assert _historical_adversarial_integrity_evidence(db, 491) == {
+        "sample_size": 0
+    }
+
+
+def test_historical_adversarial_integrity_evidence_combines_question_history(
+    monkeypatch,
+):
+    db = MagicMock()
+    db.query.return_value.filter.return_value.all.return_value = [
+        (101,),
+        (102,),
+    ]
+    evidence = {
+        101: {
+            "sample_size": 2,
+            "active_time_ms": 100.0,
+            "focus_loss_time_ms": 20.0,
+            "paste_char_count": 10.0,
+            "copy_char_count": 4.0,
+            "copy_event_count": 1.0,
+        },
+        102: {
+            "sample_size": 1,
+            "active_time_ms": 300.0,
+            "focus_loss_time_ms": 40.0,
+            "paste_char_count": 30.0,
+            "copy_char_count": 8.0,
+            "copy_event_count": 3.0,
+        },
+    }
+    monkeypatch.setattr(
+        "app.services.assessment._historical_integrity_evidence",
+        lambda db, question_id: evidence[question_id],
+    )
+    result = _historical_adversarial_integrity_evidence(db, 491)
+    assert result["sample_size"] == 3
+    assert result["active_time_ms"] == pytest.approx(
+        (100 * 2 + 300) / 3
+    )
+    assert result["copy_event_count"] == pytest.approx(
+        (1 * 2 + 3) / 3
+    )
