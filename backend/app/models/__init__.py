@@ -16,6 +16,10 @@ from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.ai_analysis import AIAnalysis
 from app.models.coding_test_cases import CodingTestCase
 from app.models.candidate_test_results import CandidateTestResult
+from app.models.integrity_weight_recommendation import (
+    IntegrityWeightRecommendationItem,
+    IntegrityWeightRecommendationSet
+)
 
 __all__ = [
     "Base",
@@ -36,5 +40,7 @@ __all__ = [
     "AdversarialStrategy",
     "AIAnalysis",
     "CodingTestCase",
-    "CandidateTestResult"
+    "CandidateTestResult",
+    "IntegrityWeightRecommendationSet",
+    "IntegrityWeightRecommendationItem",
 ]
