@@ -32,10 +32,21 @@ from app.services.review_priority import get_review_priority
 from app.services.test_cases import get_test_cases_by_question_id
 from app.schema.integrity_weight import (
     EvidenceStatus,
+    PreAssessmentIntegrityWeightInput,
     PreAssessmentIntegrityWeightRecommendation,
     PreAssessmentIntegrityWeightResponse,
+    ApprovedPreAssessmentWeight,
+    PreAssessmentWeightDecisionsRequest,
+    PreAssessmentWeightDecisionsResponse,
+    WeightDecision
 )
 from app.models.assessment_question import RecommendationStatus
+from math import isclose
+from app.models.integrity_weight_recommendation import (
+    IntegrityWeightRecommendationItem,
+    IntegrityWeightRecommendationSet,
+    RecommendationSetStatus,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -1449,12 +1460,28 @@ def _historical_adversarial_integrity_evidence(
 
 def request_pre_assessment_integrity_recommendations(
     db: Session,
-    adv_question_ids: list[int],
+    recruiter_id: int,
+    questions: list[PreAssessmentIntegrityWeightInput],
 ) -> PreAssessmentIntegrityWeightResponse:
+    adv_question_ids = [question.adv_question_id for question in questions]
     if len(adv_question_ids) != len(set(adv_question_ids)):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Each adversarial question may appear only once.",
+        )
+
+    recruiter_weights = {
+        question.adv_question_id: question.recruiter_weight
+        for question in questions
+    }
+    recruiter_total = sum(
+        weight for weight in recruiter_weights.values()
+        if weight is not None
+    )
+    if recruiter_total > 1.0 + 1e-6:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Recruiter weights cannot exceed 1.0.",
         )
 
     questions = (
@@ -1488,10 +1515,10 @@ def request_pre_assessment_integrity_recommendations(
         for item in evidence.values()
     )
     if insufficient:
-        return PreAssessmentIntegrityWeightResponse(
-            recommendations=[
+        recommendations = [
                 PreAssessmentIntegrityWeightRecommendation(
                     adv_question_id=question_id,
+                    recruiter_weight=recruiter_weights[question_id],
                     recommendation_status=(
                         RecommendationStatus.INSUFFICIENT_DATA
                     ),
@@ -1502,6 +1529,8 @@ def request_pre_assessment_integrity_recommendations(
                 )
                 for question_id in adv_question_ids
             ]
+        return _persist_pre_assessment_recommendations(
+            db, recruiter_id, recommendations,
         )
 
     expected_ids = set(adv_question_ids)
@@ -1509,6 +1538,7 @@ def request_pre_assessment_integrity_recommendations(
         [
             {
                 "adv_question_id": question_id,
+                "recruiter_weight": recruiter_weights[question_id],
                 "historical_evidence": evidence[question_id],
             }
             for question_id in adv_question_ids
@@ -1520,10 +1550,21 @@ def request_pre_assessment_integrity_recommendations(
         response = get_gemini_client().models.generate_content(
             model=_INTEGRITY_WEIGHT_MODEL,
             contents=(
-                "Recommend a complete integrity-weight allocation for the "
-                "selected adversarial questions. Return exactly one item "
-                "for every ID. Weights must be between 0 and 1 and sum "
-                "exactly to 1.0. Return only JSON in the form "
+                "Recommend a complete review-priority weight allocation "
+                "for the selected adversarial questions. A higher weight "
+                "means that suspicious integrity signals for that question "
+                "contribute more strongly to the assessment review-priority "
+                "score; it does not mean higher confidence or higher answer "
+                "quality. Questions with stronger suspicious signals must "
+                "receive higher suggested weights, not lower weights. "
+                "Interpret higher focus loss, paste activity, copy activity, "
+                "and unusually fast completion as stronger suspicious "
+                "signals. Questions with weaker or normal signals should "
+                "receive lower weights. Treat recruiter_weight as the "
+                "recruiter's baseline, not as a constraint to override. "
+                "The recruiter retains final control. Return exactly one "
+                "item for every ID. Weights must be between 0 and 1 and "
+                "sum exactly to 1.0. Return only JSON in the form "
                 "{\"recommendations\":[{\"adv_question_id\":int,"
                 "\"suggested_weight\":number,"
                 "\"recommendation\":string}]}\n"
@@ -1540,10 +1581,10 @@ def request_pre_assessment_integrity_recommendations(
             id_field="adv_question_id",
         )
         generated_at = datetime.now(timezone.utc)
-        return PreAssessmentIntegrityWeightResponse(
-            recommendations=[
+        recommendations = [
                 PreAssessmentIntegrityWeightRecommendation(
                     adv_question_id=question_id,
+                    recruiter_weight=recruiter_weights[question_id],
                     ai_suggested_weight=parsed[question_id][0],
                     recommendation_status=RecommendationStatus.PENDING,
                     ai_recommendation=parsed[question_id][1],
@@ -1555,15 +1596,17 @@ def request_pre_assessment_integrity_recommendations(
                 )
                 for question_id in adv_question_ids
             ]
+        return _persist_pre_assessment_recommendations(
+            db, recruiter_id, recommendations,
         )
     except Exception as error:
         _logger.exception(
             "Pre-assessment integrity recommendation failed"
         )
-        return PreAssessmentIntegrityWeightResponse(
-            recommendations=[
+        recommendations = [
                 PreAssessmentIntegrityWeightRecommendation(
                     adv_question_id=question_id,
+                    recruiter_weight=recruiter_weights[question_id],
                     recommendation_status=RecommendationStatus.FAILED,
                     evidence_status=EvidenceStatus.FAILED,
                     historical_sample_size=int(
@@ -1573,7 +1616,37 @@ def request_pre_assessment_integrity_recommendations(
                 )
                 for question_id in adv_question_ids
             ]
+        return _persist_pre_assessment_recommendations(
+            db, recruiter_id, recommendations,
         )
+
+
+def _persist_pre_assessment_recommendations(
+    db: Session,
+    recruiter_id: int,
+    recommendations: list[PreAssessmentIntegrityWeightRecommendation],
+) -> PreAssessmentIntegrityWeightResponse:
+    recommendation_set = IntegrityWeightRecommendationSet(
+        recruiter_id=recruiter_id,
+        status=RecommendationSetStatus.PENDING.value,
+    )
+    recommendation_set.items = [
+        IntegrityWeightRecommendationItem(
+            adv_question_id=item.adv_question_id,
+            recruiter_weight=item.recruiter_weight,
+            ai_suggested_weight=item.ai_suggested_weight,
+            ai_recommendation=item.ai_recommendation,
+            ai_generated_at=item.ai_generated_at,
+        )
+        for item in recommendations
+    ]
+    db.add(recommendation_set)
+    db.commit()
+    db.refresh(recommendation_set)
+    return PreAssessmentIntegrityWeightResponse(
+        recommendation_id=str(recommendation_set.recommendation_id),
+        recommendations=recommendations,
+    )
 
 
 def _parse_integrity_recommendations(
@@ -1616,3 +1689,184 @@ def _parse_integrity_recommendations(
         raise ValueError("AI recommendations must sum to 1.0")
 
     return recommendations
+
+
+def apply_pre_assessment_weight_decisions(
+    db: Session,
+    recruiter_id: int,
+    payload: PreAssessmentWeightDecisionsRequest,
+) -> PreAssessmentWeightDecisionsResponse:
+    recommendation_set = (
+        db.query(IntegrityWeightRecommendationSet)
+        .filter(
+            IntegrityWeightRecommendationSet.recommendation_id
+            == payload.recommendation_id,
+            IntegrityWeightRecommendationSet.recruiter_id == recruiter_id,
+        )
+        .first()
+    )
+
+    if recommendation_set is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Recommendation set not found",
+        )
+
+    if (
+        recommendation_set.expires_at is not None
+        and recommendation_set.expires_at <= datetime.now(timezone.utc)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Recommendation set has expired",
+        )
+
+    if recommendation_set.status not in {"pending", "decided"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Recommendation set is no longer editable",
+        )
+
+    decisions = payload.decisions
+    decision_ids = [item.adv_question_id for item in decisions]
+    stored_items = {
+        item.adv_question_id: item
+        for item in recommendation_set.items
+    }
+
+    if len(decision_ids) != len(set(decision_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Each adversarial question may appear only once.",
+        )
+
+    stored_ids = set(stored_items)
+    submitted_ids = set(decision_ids)
+
+    missing_ids = sorted(stored_ids - submitted_ids)
+    unknown_ids = sorted(submitted_ids - stored_ids)
+
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "A decision is required for every selected adversarial "
+                f"question. Missing: {missing_ids}"
+            ),
+        )
+
+    if unknown_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                "Adversarial question(s) do not belong to this "
+                f"recommendation set: {unknown_ids}"
+            ),
+        )
+
+    proposed: dict[int, float | None] = {}
+    decisions_by_id = {
+        decision.adv_question_id: decision
+        for decision in decisions
+    }
+
+    for adv_question_id, decision in decisions_by_id.items():
+        item = stored_items[adv_question_id]
+
+        if decision.decision == WeightDecision.ACCEPT:
+            if item.ai_suggested_weight is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        f"Question {adv_question_id} has no AI weight "
+                        "available to accept."
+                    ),
+                )
+
+            proposed[adv_question_id] = item.ai_suggested_weight
+
+        elif decision.decision == WeightDecision.MODIFY:
+            if decision.approved_weight is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        f"Question {adv_question_id} requires "
+                        "approved_weight when modified."
+                    ),
+                )
+
+            proposed[adv_question_id] = decision.approved_weight
+
+        elif decision.decision == WeightDecision.REJECT:
+            proposed[adv_question_id] = item.recruiter_weight
+
+    approved_values = [
+        weight for weight in proposed.values()
+        if weight is not None
+    ]
+
+    explicit_total = sum(approved_values)
+    if explicit_total > 1.0 + 1e-6:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "Final recruiter-controlled weights cannot exceed 1.0. "
+                f"Received {explicit_total:.6f}."
+            ),
+        )
+
+    unallocated_ids = [
+        question_id for question_id, weight in proposed.items()
+        if weight is None
+    ]
+    remaining_weight = max(0.0, 1.0 - explicit_total)
+    if unallocated_ids:
+        allocation = remaining_weight / len(unallocated_ids)
+        for question_id in unallocated_ids:
+            proposed[question_id] = allocation
+    elif not isclose(
+        explicit_total,
+        1.0,
+        rel_tol=0.0,
+        abs_tol=1e-6,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                "All questions have explicit weights, but their total "
+                "does not equal 1.0."
+            ),
+        )
+
+    total_approved_weight = sum(proposed.values())
+    ready_for_creation = True
+
+    decided_at = datetime.now(timezone.utc)
+
+    for adv_question_id, decision in decisions_by_id.items():
+        item = stored_items[adv_question_id]
+        item.recruiter_decision = decision.decision.value
+        item.approved_weight = proposed[adv_question_id]
+        item.decided_at = decided_at
+
+    recommendation_set.status = "decided"
+
+    db.commit()
+
+    return PreAssessmentWeightDecisionsResponse(
+        recommendation_id=str(
+            recommendation_set.recommendation_id
+        ),
+        approved_weights=[
+            ApprovedPreAssessmentWeight(
+                adv_question_id=adv_question_id,
+                approved_weight=proposed[adv_question_id],
+                decision=decisions_by_id[
+                    adv_question_id
+                ].decision,
+            )
+            for adv_question_id in decision_ids
+        ],
+        total_approved_weight=total_approved_weight,
+        ready_for_assessment_creation=ready_for_creation,
+    )
