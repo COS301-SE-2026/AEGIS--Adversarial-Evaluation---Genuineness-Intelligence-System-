@@ -32,11 +32,8 @@ from app.services.review_priority import get_review_priority
 from app.services.test_cases import get_test_cases_by_question_id
 from app.schema.integrity_weight import (
     EvidenceStatus,
-    IntegrityWeightRecommendationResponse,
-    IntegrityWeightRecommendationsResponse,
-    IntegrityWeightResponse,
-    IntegrityWeightsResponse,
-    IntegrityWeightDraft,
+    PreAssessmentIntegrityWeightRecommendation,
+    PreAssessmentIntegrityWeightResponse,
 )
 from app.models.assessment_question import RecommendationStatus
 
@@ -82,6 +79,7 @@ _BEHAVIORAL_SUMMARY_SYSTEM_PROMPT = (
     "or used AI — only describe what the data shows. Keep the "
     "whole summary to at most two short paragraphs."
 )
+
 
 def _norm(v):
     return str(v).strip().lower()
@@ -1360,141 +1358,6 @@ def _evidence_status_for(
     return EvidenceStatus.NOT_AVAILABLE
 
 
-def get_integrity_weights(
-    db: Session,
-    assessment_id: int,
-    recruiter_id: int,
-) -> IntegrityWeightsResponse:
-    assessment = (
-        db.query(Assessment)
-        .options(
-            selectinload(Assessment.assessment_questions),
-        )
-        .filter(
-            Assessment.assessment_id == assessment_id,
-            Assessment.creator_id == recruiter_id,
-        )
-        .first()
-    )
-
-    if assessment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment not found",
-        )
-
-    questions = sorted(
-        assessment.assessment_questions,
-        key=lambda question: (
-            question.display_order is None,
-            question.display_order or 0,
-            question.assessment_q_id,
-        ),
-    )
-
-    weights = [
-        IntegrityWeightResponse(
-            assessment_q_id=question.assessment_q_id,
-            adv_question_id=question.adv_question_id,
-            display_order=question.display_order,
-            default_weight=1.0,
-            recruiter_weight=question.recruiter_weight,
-            ai_suggested_weight=question.ai_suggested_weight,
-            approved_weight=question.approved_weight,
-            effective_weight=(
-                question.approved_weight
-                if question.approved_weight is not None
-                else 1.0
-            ),
-            recommendation_status=question.recommendation_status,
-            ai_recommendation=question.ai_recommendation,
-            ai_generated_at=question.ai_generated_at,
-            evidence_status=_evidence_status_for(
-                question.recommendation_status,
-            ),
-            historical_sample_size=None,
-        )
-        for question in questions
-    ]
-
-    return IntegrityWeightsResponse(
-        assessment_id=assessment.assessment_id,
-        weights=weights,
-    )
-
-
-def update_integrity_weight_drafts(
-    db: Session,
-    assessment_id: int,
-    recruiter_id: int,
-    weights: list[IntegrityWeightDraft],
-) -> IntegrityWeightsResponse:
-    assessment = (
-        db.query(Assessment)
-        .filter(
-            Assessment.assessment_id == assessment_id,
-            Assessment.creator_id == recruiter_id,
-        )
-        .first()
-    )
-
-    if assessment is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=ASSESSMENT_NOT_FOUND,
-        )
-
-    question_ids = [item.assessment_q_id for item in weights]
-
-    if len(question_ids) != len(set(question_ids)):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Each assessment question may appear only once.",
-        )
-
-    questions = (
-        db.query(AssessmentQuestion)
-        .filter(
-            AssessmentQuestion.assessments_id == assessment_id,
-            AssessmentQuestion.assessment_q_id.in_(question_ids),
-        )
-        .all()
-    )
-
-    questions_by_id = {
-        question.assessment_q_id: question
-        for question in questions
-    }
-
-    missing_ids = [
-        question_id
-        for question_id in question_ids
-        if question_id not in questions_by_id
-    ]
-
-    if missing_ids:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=(
-                "Assessment question(s) not found in this assessment: "
-                f"{missing_ids}"
-            ),
-        )
-
-    for item in weights:
-        questions_by_id[item.assessment_q_id].recruiter_weight = (
-            item.recruiter_weight
-        )
-
-    db.commit()
-
-    return get_integrity_weights(
-        db,
-        assessment_id,
-        recruiter_id,
-    )
-
-
 def _historical_integrity_evidence(
     db: Session,
     assessment_q_id: int,
@@ -1547,9 +1410,176 @@ def _historical_integrity_evidence(
     }
 
 
+def _historical_adversarial_integrity_evidence(
+    db: Session,
+    adv_question_id: int,
+) -> dict[str, float | int]:
+    rows = (
+        db.query(AssessmentQuestion.assessment_q_id)
+        .filter(AssessmentQuestion.adv_question_id == adv_question_id)
+        .all()
+    )
+    assessment_question_ids = [row[0] for row in rows]
+    if not assessment_question_ids:
+        return {"sample_size": 0}
+
+    evidence = [
+        _historical_integrity_evidence(db, assessment_question_id)
+        for assessment_question_id in assessment_question_ids
+    ]
+    sample_size = sum(int(item["sample_size"]) for item in evidence)
+    if sample_size == 0:
+        return {"sample_size": 0}
+
+    numeric_fields = (
+        "active_time_ms",
+        "focus_loss_time_ms",
+        "paste_char_count",
+        "copy_char_count",
+        "copy_event_count",
+    )
+    combined = {"sample_size": sample_size}
+    for field in numeric_fields:
+        combined[field] = sum(
+            float(item.get(field, 0.0)) * int(item["sample_size"])
+            for item in evidence
+        ) / sample_size
+    return combined
+
+
+def request_pre_assessment_integrity_recommendations(
+    db: Session,
+    adv_question_ids: list[int],
+) -> PreAssessmentIntegrityWeightResponse:
+    if len(adv_question_ids) != len(set(adv_question_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Each adversarial question may appear only once.",
+        )
+
+    questions = (
+        db.query(AdversarialQuestion)
+        .filter(AdversarialQuestion.adv_question_id.in_(adv_question_ids))
+        .all()
+    )
+    questions_by_id = {
+        question.adv_question_id: question for question in questions
+    }
+    missing_ids = sorted(
+        set(adv_question_ids) - set(questions_by_id)
+    )
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                "Adversarial question(s) not found: "
+                f"{missing_ids}"
+            ),
+        )
+
+    evidence = {
+        question_id: _historical_adversarial_integrity_evidence(
+            db, question_id,
+        )
+        for question_id in adv_question_ids
+    }
+    insufficient = any(
+        item["sample_size"] < MIN_WEIGHT_RECOMMENDATION_SAMPLES
+        for item in evidence.values()
+    )
+    if insufficient:
+        return PreAssessmentIntegrityWeightResponse(
+            recommendations=[
+                PreAssessmentIntegrityWeightRecommendation(
+                    adv_question_id=question_id,
+                    recommendation_status=(
+                        RecommendationStatus.INSUFFICIENT_DATA
+                    ),
+                    evidence_status=EvidenceStatus.INSUFFICIENT_DATA,
+                    historical_sample_size=int(
+                        evidence[question_id]["sample_size"]
+                    ),
+                )
+                for question_id in adv_question_ids
+            ]
+        )
+
+    expected_ids = set(adv_question_ids)
+    evidence_prompt = json.dumps(
+        [
+            {
+                "adv_question_id": question_id,
+                "historical_evidence": evidence[question_id],
+            }
+            for question_id in adv_question_ids
+        ],
+        sort_keys=True,
+    )
+
+    try:
+        response = get_gemini_client().models.generate_content(
+            model=_INTEGRITY_WEIGHT_MODEL,
+            contents=(
+                "Recommend a complete integrity-weight allocation for the "
+                "selected adversarial questions. Return exactly one item "
+                "for every ID. Weights must be between 0 and 1 and sum "
+                "exactly to 1.0. Return only JSON in the form "
+                "{\"recommendations\":[{\"adv_question_id\":int,"
+                "\"suggested_weight\":number,"
+                "\"recommendation\":string}]}\n"
+                f"Evidence: {evidence_prompt}"
+            ),
+            config=types.GenerateContentConfig(
+                temperature=0.0,
+                response_mime_type="application/json",
+            ),
+        )
+        parsed = _parse_integrity_recommendations(
+            response.text,
+            expected_ids,
+            id_field="adv_question_id",
+        )
+        generated_at = datetime.now(timezone.utc)
+        return PreAssessmentIntegrityWeightResponse(
+            recommendations=[
+                PreAssessmentIntegrityWeightRecommendation(
+                    adv_question_id=question_id,
+                    ai_suggested_weight=parsed[question_id][0],
+                    recommendation_status=RecommendationStatus.PENDING,
+                    ai_recommendation=parsed[question_id][1],
+                    ai_generated_at=generated_at,
+                    evidence_status=EvidenceStatus.AVAILABLE,
+                    historical_sample_size=int(
+                        evidence[question_id]["sample_size"]
+                    ),
+                )
+                for question_id in adv_question_ids
+            ]
+        )
+    except Exception as error:
+        _logger.exception(
+            "Pre-assessment integrity recommendation failed"
+        )
+        return PreAssessmentIntegrityWeightResponse(
+            recommendations=[
+                PreAssessmentIntegrityWeightRecommendation(
+                    adv_question_id=question_id,
+                    recommendation_status=RecommendationStatus.FAILED,
+                    evidence_status=EvidenceStatus.FAILED,
+                    historical_sample_size=int(
+                        evidence[question_id]["sample_size"]
+                    ),
+                    failure_details=f"AI recommendation failed: {error}",
+                )
+                for question_id in adv_question_ids
+            ]
+        )
+
+
 def _parse_integrity_recommendations(
     raw_text: str,
     expected_question_ids: set[int],
+    id_field: str = "assessment_q_id",
 ) -> dict[int, tuple[float, str]]:
     try:
         result = json.loads(raw_text)
@@ -1562,7 +1592,7 @@ def _parse_integrity_recommendations(
     recommendations: dict[int, tuple[float, str]] = {}
     for item in items:
         try:
-            question_id = int(item["assessment_q_id"])
+            question_id = int(item[id_field])
             suggested_weight = float(item["suggested_weight"])
             recommendation = str(item["recommendation"]).strip()
         except (KeyError, TypeError, ValueError) as error:
