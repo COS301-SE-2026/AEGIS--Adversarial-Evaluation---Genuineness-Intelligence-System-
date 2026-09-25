@@ -11,12 +11,31 @@ class EvidenceStatus(str, Enum):
     FAILED = "failed"
 
 
+class WeightDecision(str, Enum):
+    ACCEPT = "accept"
+    MODIFY = "modify"
+    REJECT = "reject"
+
+
+class PreAssessmentIntegrityWeightInput(BaseModel):
+    adv_question_id: int
+    recruiter_weight: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+
+
 class PreAssessmentIntegrityWeightRequest(BaseModel):
-    adv_question_ids: list[int] = Field(..., min_length=1)
+    questions: list[PreAssessmentIntegrityWeightInput] = Field(
+        ...,
+        min_length=1,
+    )
 
 
 class PreAssessmentIntegrityWeightRecommendation(BaseModel):
     adv_question_id: int
+    recruiter_weight: float | None = None
     ai_suggested_weight: float | None = Field(
         default=None,
         ge=0.0,
@@ -31,4 +50,42 @@ class PreAssessmentIntegrityWeightRecommendation(BaseModel):
 
 
 class PreAssessmentIntegrityWeightResponse(BaseModel):
-    recommendations: list[PreAssessmentIntegrityWeightRecommendation]
+    recommendation_id: str
+    recommendations: list[
+        PreAssessmentIntegrityWeightRecommendation
+    ]
+
+
+class PreAssessmentWeightDecision(BaseModel):
+    adv_question_id: int
+    decision: WeightDecision
+    approved_weight: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+
+
+class PreAssessmentWeightDecisionsRequest(BaseModel):
+    recommendation_id: str
+    decisions: list[PreAssessmentWeightDecision] = Field(
+        ...,
+        min_length=1,
+    )
+
+
+class ApprovedPreAssessmentWeight(BaseModel):
+    adv_question_id: int
+    approved_weight: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+    )
+    decision: WeightDecision
+
+
+class PreAssessmentWeightDecisionsResponse(BaseModel):
+    recommendation_id: str
+    approved_weights: list[ApprovedPreAssessmentWeight]
+    total_approved_weight: float
+    ready_for_assessment_creation: bool
