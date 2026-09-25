@@ -961,6 +961,12 @@ const handleRejectSuggestion = (questionId: string) => {
                     <span className="text-white-smoke/60">Questions:</span>{" "}
                     {selectedIds.length} (target {formData.questionCount})
                   </div>
+                   <div>
+                    <span className="text-white-smoke/60">Integrity weights:</span>{" "}
+                    {selectedIds.filter((id) => weightDecisions[String(id)] === "ACCEPT").length} accepted,{" "}
+                    {selectedIds.filter((id) => weightDecisions[String(id)] === "MODIFY").length} modified,{" "}
+                    {selectedIds.filter((id) => weightDecisions[String(id)] === "REJECT").length} rejected
+                  </div>
                 </div>
               </div>
             )}
@@ -976,7 +982,7 @@ const handleRejectSuggestion = (questionId: string) => {
             <div className="flex justify-end">
               <div className="font-ibm-plex text-[12px] text-white-smoke/40 mr-auto">
                 {" "}
-                Step {step + 1}/3
+                Step {step + 1}/4
               </div>
               <div className="flex gap-3">
                 {step > 0 && (
@@ -988,7 +994,7 @@ const handleRejectSuggestion = (questionId: string) => {
                     BACK
                   </button>
                 )}
-                {step < 2 ? (
+                {step < 3 ? (
                   <button
                     type="button"
                     onClick={() => setStep((s) => s + 1)}
