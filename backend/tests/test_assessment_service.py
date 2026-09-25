@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock,patch
-
+import json
 import pytest
 from fastapi import HTTPException
 
@@ -1906,3 +1906,30 @@ def test_historical_adversarial_integrity_evidence_combines_question_history(
     assert result["copy_event_count"] == pytest.approx(
         (1 * 2 + 3) / 3
     )
+
+
+def test_parse_integrity_recommendations_accepts_valid_allocation():
+    result = _parse_integrity_recommendations(
+        json.dumps(
+            {
+                "recommendations": [
+                    {
+                        "adv_question_id": 491,
+                        "suggested_weight": 0.7,
+                        "recommendation": "Higher review priority.",
+                    },
+                    {
+                        "adv_question_id": 492,
+                        "suggested_weight": 0.3,
+                        "recommendation": "Lower review priority.",
+                    },
+                ]
+            }
+        ),
+        {491, 492},
+        id_field="adv_question_id",
+    )
+    assert result == {
+        491: (0.7, "Higher review priority."),
+        492: (0.3, "Lower review priority."),
+    }
