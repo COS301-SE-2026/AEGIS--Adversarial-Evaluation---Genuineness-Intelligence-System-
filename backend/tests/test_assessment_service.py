@@ -2082,3 +2082,234 @@ def test_apply_decisions_reject_preserves_recruiter_baseline():
     assert result.total_approved_weight == pytest.approx(1.0)
     assert recommendation_set.items[0].approved_weight == 0.8
     assert recommendation_set.items[1].approved_weight == 0.2
+
+def _recommendation_inputs(*weights):
+    return [
+        PreAssessmentIntegrityWeightInput(
+            adv_question_id=question_id,
+            recruiter_weight=weight,
+        )
+        for question_id, weight in zip((491, 492), weights)
+    ]
+
+
+def _make_adversarial_query(questions):
+    query = MagicMock()
+    query.filter.return_value.all.return_value = questions
+    return query
+
+
+def test_request_pre_assessment_rejects_duplicate_question_ids():
+    db = MagicMock()
+    with pytest.raises(HTTPException) as exc_info:
+        request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=[
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=491,
+                    recruiter_weight=0.5,
+                ),
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=491,
+                    recruiter_weight=0.5,
+                ),
+            ],
+        )
+
+    assert exc_info.value.status_code == 422
+    assert "only once" in exc_info.value.detail
+    db.query.assert_not_called()
+
+
+def test_request_pre_assessment_rejects_explicit_weights_above_one():
+    db = MagicMock()
+    with pytest.raises(HTTPException) as exc_info:
+        request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=[
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=491,
+                    recruiter_weight=0.8,
+                ),
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=492,
+                    recruiter_weight=0.4,
+                ),
+            ],
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Recruiter weights cannot exceed 1.0."
+    )
+    db.query.assert_not_called()
+
+
+def test_request_pre_assessment_rejects_missing_adversarial_questions():
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([]),
+    ]
+    with pytest.raises(HTTPException) as exc_info:
+        request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    assert exc_info.value.status_code == 404
+    assert "not found" in exc_info.value.detail
+
+
+def test_request_pre_assessment_returns_insufficient_data():
+    question_one = MagicMock(adv_question_id=491)
+    question_two = MagicMock(adv_question_id=492)
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([question_one, question_two]),
+    ]
+    evidence = {
+        491: {"sample_size": 2},
+        492: {"sample_size": 3},
+    }
+    with patch(
+        "app.services.assessment._historical_adversarial_integrity_evidence",
+        side_effect=lambda db, question_id: evidence[question_id],
+    ), patch(
+        "app.services.assessment._persist_pre_assessment_recommendations",
+        return_value=MagicMock(
+            recommendations=[
+                MagicMock(
+                    recommendation_status=(
+                        RecommendationStatus.INSUFFICIENT_DATA
+                    )
+                )
+            ]
+        ),
+    ) as persist:
+        result = request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    persist.assert_called_once()
+    assert result is not None
+    assert result.recommendations[0].recommendation_status == (
+        RecommendationStatus.INSUFFICIENT_DATA
+    )
+
+
+def test_request_pre_assessment_returns_ai_recommendations():
+    question_one = MagicMock(adv_question_id=491)
+    question_two = MagicMock(adv_question_id=492)
+
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([question_one, question_two]),
+    ]
+    evidence = {
+        491: {
+            "sample_size": 5,
+            "active_time_ms": 100.0,
+            "focus_loss_time_ms": 20.0,
+            "paste_char_count": 50.0,
+            "copy_char_count": 10.0,
+            "copy_event_count": 1.0,
+        },
+        492: {
+            "sample_size": 5,
+            "active_time_ms": 200.0,
+            "focus_loss_time_ms": 5.0,
+            "paste_char_count": 5.0,
+            "copy_char_count": 2.0,
+            "copy_event_count": 0.0,
+        },
+    }
+    gemini_response = MagicMock()
+    gemini_response.text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.7,
+                    "recommendation": "Higher review priority.",
+                },
+                {
+                    "adv_question_id": 492,
+                    "suggested_weight": 0.3,
+                    "recommendation": "Lower review priority.",
+                },
+            ]
+        }
+    )
+    gemini_client = MagicMock()
+    gemini_client.models.generate_content.return_value = gemini_response
+    persisted_response = MagicMock()
+    with patch(
+        "app.services.assessment._historical_adversarial_integrity_evidence",
+        side_effect=lambda db, question_id: evidence[question_id],
+    ), patch(
+        "app.services.assessment.get_gemini_client",
+        return_value=gemini_client,
+    ), patch(
+        "app.services.assessment._persist_pre_assessment_recommendations",
+        return_value=persisted_response,
+    ) as persist:
+        result = request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    assert result is persisted_response
+    gemini_client.models.generate_content.assert_called_once()
+    prompt = gemini_client.models.generate_content.call_args.kwargs[
+        "contents"
+    ]
+    assert '"recruiter_weight": 0.5' in prompt
+    persist.assert_called_once()
+    recommendations = persist.call_args.args[2]
+    assert recommendations[0].ai_suggested_weight == pytest.approx(0.7)
+    assert recommendations[1].ai_suggested_weight == pytest.approx(0.3)
+    assert recommendations[0].recruiter_weight == pytest.approx(0.5)
+
+
+def test_request_pre_assessment_records_ai_failure():
+    question_one = MagicMock(adv_question_id=491)
+    question_two = MagicMock(adv_question_id=492)
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([question_one, question_two]),
+    ]
+    evidence = {
+        491: {"sample_size": 5},
+        492: {"sample_size": 5},
+    }
+    with patch(
+        "app.services.assessment._historical_adversarial_integrity_evidence",
+        side_effect=lambda db, question_id: evidence[question_id],
+    ), patch(
+        "app.services.assessment.get_gemini_client",
+        side_effect=RuntimeError("Gemini unavailable"),
+    ), patch(
+        "app.services.assessment._persist_pre_assessment_recommendations",
+        return_value=MagicMock(),
+    ) as persist:
+        result = request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    assert result is not None
+    persist.assert_called_once()
+    recommendations = persist.call_args.args[2]
+    assert len(recommendations) == 2
+    assert all(
+        recommendation.recommendation_status
+        == RecommendationStatus.FAILED
+        for recommendation in recommendations
+    )
+    assert all(
+        recommendation.evidence_status == EvidenceStatus.FAILED
+        for recommendation in recommendations
+    )
