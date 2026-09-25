@@ -155,7 +155,7 @@ const DEFAULT_FORM: CreateAssessmentForm = {
 };
 
 export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
-  const [step, setStep] = useState(0); //more steps coming later, only 1 for now
+  const [step, setStep] = useState(0); 
   const [formData, setFormData] = useState<CreateAssessmentForm>(DEFAULT_FORM);
   const [selectedIds, setSelectedIds] = useState<number[]>([]); //this tracks the selected question
   const [isCreating, setIsCreating] = useState(false);
@@ -166,6 +166,11 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [questionSearch, setQuestionSearch] = useState("");
   const [patternFilter, setPatternFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [recommendations, setRecommendations] = useState<Record<string, IntegrityWeightRecommendation>>({});
+  const [approvedWeights, setApprovedWeights] = useState<Record<string, number>>({});
+  const [weightDecisions, setWeightDecisions] = useState<Record<string, IntegrityDecision>>({});
+  const [weightsLoading, setWeightsLoading] = useState(false);
+  const [weightsError, setWeightsError] = useState<string | null>(null);
 
   const updateForm = useCallback(
     <K extends keyof CreateAssessmentForm>(
@@ -203,6 +208,106 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+  if (step !== 2 || selectedIds.length === 0) return;
+  let isMounted = true;
+  const loadRecommendations = async () => {
+    setWeightsLoading(true);
+    setWeightsError(null);
+    try {
+      const ids = selectedIds.map(String);
+      const recs = USE_MOCK_INTEGRITY_DATA
+        ? generateMockRecommendations(ids)
+        : (
+            await apiPost<IntegrityWeightRecommendationsResponse>(
+              `/api/v1/assessments/draft/integrity-weights/recommendations`,
+              { question_ids: ids },
+              { headers: getAuthHeaders() },
+            )
+          ).recommendations;
+      if (!isMounted) return;
+      setRecommendations((prev) => {
+        const next = { ...prev };
+        recs.forEach((r) => {
+          next[r.question_id] = r;
+        });
+        return next;
+      });
+      setApprovedWeights((prev) => {
+        const next = { ...prev };
+        recs.forEach((r) => {
+          if (next[r.question_id] === undefined) {
+            next[r.question_id] = r.current_approved_weight;
+          }
+        });
+        return next;
+      });
+    } catch (err) {
+      // AI/recommendation failure must never block assessment creation —
+      // just surface it; weights default to 0.5 and remain editable.
+      if (isMounted) {
+        setWeightsError(
+          err instanceof Error ? err.message : "Failed to load recommendations.",
+        );
+      }
+    } finally {
+      if (isMounted) setWeightsLoading(false);
+    }
+  };
+  void loadRecommendations();
+}, [step, selectedIds]);
+
+
+
+  useEffect(() => {
+  if (step !== 2 || selectedIds.length === 0) return;
+  let isMounted = true;
+  const loadRecommendations = async () => {
+    setWeightsLoading(true);
+    setWeightsError(null);
+    try {
+      const ids = selectedIds.map(String);
+      const recs = USE_MOCK_INTEGRITY_DATA
+        ? generateMockRecommendations(ids)
+        : (
+            await apiPost<IntegrityWeightRecommendationsResponse>(
+              `/api/v1/assessments/draft/integrity-weights/recommendations`,
+              { question_ids: ids },
+              { headers: getAuthHeaders() },
+            )
+          ).recommendations;
+      if (!isMounted) return;
+      setRecommendations((prev) => {
+        const next = { ...prev };
+        recs.forEach((r) => {
+          next[r.question_id] = r;
+        });
+        return next;
+      });
+      setApprovedWeights((prev) => {
+        const next = { ...prev };
+        recs.forEach((r) => {
+          if (next[r.question_id] === undefined) {
+            next[r.question_id] = r.current_approved_weight;
+          }
+        });
+        return next;
+      });
+    } catch (err) {
+      // AI/recommendation failure must never block assessment creation —
+      // just surface it; weights default to 0.5 and remain editable.
+      if (isMounted) {
+        setWeightsError(
+          err instanceof Error ? err.message : "Failed to load recommendations.",
+        );
+      }
+    } finally {
+      if (isMounted) setWeightsLoading(false);
+    }
+  };
+  void loadRecommendations();
+}, [step, selectedIds]);
 
   useEffect(() => {
     if (isCreating) return;
