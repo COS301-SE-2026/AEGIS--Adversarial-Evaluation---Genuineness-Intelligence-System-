@@ -68,7 +68,8 @@ export type QuestionAnalytics = {
     answered: boolean;
     answer: Answer | null;
     metrics: CandidateMetrics | null;
-    review_score: ReviewBand| null;
+    review_score: number| null;
+    review_band: ReviewBand | null;
     contributing_factors: string[];
     options?: string[]
     correct_answer?: string | null;
@@ -85,9 +86,9 @@ export type ReviewBandMeta = {
 }
 
 export const REVIEW_BAND_META: Record<ReviewBand, ReviewBandMeta> ={
-  low: {label: "Low", color: "status-success"},
-  medium: {label: "Medium", color: "status-warning"},
-  high: {label: "High", color: "system-red"},
+  low: {label: "Low", color: "var(--color-status-success)"},
+  medium: {label: "Medium", color: "var(--color-status-warning)"},
+  high: {label: "High", color: "var(--color-system-red)"},
 }
 
 export function clampScore(value: number): number {
