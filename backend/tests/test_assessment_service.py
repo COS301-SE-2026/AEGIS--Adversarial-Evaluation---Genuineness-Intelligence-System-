@@ -1966,3 +1966,119 @@ def test_persist_pre_assessment_recommendations_creates_set_and_items():
     assert stored_set.items[0].adv_question_id == 491
     assert stored_set.items[0].recruiter_weight == 0.8
     assert stored_set.items[0].ai_suggested_weight == 0.7
+
+
+def _recommendation_query(result):
+    query = MagicMock()
+    query.filter.return_value.first.return_value = result
+    return query
+
+
+def _make_recommendation_set():
+    recommendation_set = MagicMock()
+    recommendation_set.recommendation_id = uuid.uuid4()
+    recommendation_set.status = RecommendationSetStatus.PENDING.value
+    recommendation_set.expires_at = None
+    recommendation_set.items = [
+        MagicMock(
+            adv_question_id=491,
+            recruiter_weight=0.8,
+            ai_suggested_weight=0.7,
+        ),
+        MagicMock(
+            adv_question_id=492,
+            recruiter_weight=None,
+            ai_suggested_weight=0.3,
+        ),
+    ]
+    return recommendation_set
+
+
+def test_apply_decisions_accept_uses_ai_weight():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    result = apply_pre_assessment_weight_decisions(
+        db,
+        recruiter_id=5,
+        payload=PreAssessmentWeightDecisionsRequest(
+            recommendation_id=str(
+                recommendation_set.recommendation_id
+            ),
+            decisions=[
+                PreAssessmentWeightDecision(
+                    adv_question_id=491,
+                    decision=WeightDecision.ACCEPT,
+                ),
+                PreAssessmentWeightDecision(
+                    adv_question_id=492,
+                    decision=WeightDecision.REJECT,
+                ),
+            ],
+        ),
+    )
+    assert result.total_approved_weight == pytest.approx(1.0)
+    assert result.ready_for_assessment_creation is True
+    assert result.approved_weights[0].approved_weight == pytest.approx(0.7)
+    assert result.approved_weights[1].approved_weight == pytest.approx(0.3)
+
+
+def test_apply_decisions_modify_uses_recruiter_value():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    result = apply_pre_assessment_weight_decisions(
+        db,
+        recruiter_id=5,
+        payload=PreAssessmentWeightDecisionsRequest(
+            recommendation_id=str(
+                recommendation_set.recommendation_id
+            ),
+            decisions=[
+                PreAssessmentWeightDecision(
+                    adv_question_id=491,
+                    decision=WeightDecision.MODIFY,
+                    approved_weight=0.6,
+                ),
+                PreAssessmentWeightDecision(
+                    adv_question_id=492,
+                    decision=WeightDecision.MODIFY,
+                    approved_weight=0.4,
+                ),
+            ],
+        ),
+    )
+    assert result.total_approved_weight == pytest.approx(1.0)
+    assert recommendation_set.items[0].approved_weight == 0.6
+    assert recommendation_set.items[1].approved_weight == 0.4
+
+
+def test_apply_decisions_reject_preserves_recruiter_baseline():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.items[1].recruiter_weight = 0.2
+
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+
+    result = apply_pre_assessment_weight_decisions(
+        db,
+        recruiter_id=5,
+        payload=PreAssessmentWeightDecisionsRequest(
+            recommendation_id=str(
+                recommendation_set.recommendation_id
+            ),
+            decisions=[
+                PreAssessmentWeightDecision(
+                    adv_question_id=491,
+                    decision=WeightDecision.REJECT,
+                ),
+                PreAssessmentWeightDecision(
+                    adv_question_id=492,
+                    decision=WeightDecision.REJECT,
+                ),
+            ],
+        ),
+    )
+    assert result.total_approved_weight == pytest.approx(1.0)
+    assert recommendation_set.items[0].approved_weight == 0.8
+    assert recommendation_set.items[1].approved_weight == 0.2
