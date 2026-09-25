@@ -69,6 +69,68 @@ interface IntegrityWeightRecommendationsResponse {
 // after assessment creation. Needs a draft-assessment or question-id-only recommendations path before real integration.
 const USE_MOCK_INTEGRITY_DATA = true;
 
+const EVIDENCE_LABEL: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "Sufficient data",
+  LIMITED_DATA: "Limited data",
+  INSUFFICIENT_DATA: "Insufficient data",
+  UNAVAILABLE: "Unavailable",
+};
+
+const EVIDENCE_STYLE: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "text-status-success border-status-success-dim bg-status-success-dim/10",
+  LIMITED_DATA: "text-status-warning border-status-warning/40 bg-status-warning/10",
+  INSUFFICIENT_DATA: "text-white-smoke/50 border-default-border bg-tertiary-surface",
+  UNAVAILABLE: "text-white-smoke/40 border-default-border bg-tertiary-surface",
+};
+
+function generateMockRecommendations(
+  questionIds: string[],
+): IntegrityWeightRecommendation[] {
+  return questionIds.map((id, i) => {
+    const bucket = i % 4;
+    if (bucket === 0) {
+      return {
+        question_id: id,
+        current_approved_weight: 0.5,
+        ai_suggested_weight: 0.75,
+        recommendation_reason:
+          "Elevated review: observed pattern in prior candidate responses to this question.",
+        evidence_status: "SUFFICIENT_DATA",
+        recommendation_available: true,
+      };
+    }
+    if (bucket === 1) {
+      return {
+        question_id: id,
+        current_approved_weight: 0.5,
+        ai_suggested_weight: 0.6,
+        recommendation_reason:
+          "Limited response volume — treat this recommendation as provisional.",
+        evidence_status: "LIMITED_DATA",
+        recommendation_available: true,
+      };
+    }
+    if (bucket === 2) {
+      return {
+        question_id: id,
+        current_approved_weight: 0.5,
+        ai_suggested_weight: null,
+        recommendation_reason: null,
+        evidence_status: "INSUFFICIENT_DATA",
+        recommendation_available: false,
+      };
+    }
+    return {
+      question_id: id,
+      current_approved_weight: 0.5,
+      ai_suggested_weight: null,
+      recommendation_reason: null,
+      evidence_status: "UNAVAILABLE",
+      recommendation_available: false,
+    };
+  });
+}
+
 //type FilterValue = string;
 
 const DEFAULT_FORM: CreateAssessmentForm = {
