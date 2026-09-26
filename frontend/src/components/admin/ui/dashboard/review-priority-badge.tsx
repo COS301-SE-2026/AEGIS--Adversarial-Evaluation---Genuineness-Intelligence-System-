@@ -38,6 +38,17 @@ export function ReviewPriorityBadge() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const processQuestions = (questions: QuestionAnalytics[]) => {
+    setQuestions(questions);
+    if (questions.length > 0) {
+      setSelectedQuestionId(questions[0].assessment_q_id);
+    }
+  }
+
+  const getErrorMessage = (err: unknown): string => {
+    return err instanceof ApiError ? err.message : "Failed to load review priority.";
+  }
+
   useEffect(function initializeReviewPriority() {
     let isMounted = true;
 
@@ -48,12 +59,10 @@ export function ReviewPriorityBadge() {
         if (USE_MOCK_DATA) {
           await new Promise((resolve) => setTimeout(resolve, 600));
           if (isMounted) {
-          setOverallPriority(mockOverallPriority);
-          setQuestions(mockQuestionAnalytics.questions);
-          if (mockQuestionAnalytics.questions.length > 0) {
-            setSelectedQuestionId(mockQuestionAnalytics.questions[0].assessment_q_id);
-          }
-          setError(null);
+            setOverallPriority(mockOverallPriority);
+            processQuestions(mockQuestionAnalytics.questions);
+            setError(null);
+          } 
         } else {
           const [priorityRes, analyticsRes] = await Promise.all([
             fetchReviewPriority(params.id),
@@ -62,23 +71,13 @@ export function ReviewPriorityBadge() {
 
           if (isMounted) {
             setOverallPriority(priorityRes);
-            setQuestions(analyticsRes.questions);
-            if (analyticsRes.questions.length > 0) {
-              setSelectedQuestionId(analyticsRes.questions[0].assessment_q_id);
-            }
+            processQuestions(analyticsRes.questions);
             setError(null);
           }
         }
-      }
-
       } catch (err) {
-        if (isMounted) {
-          const message =
-            err instanceof ApiError
-              ? err.message
-              : "Failed to load review priority.";
-
-          setError(message);
+        if (!isMounted) {
+          setError(getErrorMessage(err));
         }
       } finally {
         if (isMounted) {
@@ -110,7 +109,6 @@ export function ReviewPriorityBadge() {
   }
 
   const bandMeta = REVIEW_BAND_META[overallPriority.band];
-  const score = clampScore(overallPriority.score);
 
   return (
     <div className="rounded-lg border border-default-border bg-secondary-surface overflow-hidden">

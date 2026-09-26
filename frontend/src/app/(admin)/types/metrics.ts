@@ -46,8 +46,6 @@ export interface ReviewPriorityResponse {
 }
 
 
-"======Review Priority======="
-
 export type QuestionType = "CODING" | "MULTIPLE_CHOICE" | "FILL_IN_THE_BLANK";
 export type CorrectnessStatus = "CORRECT" | "PARTIAL" | "INCORRECT" | null;
 

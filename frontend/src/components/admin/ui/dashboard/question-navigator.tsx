@@ -13,7 +13,7 @@ export function QuestionNavigator({questions, selectedQuestionId, onSelectQuesti
         <div className="flex flex-col w-64 shrink-0 bg-secondary-surface border-r border-tertiary-surface">
             
             <div className="p-4 border-b border-tertiary-surface">
-                <h3 className="text-sm tracking-widest text-default-text/90">
+                <h3 className="tracking-widest text-default-text mb-2">
                     Questions
                 </h3>
             </div>
@@ -45,9 +45,9 @@ export function QuestionNavigator({questions, selectedQuestionId, onSelectQuesti
                             <div className="flex items-center gap-2 text-xs text-default-text/50">
                                 
                                 <span className="font-jetbrains-mono">
-                                    <span>{question.answer?.score.toFixed(1) || 0}/{question.maximum_score}</span>
+                                    <span>{question.answer?.score.toFixed(0) || 0}/{question.maximum_score}</span>
                                     {!question.answered && 
-                                        <span className="text-default-border">Not Answered</span>
+                                        <span className="text-default-border"> Not Answered</span>
                                     }
                                 </span>
                             </div>

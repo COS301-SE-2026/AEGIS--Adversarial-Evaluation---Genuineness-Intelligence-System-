@@ -13,9 +13,12 @@ function formatDuration(ms: number): string {
 }
 
 function isPasteHeavy(metric: CandidateMetrics): boolean {
-  const totalChars = metric.chars_alnum + metric.paste_char_count;
+  const alnum = metric.chars_alnum ?? 0;
+  const pasted = metric.paste_char_count ?? 0;
+  const totalChars = alnum + pasted;
+
   if (totalChars == 0) return false;
-  return metric.paste_char_count / totalChars > 0.5;
+  return pasted / totalChars > 0.5;
 }
 
 function isFrequentTabSwitching(metric: CandidateMetrics): boolean {

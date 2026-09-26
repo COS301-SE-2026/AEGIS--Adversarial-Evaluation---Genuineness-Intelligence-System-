@@ -26,13 +26,13 @@ export function CandidateAnswerViewer({ question }: Readonly<CandidateAnswerView
     if(question.type === "MULTIPLE_CHOICE") {
         return (
             <div className="flex flex-col gap-3">
-                {question.options?.map((option, index) => {
+                {question.options?.map((option) => {
                     const isSelected = question.answer?.candidate_answer === option;
                     const isCorrect = question.correct_answer === option;
 
                     return(
                         <div
-                            key={index}
+                            key={option}
                             className={`flex items-center gap-3 p-3 rounded-lg border text-sm transition-all
                                 ${isSelected
                                     ? "border-status-info text-status-info"
