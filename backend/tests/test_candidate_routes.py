@@ -38,6 +38,7 @@ def auth_client(mock_db):
 
 _GET_SESSION_PATCH = "app.api.routes.candidate_ass.get_candidate_assessment_session"
 _UPDATE_RESPONSE_PATCH = "app.api.routes.candidate_ass.update_response"
+_MY_RESULTS_PATCH = "app.api.routes.candidate_ass.get_my_question_results"
 
 def test_get_ass_sess_returns_200(auth_client, mock_db):
     mock_session = MagicMock()
@@ -118,3 +119,68 @@ def test_update_returns_401(client, mock_db):
     )
 
     assert response.status_code == 401
+
+
+def test_get_my_question_results_returns_200(auth_client, mock_db):
+    result = {
+        "candidate_assessment_id": 10,
+        "questions": [],
+    }
+
+    with patch(_MY_RESULTS_PATCH, return_value=result):
+        response = auth_client.get(
+            "/api/v1/candidate/assessments/10/question-results"
+        )
+
+    assert response.status_code == 200
+    assert response.json() == result
+
+
+def test_get_my_question_results_returns_403_for_other_candidate(
+    auth_client,
+    mock_db,
+):
+    error = HTTPException(
+        status_code=403,
+        detail="You can only view your own assessment results.",
+    )
+
+    with patch(_MY_RESULTS_PATCH, side_effect=error):
+        response = auth_client.get(
+            "/api/v1/candidate/assessments/10/question-results"
+        )
+
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "You can only view your own assessment results."
+    )
+
+
+def test_get_my_question_results_returns_404_for_unknown_session(
+    auth_client,
+    mock_db,
+):
+    error = HTTPException(
+        status_code=404,
+        detail="Assessment session not found",
+    )
+
+    with patch(_MY_RESULTS_PATCH, side_effect=error):
+        response = auth_client.get(
+            "/api/v1/candidate/assessments/999/question-results"
+        )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Assessment session not found"
+
+
+def test_get_my_question_results_returns_422_for_non_integer_id(
+    auth_client,
+    mock_db,
+):
+    response = auth_client.get(
+        "/api/v1/candidate/assessments/not-an-id/question-results"
+    )
+
+    assert response.status_code == 422

@@ -14,11 +14,14 @@ from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.question_bank import QuestionBank, QuestionType
 from app.services import question_analytics as analytics_service
 from app.services.cohort_metrics import MIN_COHORT_CANDIDATES
-from app.services.question_analytics import get_question_analytics
 from app.services.review_priority import (
     QuestionInfo,
     QuestionMetrics,
     get_question_review_score,
+)
+from app.services.question_analytics import (
+    get_my_question_results,
+    get_question_analytics,
 )
 
 
@@ -517,3 +520,72 @@ def test_get_question_analytics_uses_cohort_with_enough_sessions(
 
     assert count_calls == [(db, 99, 12)]
     assert cohort_calls == [(db, 1, 12)]
+
+
+def test_get_my_question_results_returns_candidate_safe_shape():
+    session = make_session(candidate_id=7)
+    response = make_response(response_id=101)
+    metrics = make_metrics(candidate_response_id=101)
+
+    db = MagicMock()
+    configure_queries(
+        db,
+        [
+            make_row(
+                response=response,
+                metrics=metrics,
+            )
+        ],
+        session=session,
+    )
+
+    result = get_my_question_results(db, 7, 12)
+    item = result.questions[0]
+
+    assert item.answered is True
+    assert item.answer is not None
+    assert not hasattr(item, "metrics")
+    assert not hasattr(item, "review_score")
+    assert not hasattr(item, "review_band")
+    assert not hasattr(item, "contributing_factors")
+
+
+def test_get_my_question_results_rejects_other_candidate():
+    session = make_session(candidate_id=7)
+    db = MagicMock()
+    configure_queries(db, [], session=session)
+
+    with pytest.raises(HTTPException) as exception_info:
+        get_my_question_results(db, 8, 12)
+
+    assert exception_info.value.status_code == 403
+    assert (
+        exception_info.value.detail
+        == "You can only view your own assessment results."
+    )
+
+
+def test_get_my_question_results_returns_404_for_unknown_session():
+    db = MagicMock()
+    configure_missing_session_query(db)
+
+    with pytest.raises(HTTPException) as exception_info:
+        get_my_question_results(db, 7, 999)
+
+    assert exception_info.value.status_code == 404
+
+
+def test_get_my_question_results_preserves_unanswered_question():
+    session = make_session(candidate_id=7)
+    db = MagicMock()
+    configure_queries(
+        db,
+        [make_row(response=None, metrics=None)],
+        session=session,
+    )
+
+    result = get_my_question_results(db, 7, 12)
+    item = result.questions[0]
+
+    assert item.answered is False
+    assert item.answer is None
