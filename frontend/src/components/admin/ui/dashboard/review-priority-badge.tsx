@@ -1,57 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  PolarAngleAxis,
-  RadialBar,
-  RadialBarChart,
-  ResponsiveContainer,
-} from "recharts";
 import { useParams } from "next/navigation";
 import { apiGet, ApiError } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { ReviewBand, ReviewPriorityResponse } from "@/app/(admin)/types/metrics";
+import { QuestionAnalytics, QuestionAnalyticsResponse, REVIEW_BAND_META, clampScore } from "@/app/(admin)/types/metrics";
+import { QuestionNavigator } from "./question-navigator";
+import { CandidateAnswerViewer } from "./candidate-answer-viewer";
+import { ReviewScoreCard } from "./review-score-card";
+import { TelemetryDashboard } from "./telemetry-dashboard";
 
-type ReviewBandMeta = {
-  label: string;
-  color: string;
-};
 
-const REVIEW_BAND_META: Record<ReviewBand, ReviewBandMeta> = {
-  low: {
-    label: "Low",
-    color: "var(--color-status-success, #4ade80)",
-  },
-  medium: {
-    label: "Medium",
-    color: "var(--color-warning, #fbbf24)",
-  },
-  high: {
-    label: "High",
-    color: "var(--color-system-red, #ef4444)",
-  },
-};
-
-function clampScore(value: number): number {
-  if (Number.isNaN(value)) {
-    return 0;
-  }
-
-  return Math.min(100, Math.max(0, value));
-}
-
-function getBandData(score: number, band: ReviewBand) {
-  const safeScore = clampScore(score);
-
-  return {
-    value: safeScore,
-    fill: REVIEW_BAND_META[band].color,
-  };
-}
-
-function createReviewPriorityData(response: ReviewPriorityResponse) {
-  return [getBandData(response.score, response.band)];
-}
+import { mockOverallPriority, mockQuestionAnalytics } from "./mock";
+const USE_MOCK_DATA = true;
 
 async function fetchReviewPriority(assessmentId: string) {
   return apiGet<ReviewPriorityResponse>(
@@ -60,35 +22,62 @@ async function fetchReviewPriority(assessmentId: string) {
   );
 }
 
+async function fetchQuestionAnalytics(assessmentId: string) {
+  return apiGet<QuestionAnalyticsResponse>(`/api/v1/candidate-assessments/${assessmentId}/question-analytics`, { headers: getAuthHeaders() });
+}
+
 function renderContributingFactor(factor: string, index: number) {
   return <li key={`${factor}-${index}`}>{factor}</li>;
 }
 
 export function ReviewPriorityBadge() {
   const params = useParams<{ id: string }>();
-  const [data, setData] = useState<ReviewPriorityResponse | null>(null);
+  const [overallPriority, setOverallPriority] = useState<ReviewPriorityResponse | null>(null);
+  const [questions, setQuestions] = useState<QuestionAnalytics[]>([]);
+  const [selectedQuestionId, setSelectedQuestionId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const processQuestions = (questions: QuestionAnalytics[]) => {
+    setQuestions(questions);
+    if (questions.length > 0) {
+      setSelectedQuestionId(questions[0].assessment_q_id);
+    }
+  }
+
+  const getErrorMessage = (err: unknown): string => {
+    return err instanceof ApiError ? err.message : "Failed to load review priority.";
+  }
 
   useEffect(function initializeReviewPriority() {
     let isMounted = true;
 
-    async function loadReviewPriority() {
+    async function loadData() {
       try {
-        const response = await fetchReviewPriority(params.id);
+        setIsLoading(true);
 
-        if (isMounted) {
-          setData(response);
-          setError(null);
+        if (USE_MOCK_DATA) {
+          await new Promise((resolve) => setTimeout(resolve, 600));
+          if (isMounted) {
+            setOverallPriority(mockOverallPriority);
+            processQuestions(mockQuestionAnalytics.questions);
+            setError(null);
+          } 
+        } else {
+          const [priorityRes, analyticsRes] = await Promise.all([
+            fetchReviewPriority(params.id),
+            fetchQuestionAnalytics(params.id),
+          ]);
+
+          if (isMounted) {
+            setOverallPriority(priorityRes);
+            processQuestions(analyticsRes.questions);
+            setError(null);
+          }
         }
       } catch (err) {
-        if (isMounted) {
-          const message =
-            err instanceof ApiError
-              ? err.message
-              : "Failed to load review priority.";
-
-          setError(message);
+        if (!isMounted) {
+          setError(getErrorMessage(err));
         }
       } finally {
         if (isMounted) {
@@ -97,107 +86,108 @@ export function ReviewPriorityBadge() {
       }
     }
 
-    loadReviewPriority();
+    loadData();
 
     return function cleanupReviewPriority() {
       isMounted = false;
     };
   }, [params.id]);
 
-  const chartData = useMemo(function computeReviewPriorityData() {
-    if (!data) {
-      return [];
-    }
+  const selectedQuestion = questions.find((q) => q.assessment_q_id === selectedQuestionId);
 
-    return createReviewPriorityData(data);
-  }, [data]);
 
   if (isLoading) {
-    return <p>Loading...</p>;
+    return <p className="text-default-border p-4">Loading review metrics...</p>;
   }
 
   if (error) {
-    return <p>{error}</p>;
+    return <p className="text-system-red p-4">{error}</p>;
   }
 
-  if (!data) {
-    return <p>No review priority data available.</p>;
+  if (!overallPriority) {
+    return <p className="text-default-border p-4">No review priority data available.</p>;
   }
 
-  const bandMeta = REVIEW_BAND_META[data.band];
-  const score = clampScore(data.score);
+  const bandMeta = REVIEW_BAND_META[overallPriority.band];
 
   return (
-    <div className="rounded-lg border border-default-border bg-secondary-surface p-4">
-      <div className="mb-4">
-        <h2 className="font-staatliches text-xl tracking-[0.06em] text-default-text">
-          Review Priority
+    <div className="rounded-lg border border-default-border bg-secondary-surface overflow-hidden">
+
+      <div className="flex flex-col items-center text-center border-b border-tertiary-surface p-6">
+        <h2 className="text-xl tracking-widest text-default-text mb-6 self-start">
+          Overall Review Priority
         </h2>
-      </div>
 
-      <div className="flex flex-col items-center gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="h-40 w-44">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadialBarChart
-              data={chartData}
-              cx="50%"
-              cy="100%"
-              innerRadius="60%"
-              outerRadius="100%"
-              startAngle={180}
-              endAngle={0}
-              barSize={20}
+        <div className="flex flex-col items-center gap-4 w-full">
+
+          <div className="flex flex-col items-center gap-2">
+
+            <div 
+              className="mt-2 inline-flex rounded-full px-4 py-1 text-sm font-bold border" 
+              style={{ 
+                backgroundColor: `${bandMeta.color}15`, 
+                color: bandMeta.color,
+                borderColor: bandMeta.color
+              }}
             >
-              <PolarAngleAxis
-                type="number"
-                domain={[0, 100]}
-                angleAxisId={0}
-                tick={false}
-              />
-              <RadialBar
-                background
-                dataKey="value"
-                cornerRadius={10}
-                fill={bandMeta.color}
-              />
-            </RadialBarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="flex flex-col items-center md:items-start">
-          <div className="text-sm uppercase tracking-[0.08em] text-default-text/70">
-            Signal strength
-          </div>
-          <div className="mt-1 text-4xl font-staatliches tracking-[0.08em] text-default-text">
-            {score}
-          </div>
-          <div
-            className="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-            style={{
-              backgroundColor: `${bandMeta.color}22`,
-              color: bandMeta.color,
-            }}
-          >
-            {bandMeta.label}
+              {bandMeta.label} Priority
+            </div>
           </div>
         </div>
+        <div className="mt-5">
+          <h3 className="mb-2 text-lg tracking-widest text-default-text/90">
+            Observed Patterns
+          </h3>
+          {overallPriority.contributing_factors.length > 0 ? (
+            <ul className="list-disc space-y-1 pl-5 text text-default-text">
+              {overallPriority.contributing_factors.map(renderContributingFactor)}
+            </ul>
+          ) : (
+            <p className="text-sm text-default-border">
+              No contributing factors recorded
+            </p>
+          )}
+        </div>
+
       </div>
 
-      <div className="mt-5">
-        <h3 className="mb-2 text-sm uppercase tracking-[0.08em] text-default-text/70">
-          Observed patterns
-        </h3>
+      <div className="flex min-h-150">
+          <QuestionNavigator
+            questions={questions}
+            selectedQuestionId={selectedQuestionId || questions[0]?.assessment_q_id}
+            onSelectQuestion={setSelectedQuestionId}
+          />
 
-        {data.contributing_factors.length > 0 ? (
-          <ul className="list-disc space-y-1 pl-5 text-sm text-default-text/80">
-            {data.contributing_factors.map(renderContributingFactor)}
-          </ul>
-        ) : (
-          <p className="text-sm text-default-text/70">
-            No contributing factors recorded
-          </p>
-        )}
+          <div className="flex-1 p-5 overflow-auto">
+            {selectedQuestion ? (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg tracking-widest mb-2">
+                    {selectedQuestion.title}
+                  </h3>
+                  <p className="text-sm text-default-border mb-4">
+                    {selectedQuestion.content}
+                  </p>
+                </div>
+
+                <CandidateAnswerViewer question={selectedQuestion}/>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <ReviewScoreCard question={selectedQuestion}/>
+                  <div className="bg-background border border-tertiary-surface rounded-lg p-4">
+                    <h4 className="tracking-widest text-default-text mb-4">
+                      Behavioral Telemetry
+                    </h4>
+                    <TelemetryDashboard metrics={selectedQuestion.metrics}/>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-default-border">Select a question to view details.</p>
+            )}
+          </div>
       </div>
+
     </div>
   );
 }
