@@ -14,7 +14,7 @@ from app.schema.assessment import (
     AssessmentQuestionCreate,
     AssessmentQuestionCreatedResponse,
     AssessmentUpdate,
-    ExecuteRequest
+    ExecuteRequest,
 )
 from app.services.assessment import (
     get_all_assessments,
@@ -43,6 +43,16 @@ from app.services.review_priority import get_review_priority
 from app.schema.metrics_radar import MetricsRadarResponse
 from app.services.reporting_candidate_metrics import get_metrics_radar
 from app.services.candidate import get_candidate_assessment_session
+from app.schema.integrity_weight import (
+    PreAssessmentIntegrityWeightRequest,
+    PreAssessmentIntegrityWeightResponse,
+    PreAssessmentWeightDecisionsRequest,
+    PreAssessmentWeightDecisionsResponse,
+)
+from app.services.assessment import (
+    request_pre_assessment_integrity_recommendations,
+    apply_pre_assessment_weight_decisions,
+)
 from app.schema.question_analytics import QuestionAnalyticsResponse
 from app.services.question_analytics import get_question_analytics
 
@@ -50,6 +60,10 @@ router = APIRouter(prefix="/assessments", tags=["assessments"])
 candidate_response_router = APIRouter(
     prefix="/candidate-assessments",
     tags=["candidate-assessments"],
+)
+integrity_weights_router = APIRouter(
+    prefix="/integrity-weights",
+    tags=["integrity-weights"],
 )
 
 
@@ -501,6 +515,52 @@ def read_metrics_radar(
     return get_metrics_radar(db, candidate_assessment_id)
 
 
+@integrity_weights_router.post(
+    "/recommendations",
+    response_model=PreAssessmentIntegrityWeightResponse,
+)
+async def request_pre_assessment_integrity_recommendations_route(
+    payload: PreAssessmentIntegrityWeightRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Only recruiters can request integrity recommendations."
+            ),
+        )
+
+    return request_pre_assessment_integrity_recommendations(
+        db=db,
+        recruiter_id=int(current_user["user_id"]),
+        questions=payload.questions,
+    )
+
+
+@integrity_weights_router.post(
+    "/decisions",
+    response_model=PreAssessmentWeightDecisionsResponse,
+)
+async def apply_pre_assessment_weight_decisions_route(
+    payload: PreAssessmentWeightDecisionsRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only recruiters can decide integrity weights.",
+        )
+
+    return apply_pre_assessment_weight_decisions(
+        db=db,
+        recruiter_id=int(current_user["user_id"]),
+        payload=payload,
+    )
+
+
 @candidate_response_router.get(
     "/{candidate_assessment_id}/question-analytics",
     response_model=QuestionAnalyticsResponse,
@@ -515,4 +575,7 @@ def read_question_analytics(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only recruiters can access question analytics.",
         )
-    return get_question_analytics(db, candidate_assessment_id)
+
+    return get_question_analytics(
+        db, candidate_assessment_id,
+    )

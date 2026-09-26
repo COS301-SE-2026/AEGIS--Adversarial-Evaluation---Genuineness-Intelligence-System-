@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock,patch
-
+import json
 import pytest
 from fastapi import HTTPException
 
@@ -17,6 +17,7 @@ from app.models.candidate_response import CandidateResponse, CorrectnessStatus
 from app.models.question_bank import QuestionBank
 from app.models.user import User
 from app.schema.candidate_response import CandidateResponseResponse
+
 from app.services.assessment import (
     QuestionBehavior,
     _gather_behavioral_summary_data,
@@ -38,9 +39,30 @@ from app.services.assessment import (
     start_candidate_assessment,
     submit_candidate_assessment,
     update_assessment,
+    _evidence_status_for,
+    _historical_adversarial_integrity_evidence,
+    _historical_integrity_evidence,
+    _parse_integrity_recommendations,
+    _persist_pre_assessment_recommendations,
+    apply_pre_assessment_weight_decisions,
+    request_pre_assessment_integrity_recommendations,
 )
 from app.schema.candidate_response import ResponseCreate
 from app.models.question_bank import QuestionType
+from app.models.integrity_weight_recommendation import (
+    IntegrityWeightRecommendationItem,
+    IntegrityWeightRecommendationSet,
+    RecommendationSetStatus,
+)
+from app.models.assessment_question import RecommendationStatus
+from app.schema.integrity_weight import (
+    EvidenceStatus,
+    PreAssessmentIntegrityWeightInput,
+    PreAssessmentIntegrityWeightRecommendation,
+    PreAssessmentWeightDecision,
+    PreAssessmentWeightDecisionsRequest,
+    WeightDecision,
+)
 
 
 def _make_mock_db_for_all(assessments):
@@ -1744,3 +1766,985 @@ def test_gather_behavioral_summary_data_empty_when_no_rows():
     result = _gather_behavioral_summary_data(mock_db, session, 12)
 
     assert result == []
+
+
+@pytest.mark.parametrize(
+    ("recommendation_status", "expected"),
+    [
+        (
+            RecommendationStatus.INSUFFICIENT_DATA,
+            EvidenceStatus.INSUFFICIENT_DATA,
+        ),
+        (
+            RecommendationStatus.FAILED,
+            EvidenceStatus.FAILED,
+        ),
+        (
+            RecommendationStatus.ACCEPTED,
+            EvidenceStatus.AVAILABLE,
+        ),
+        (
+            RecommendationStatus.MODIFIED,
+            EvidenceStatus.AVAILABLE,
+        ),
+        (
+            RecommendationStatus.REJECTED,
+            EvidenceStatus.AVAILABLE,
+        ),
+        (
+            RecommendationStatus.PENDING,
+            EvidenceStatus.NOT_AVAILABLE,
+        ),
+        (
+            RecommendationStatus.NOT_REQUESTED,
+            EvidenceStatus.NOT_AVAILABLE,
+        ),
+    ],
+)
+
+
+def test_evidence_status_for(recommendation_status, expected):
+    assert _evidence_status_for(recommendation_status) == expected
+
+
+def test_historical_integrity_evidence_returns_zero_when_empty():
+    query = MagicMock()
+    query.join.return_value = query
+    query.filter.return_value = query
+    query.all.return_value = []
+    db = MagicMock()
+    db.query.return_value = query
+    assert _historical_integrity_evidence(db, 10) == {
+        "sample_size": 0
+    }
+
+
+def test_historical_integrity_evidence_averages_metrics():
+    row_one = MagicMock(
+        __getitem__=lambda self, index: 1,
+        active_time_ms=100,
+        focus_loss_time_ms=20,
+        paste_char_count=10,
+        chars_alnum=90,
+        chars_special=10,
+        copy_char_count=4,
+        copy_event_count=1,
+    )
+    row_two = MagicMock(
+        __getitem__=lambda self, index: 2,
+        active_time_ms=300,
+        focus_loss_time_ms=40,
+        paste_char_count=30,
+        chars_alnum=110,
+        chars_special=10,
+        copy_char_count=8,
+        copy_event_count=3,
+    )
+
+    query = MagicMock()
+    query.join.return_value = query
+    query.filter.return_value = query
+    query.all.return_value = [row_one, row_two]
+
+    db = MagicMock()
+    db.query.return_value = query
+    result = _historical_integrity_evidence(db, 10)
+    assert result["sample_size"] == 2
+    assert result["active_time_ms"] == pytest.approx(200.0)
+    assert result["focus_loss_time_ms"] == pytest.approx(30.0)
+    assert result["paste_char_count"] == pytest.approx(20.0)
+    assert result["copy_char_count"] == pytest.approx(6.0)
+    assert result["copy_event_count"] == pytest.approx(2.0)
+
+
+def test_historical_adversarial_integrity_evidence_returns_zero_without_links():
+    query = MagicMock()
+    query.filter.return_value = query
+    query.all.return_value = []
+    db = MagicMock()
+    db.query.return_value = query
+    assert _historical_adversarial_integrity_evidence(db, 491) == {
+        "sample_size": 0
+    }
+
+
+def test_historical_adversarial_integrity_evidence_combines_question_history(
+    monkeypatch,
+):
+    db = MagicMock()
+    db.query.return_value.filter.return_value.all.return_value = [
+        (101,),
+        (102,),
+    ]
+    evidence = {
+        101: {
+            "sample_size": 2,
+            "active_time_ms": 100.0,
+            "focus_loss_time_ms": 20.0,
+            "paste_char_count": 10.0,
+            "copy_char_count": 4.0,
+            "copy_event_count": 1.0,
+        },
+        102: {
+            "sample_size": 1,
+            "active_time_ms": 300.0,
+            "focus_loss_time_ms": 40.0,
+            "paste_char_count": 30.0,
+            "copy_char_count": 8.0,
+            "copy_event_count": 3.0,
+        },
+    }
+    monkeypatch.setattr(
+        "app.services.assessment._historical_integrity_evidence",
+        lambda db, question_id: evidence[question_id],
+    )
+    result = _historical_adversarial_integrity_evidence(db, 491)
+    assert result["sample_size"] == 3
+    assert result["active_time_ms"] == pytest.approx(
+        (100 * 2 + 300) / 3
+    )
+    assert result["copy_event_count"] == pytest.approx(
+        (1 * 2 + 3) / 3
+    )
+
+
+def test_parse_integrity_recommendations_accepts_valid_allocation():
+    result = _parse_integrity_recommendations(
+        json.dumps(
+            {
+                "recommendations": [
+                    {
+                        "adv_question_id": 491,
+                        "suggested_weight": 0.7,
+                        "recommendation": "Higher review priority.",
+                    },
+                    {
+                        "adv_question_id": 492,
+                        "suggested_weight": 0.3,
+                        "recommendation": "Lower review priority.",
+                    },
+                ]
+            }
+        ),
+        {491, 492},
+        id_field="adv_question_id",
+    )
+    assert result == {
+        491: (0.7, "Higher review priority."),
+        492: (0.3, "Lower review priority."),
+    }
+
+def test_persist_pre_assessment_recommendations_creates_set_and_items():
+    db = MagicMock()
+    recommendation_id = uuid.uuid4()
+    def refresh(obj):
+        obj.recommendation_id = recommendation_id
+    db.refresh.side_effect = refresh
+    recommendations = [
+        PreAssessmentIntegrityWeightRecommendation(
+            adv_question_id=491,
+            recruiter_weight=0.8,
+            ai_suggested_weight=0.7,
+            recommendation_status=RecommendationStatus.PENDING,
+            ai_recommendation="Higher priority.",
+            evidence_status=EvidenceStatus.AVAILABLE,
+            historical_sample_size=5,
+        ),
+    ]
+    result = _persist_pre_assessment_recommendations(
+        db,
+        recruiter_id=5,
+        recommendations=recommendations,
+    )
+    assert result.recommendation_id == str(recommendation_id)
+    assert len(result.recommendations) == 1
+    db.add.assert_called_once()
+    db.commit.assert_called_once()
+    stored_set = db.add.call_args.args[0]
+    assert stored_set.recruiter_id == 5
+    assert len(stored_set.items) == 1
+    assert stored_set.items[0].adv_question_id == 491
+    assert stored_set.items[0].recruiter_weight == 0.8
+    assert stored_set.items[0].ai_suggested_weight == 0.7
+
+
+def _recommendation_query(result):
+    query = MagicMock()
+    query.filter.return_value.first.return_value = result
+    return query
+
+
+def _make_recommendation_set():
+    recommendation_set = MagicMock()
+    recommendation_set.recommendation_id = uuid.uuid4()
+    recommendation_set.status = RecommendationSetStatus.PENDING.value
+    recommendation_set.expires_at = None
+    recommendation_set.items = [
+        MagicMock(
+            adv_question_id=491,
+            recruiter_weight=0.8,
+            ai_suggested_weight=0.7,
+        ),
+        MagicMock(
+            adv_question_id=492,
+            recruiter_weight=None,
+            ai_suggested_weight=0.3,
+        ),
+    ]
+    return recommendation_set
+
+
+def test_apply_decisions_accept_uses_ai_weight():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    result = apply_pre_assessment_weight_decisions(
+        db,
+        recruiter_id=5,
+        payload=PreAssessmentWeightDecisionsRequest(
+            recommendation_id=str(
+                recommendation_set.recommendation_id
+            ),
+            decisions=[
+                PreAssessmentWeightDecision(
+                    adv_question_id=491,
+                    decision=WeightDecision.ACCEPT,
+                ),
+                PreAssessmentWeightDecision(
+                    adv_question_id=492,
+                    decision=WeightDecision.REJECT,
+                ),
+            ],
+        ),
+    )
+    assert result.total_approved_weight == pytest.approx(1.0)
+    assert result.ready_for_assessment_creation is True
+    assert result.approved_weights[0].approved_weight == pytest.approx(0.7)
+    assert result.approved_weights[1].approved_weight == pytest.approx(0.3)
+
+
+def test_apply_decisions_modify_uses_recruiter_value():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    result = apply_pre_assessment_weight_decisions(
+        db,
+        recruiter_id=5,
+        payload=PreAssessmentWeightDecisionsRequest(
+            recommendation_id=str(
+                recommendation_set.recommendation_id
+            ),
+            decisions=[
+                PreAssessmentWeightDecision(
+                    adv_question_id=491,
+                    decision=WeightDecision.MODIFY,
+                    approved_weight=0.6,
+                ),
+                PreAssessmentWeightDecision(
+                    adv_question_id=492,
+                    decision=WeightDecision.MODIFY,
+                    approved_weight=0.4,
+                ),
+            ],
+        ),
+    )
+    assert result.total_approved_weight == pytest.approx(1.0)
+    assert recommendation_set.items[0].approved_weight == 0.6
+    assert recommendation_set.items[1].approved_weight == 0.4
+
+
+def test_apply_decisions_reject_preserves_recruiter_baseline():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.items[1].recruiter_weight = 0.2
+
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+
+    result = apply_pre_assessment_weight_decisions(
+        db,
+        recruiter_id=5,
+        payload=PreAssessmentWeightDecisionsRequest(
+            recommendation_id=str(
+                recommendation_set.recommendation_id
+            ),
+            decisions=[
+                PreAssessmentWeightDecision(
+                    adv_question_id=491,
+                    decision=WeightDecision.REJECT,
+                ),
+                PreAssessmentWeightDecision(
+                    adv_question_id=492,
+                    decision=WeightDecision.REJECT,
+                ),
+            ],
+        ),
+    )
+    assert result.total_approved_weight == pytest.approx(1.0)
+    assert recommendation_set.items[0].approved_weight == 0.8
+    assert recommendation_set.items[1].approved_weight == 0.2
+
+def _recommendation_inputs(*weights):
+    return [
+        PreAssessmentIntegrityWeightInput(
+            adv_question_id=question_id,
+            recruiter_weight=weight,
+        )
+        for question_id, weight in zip((491, 492), weights)
+    ]
+
+
+def _make_adversarial_query(questions):
+    query = MagicMock()
+    query.filter.return_value.all.return_value = questions
+    return query
+
+
+def test_request_pre_assessment_rejects_duplicate_question_ids():
+    db = MagicMock()
+    with pytest.raises(HTTPException) as exc_info:
+        request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=[
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=491,
+                    recruiter_weight=0.5,
+                ),
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=491,
+                    recruiter_weight=0.5,
+                ),
+            ],
+        )
+
+    assert exc_info.value.status_code == 422
+    assert "only once" in exc_info.value.detail
+    db.query.assert_not_called()
+
+
+def test_request_pre_assessment_rejects_explicit_weights_above_one():
+    db = MagicMock()
+    with pytest.raises(HTTPException) as exc_info:
+        request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=[
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=491,
+                    recruiter_weight=0.8,
+                ),
+                PreAssessmentIntegrityWeightInput(
+                    adv_question_id=492,
+                    recruiter_weight=0.4,
+                ),
+            ],
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Recruiter weights cannot exceed 1.0."
+    )
+    db.query.assert_not_called()
+
+
+def test_request_pre_assessment_rejects_missing_adversarial_questions():
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([]),
+    ]
+    with pytest.raises(HTTPException) as exc_info:
+        request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    assert exc_info.value.status_code == 404
+    assert "not found" in exc_info.value.detail
+
+
+def test_request_pre_assessment_returns_insufficient_data():
+    question_one = MagicMock(adv_question_id=491)
+    question_two = MagicMock(adv_question_id=492)
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([question_one, question_two]),
+    ]
+    evidence = {
+        491: {"sample_size": 2},
+        492: {"sample_size": 3},
+    }
+    with patch(
+        "app.services.assessment._historical_adversarial_integrity_evidence",
+        side_effect=lambda db, question_id: evidence[question_id],
+    ), patch(
+        "app.services.assessment._persist_pre_assessment_recommendations",
+        return_value=MagicMock(
+            recommendations=[
+                MagicMock(
+                    recommendation_status=(
+                        RecommendationStatus.INSUFFICIENT_DATA
+                    )
+                )
+            ]
+        ),
+    ) as persist:
+        result = request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    persist.assert_called_once()
+    assert result is not None
+    assert result.recommendations[0].recommendation_status == (
+        RecommendationStatus.INSUFFICIENT_DATA
+    )
+
+
+def test_request_pre_assessment_returns_ai_recommendations():
+    question_one = MagicMock(adv_question_id=491)
+    question_two = MagicMock(adv_question_id=492)
+
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([question_one, question_two]),
+    ]
+    evidence = {
+        491: {
+            "sample_size": 5,
+            "active_time_ms": 100.0,
+            "focus_loss_time_ms": 20.0,
+            "paste_char_count": 50.0,
+            "copy_char_count": 10.0,
+            "copy_event_count": 1.0,
+        },
+        492: {
+            "sample_size": 5,
+            "active_time_ms": 200.0,
+            "focus_loss_time_ms": 5.0,
+            "paste_char_count": 5.0,
+            "copy_char_count": 2.0,
+            "copy_event_count": 0.0,
+        },
+    }
+    gemini_response = MagicMock()
+    gemini_response.text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.7,
+                    "recommendation": "Higher review priority.",
+                },
+                {
+                    "adv_question_id": 492,
+                    "suggested_weight": 0.3,
+                    "recommendation": "Lower review priority.",
+                },
+            ]
+        }
+    )
+    gemini_client = MagicMock()
+    gemini_client.models.generate_content.return_value = gemini_response
+    persisted_response = MagicMock()
+    with patch(
+        "app.services.assessment._historical_adversarial_integrity_evidence",
+        side_effect=lambda db, question_id: evidence[question_id],
+    ), patch(
+        "app.services.assessment.get_gemini_client",
+        return_value=gemini_client,
+    ), patch(
+        "app.services.assessment._persist_pre_assessment_recommendations",
+        return_value=persisted_response,
+    ) as persist:
+        result = request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    assert result is persisted_response
+    gemini_client.models.generate_content.assert_called_once()
+    prompt = gemini_client.models.generate_content.call_args.kwargs[
+        "contents"
+    ]
+    assert '"recruiter_weight": 0.5' in prompt
+    persist.assert_called_once()
+    recommendations = persist.call_args.args[2]
+    assert recommendations[0].ai_suggested_weight == pytest.approx(0.7)
+    assert recommendations[1].ai_suggested_weight == pytest.approx(0.3)
+    assert recommendations[0].recruiter_weight == pytest.approx(0.5)
+
+
+def test_request_pre_assessment_records_ai_failure():
+    question_one = MagicMock(adv_question_id=491)
+    question_two = MagicMock(adv_question_id=492)
+    db = MagicMock()
+    db.query.side_effect = [
+        _make_adversarial_query([question_one, question_two]),
+    ]
+    evidence = {
+        491: {"sample_size": 5},
+        492: {"sample_size": 5},
+    }
+    with patch(
+        "app.services.assessment._historical_adversarial_integrity_evidence",
+        side_effect=lambda db, question_id: evidence[question_id],
+    ), patch(
+        "app.services.assessment.get_gemini_client",
+        side_effect=RuntimeError("Gemini unavailable"),
+    ), patch(
+        "app.services.assessment._persist_pre_assessment_recommendations",
+        return_value=MagicMock(),
+    ) as persist:
+        result = request_pre_assessment_integrity_recommendations(
+            db,
+            recruiter_id=5,
+            questions=_recommendation_inputs(0.5, 0.5),
+        )
+    assert result is not None
+    persist.assert_called_once()
+    recommendations = persist.call_args.args[2]
+    assert len(recommendations) == 2
+    assert all(
+        recommendation.recommendation_status
+        == RecommendationStatus.FAILED
+        for recommendation in recommendations
+    )
+    assert all(
+        recommendation.evidence_status == EvidenceStatus.FAILED
+        for recommendation in recommendations
+    )
+
+
+def _decision_payload(recommendation_set, decisions):
+    return PreAssessmentWeightDecisionsRequest(
+        recommendation_id=str(
+            recommendation_set.recommendation_id
+        ),
+        decisions=decisions,
+    )
+
+
+def _decision(adv_question_id, decision, approved_weight=None):
+    return PreAssessmentWeightDecision(
+        adv_question_id=adv_question_id,
+        decision=decision,
+        approved_weight=approved_weight,
+    )
+
+
+def test_apply_decisions_returns_404_when_recommendation_set_missing():
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(None)
+    recommendation_id = str(uuid.uuid4())
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=PreAssessmentWeightDecisionsRequest(
+                recommendation_id=recommendation_id,
+                decisions=[_decision(491, WeightDecision.ACCEPT)],
+            ),
+        )
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Recommendation set not found"
+
+
+def test_apply_decisions_returns_410_when_recommendation_set_expired():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.expires_at = (
+        datetime.now(timezone.utc) - timedelta(minutes=1)
+    )
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 410
+    assert exc_info.value.detail == "Recommendation set has expired"
+
+
+@pytest.mark.parametrize("set_status", ["expired", "invalid"])
+def test_apply_decisions_rejects_non_editable_set(set_status):
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.status = set_status
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail == (
+        "Recommendation set is no longer editable"
+    )
+
+
+def test_apply_decisions_rejects_duplicate_decision_ids():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(491, WeightDecision.REJECT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Each adversarial question may appear only once."
+    )
+
+
+def test_apply_decisions_rejects_missing_decision_ids():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "Missing: [492]" in exc_info.value.detail
+
+
+def test_apply_decisions_rejects_unknown_question_ids():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                    _decision(999, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 404
+    assert "not belong to this recommendation set" in (
+        exc_info.value.detail
+    )
+    assert "[999]" in exc_info.value.detail
+
+
+def test_apply_decisions_rejects_accept_without_ai_weight():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.items[0].ai_suggested_weight = None
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "no AI weight available to accept" in (
+        exc_info.value.detail
+    )
+
+
+def test_apply_decisions_rejects_modify_without_approved_weight():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.MODIFY),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "requires approved_weight when modified" in (
+        exc_info.value.detail
+    )
+
+
+def test_apply_decisions_rejects_explicit_total_above_one():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(
+                        491,
+                        WeightDecision.MODIFY,
+                        approved_weight=0.8,
+                    ),
+                    _decision(
+                        492,
+                        WeightDecision.MODIFY,
+                        approved_weight=0.4,
+                    ),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "cannot exceed 1.0" in exc_info.value.detail
+
+
+def test_apply_decisions_rejects_all_explicit_weights_below_one():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.items[0].recruiter_weight = 0.4
+    recommendation_set.items[1].recruiter_weight = 0.5
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(
+                        491,
+                        WeightDecision.REJECT,
+                    ),
+                    _decision(
+                        492,
+                        WeightDecision.REJECT,
+                    ),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "does not equal 1.0" in exc_info.value.detail
+
+
+@pytest.mark.parametrize(
+    ("raw_text", "expected_error"),
+    [
+        ("not-json", "Invalid AI recommendation format"),
+        ("{}", "Invalid AI recommendation format"),
+        (
+            json.dumps({"recommendations": {}}),
+            "Invalid AI recommendation format",
+        ),
+        (
+            json.dumps(
+                {
+                    "recommendations": [
+                        {
+                            "adv_question_id": 491,
+                            "suggested_weight": 0.5,
+                        }
+                    ]
+                }
+            ),
+            "Invalid AI recommendation item",
+        ),
+    ],
+)
+def test_parse_integrity_recommendations_rejects_invalid_format(
+    raw_text,
+    expected_error,
+):
+    with pytest.raises(ValueError, match=expected_error):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_duplicate_ids():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.5,
+                    "recommendation": "First",
+                },
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.5,
+                    "recommendation": "Duplicate",
+                },
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI returned duplicate assessment question IDs",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+@pytest.mark.parametrize("invalid_weight", [-0.1, 1.1])
+def test_parse_integrity_recommendations_rejects_out_of_range_weight(
+    invalid_weight,
+):
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": invalid_weight,
+                    "recommendation": "Invalid weight",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI suggested weights must be between 0 and 1",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_empty_text():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 1.0,
+                    "recommendation": "   ",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI recommendation text cannot be empty",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_missing_question_id():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 1.0,
+                    "recommendation": "Only one question",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="exactly the requested questions",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491, 492},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_unknown_question_id():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 999,
+                    "suggested_weight": 1.0,
+                    "recommendation": "Unknown question",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="exactly the requested questions",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_incorrect_total():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.4,
+                    "recommendation": "First",
+                },
+                {
+                    "adv_question_id": 492,
+                    "suggested_weight": 0.4,
+                    "recommendation": "Second",
+                },
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI recommendations must sum to 1.0",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491, 492},
+            id_field="adv_question_id",
+        )
