@@ -2313,3 +2313,251 @@ def test_request_pre_assessment_records_ai_failure():
         recommendation.evidence_status == EvidenceStatus.FAILED
         for recommendation in recommendations
     )
+
+
+def _decision_payload(recommendation_set, decisions):
+    return PreAssessmentWeightDecisionsRequest(
+        recommendation_id=str(
+            recommendation_set.recommendation_id
+        ),
+        decisions=decisions,
+    )
+
+
+def _decision(adv_question_id, decision, approved_weight=None):
+    return PreAssessmentWeightDecision(
+        adv_question_id=adv_question_id,
+        decision=decision,
+        approved_weight=approved_weight,
+    )
+
+
+def test_apply_decisions_returns_404_when_recommendation_set_missing():
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(None)
+    recommendation_id = str(uuid.uuid4())
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=PreAssessmentWeightDecisionsRequest(
+                recommendation_id=recommendation_id,
+                decisions=[_decision(491, WeightDecision.ACCEPT)],
+            ),
+        )
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "Recommendation set not found"
+
+
+def test_apply_decisions_returns_410_when_recommendation_set_expired():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.expires_at = (
+        datetime.now(timezone.utc) - timedelta(minutes=1)
+    )
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 410
+    assert exc_info.value.detail == "Recommendation set has expired"
+
+
+@pytest.mark.parametrize("set_status", ["expired", "invalid"])
+def test_apply_decisions_rejects_non_editable_set(set_status):
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.status = set_status
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.detail == (
+        "Recommendation set is no longer editable"
+    )
+
+
+def test_apply_decisions_rejects_duplicate_decision_ids():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(491, WeightDecision.REJECT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail == (
+        "Each adversarial question may appear only once."
+    )
+
+
+def test_apply_decisions_rejects_missing_decision_ids():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "Missing: [492]" in exc_info.value.detail
+
+
+def test_apply_decisions_rejects_unknown_question_ids():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                    _decision(999, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 404
+    assert "not belong to this recommendation set" in (
+        exc_info.value.detail
+    )
+    assert "[999]" in exc_info.value.detail
+
+
+def test_apply_decisions_rejects_accept_without_ai_weight():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.items[0].ai_suggested_weight = None
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.ACCEPT),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "no AI weight available to accept" in (
+        exc_info.value.detail
+    )
+
+
+def test_apply_decisions_rejects_modify_without_approved_weight():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(491, WeightDecision.MODIFY),
+                    _decision(492, WeightDecision.REJECT),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "requires approved_weight when modified" in (
+        exc_info.value.detail
+    )
+
+
+def test_apply_decisions_rejects_explicit_total_above_one():
+    recommendation_set = _make_recommendation_set()
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(
+                        491,
+                        WeightDecision.MODIFY,
+                        approved_weight=0.8,
+                    ),
+                    _decision(
+                        492,
+                        WeightDecision.MODIFY,
+                        approved_weight=0.4,
+                    ),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "cannot exceed 1.0" in exc_info.value.detail
+
+
+def test_apply_decisions_rejects_all_explicit_weights_below_one():
+    recommendation_set = _make_recommendation_set()
+    recommendation_set.items[0].recruiter_weight = 0.4
+    recommendation_set.items[1].recruiter_weight = 0.5
+    db = MagicMock()
+    db.query.return_value = _recommendation_query(recommendation_set)
+    with pytest.raises(HTTPException) as exc_info:
+        apply_pre_assessment_weight_decisions(
+            db,
+            recruiter_id=5,
+            payload=_decision_payload(
+                recommendation_set,
+                [
+                    _decision(
+                        491,
+                        WeightDecision.REJECT,
+                    ),
+                    _decision(
+                        492,
+                        WeightDecision.REJECT,
+                    ),
+                ],
+            ),
+        )
+    assert exc_info.value.status_code == 422
+    assert "does not equal 1.0" in exc_info.value.detail
