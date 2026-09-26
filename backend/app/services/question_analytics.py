@@ -25,6 +25,10 @@ from app.services.review_priority import (
     band_for_score,
     get_question_review_score,
 )
+from app.schema.candidate_question_results import (
+    CandidateQuestionResultItem,
+    CandidateQuestionResultsResponse,
+)
 
 
 def _zero_question_metrics() -> QuestionMetrics:
@@ -68,39 +72,11 @@ def _build_analytics_metrics(
     )
 
 
-def _build_answer(
-    response: CandidateResponse,
-) -> QuestionAnalyticsAnswer:
-    return QuestionAnalyticsAnswer(
-        candidate_answer=response.candidate_answer,
-        score=response.score,
-        is_correct=(
-            response.is_correct.value
-            if response.is_correct is not None
-            else None
-        ),
-    )
-
-
-def get_question_analytics(
+def _build_question_analytics_items(
     db: Session,
     candidate_assessment_id: int,
-) -> QuestionAnalyticsResponse:
-    session = (
-        db.query(CandidateAssessment)
-        .filter(
-            CandidateAssessment.candidate_assess_id
-            == candidate_assessment_id
-        )
-        .first()
-    )
-
-    if session is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Assessment session not found",
-        )
-
+    session: CandidateAssessment,
+) -> list[QuestionAnalyticsItem]:
     rows = (
         db.query(
             AssessmentQuestion,
@@ -235,7 +211,100 @@ def get_question_analytics(
             )
         )
 
+    return questions
+
+
+def _build_answer(
+    response: CandidateResponse,
+) -> QuestionAnalyticsAnswer:
+    return QuestionAnalyticsAnswer(
+        candidate_answer=response.candidate_answer,
+        score=response.score,
+        is_correct=(
+            response.is_correct.value
+            if response.is_correct is not None
+            else None
+        ),
+    )
+
+
+def get_question_analytics(
+    db: Session,
+    candidate_assessment_id: int,
+) -> QuestionAnalyticsResponse:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id
+        )
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment session not found",
+        )
+
     return QuestionAnalyticsResponse(
+        candidate_assessment_id=candidate_assessment_id,
+        questions=_build_question_analytics_items(
+            db,
+            candidate_assessment_id,
+            session,
+        ),
+    )
+
+
+def get_my_question_results(
+    db: Session,
+    candidate_id: int,
+    candidate_assessment_id: int,
+) -> CandidateQuestionResultsResponse:
+    session = (
+        db.query(CandidateAssessment)
+        .filter(
+            CandidateAssessment.candidate_assess_id
+            == candidate_assessment_id
+        )
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment session not found",
+        )
+
+    if session.candidate_id != candidate_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only view your own assessment results.",
+        )
+
+    analytics_items = _build_question_analytics_items(
+        db,
+        candidate_assessment_id,
+        session,
+    )
+
+    questions = [
+        CandidateQuestionResultItem(
+            question_order=item.question_order,
+            assessment_q_id=item.assessment_q_id,
+            question_bank_id=item.question_bank_id,
+            title=item.title,
+            content=item.content,
+            type=item.type,
+            maximum_score=item.maximum_score,
+            answered=item.answered,
+            answer=item.answer,
+        )
+        for item in analytics_items
+    ]
+
+    return CandidateQuestionResultsResponse(
         candidate_assessment_id=candidate_assessment_id,
         questions=questions,
     )
