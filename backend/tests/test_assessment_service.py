@@ -2561,3 +2561,190 @@ def test_apply_decisions_rejects_all_explicit_weights_below_one():
         )
     assert exc_info.value.status_code == 422
     assert "does not equal 1.0" in exc_info.value.detail
+
+
+@pytest.mark.parametrize(
+    ("raw_text", "expected_error"),
+    [
+        ("not-json", "Invalid AI recommendation format"),
+        ("{}", "Invalid AI recommendation format"),
+        (
+            json.dumps({"recommendations": {}}),
+            "Invalid AI recommendation format",
+        ),
+        (
+            json.dumps(
+                {
+                    "recommendations": [
+                        {
+                            "adv_question_id": 491,
+                            "suggested_weight": 0.5,
+                        }
+                    ]
+                }
+            ),
+            "Invalid AI recommendation item",
+        ),
+    ],
+)
+def test_parse_integrity_recommendations_rejects_invalid_format(
+    raw_text,
+    expected_error,
+):
+    with pytest.raises(ValueError, match=expected_error):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_duplicate_ids():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.5,
+                    "recommendation": "First",
+                },
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.5,
+                    "recommendation": "Duplicate",
+                },
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI returned duplicate assessment question IDs",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+@pytest.mark.parametrize("invalid_weight", [-0.1, 1.1])
+def test_parse_integrity_recommendations_rejects_out_of_range_weight(
+    invalid_weight,
+):
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": invalid_weight,
+                    "recommendation": "Invalid weight",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI suggested weights must be between 0 and 1",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_empty_text():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 1.0,
+                    "recommendation": "   ",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI recommendation text cannot be empty",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_missing_question_id():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 1.0,
+                    "recommendation": "Only one question",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="exactly the requested questions",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491, 492},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_unknown_question_id():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 999,
+                    "suggested_weight": 1.0,
+                    "recommendation": "Unknown question",
+                }
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="exactly the requested questions",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491},
+            id_field="adv_question_id",
+        )
+
+
+def test_parse_integrity_recommendations_rejects_incorrect_total():
+    raw_text = json.dumps(
+        {
+            "recommendations": [
+                {
+                    "adv_question_id": 491,
+                    "suggested_weight": 0.4,
+                    "recommendation": "First",
+                },
+                {
+                    "adv_question_id": 492,
+                    "suggested_weight": 0.4,
+                    "recommendation": "Second",
+                },
+            ]
+        }
+    )
+    with pytest.raises(
+        ValueError,
+        match="AI recommendations must sum to 1.0",
+    ):
+        _parse_integrity_recommendations(
+            raw_text,
+            {491, 492},
+            id_field="adv_question_id",
+        )
