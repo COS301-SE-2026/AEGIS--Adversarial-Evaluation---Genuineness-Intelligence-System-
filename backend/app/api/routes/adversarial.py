@@ -11,6 +11,7 @@ from app.schema.adversarial import (
     StrategyResponse,
     ValidationResult,
 )
+from app.schema.trap_effectiveness import TrapEffectivenessResponse
 from app.services.adversarial_service import (
     delete_adversarial_question,
     generate_adversarial_question,
@@ -22,6 +23,7 @@ from app.services.adversarial_service import (
     save_adversarial_question,
     validate_adversarial_question,
 )
+from app.services.trap_effectiveness import get_trap_effectiveness
 
 router = APIRouter(
     prefix="/adversarial-strategies", tags=["adversarial"]
@@ -124,6 +126,27 @@ async def get_every_adversarial_question_route(
             detail="Only recruiters can view adversarial questions.",
         )
     return get_every_adversarial_question(db)
+
+
+@adversarial_questions_router.get(
+    "/adversarial-questions/trap-effectiveness",
+    response_model=TrapEffectivenessResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get trap effectiveness analysis grouped by adversarial strategy",
+)
+async def get_trap_effectiveness_route(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") != "RECRUITER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "Only recruiters can view trap effectiveness analysis."
+            ),
+        )
+    items = get_trap_effectiveness(db)
+    return TrapEffectivenessResponse(items=items)
 
 
 @adversarial_questions_router.patch(
