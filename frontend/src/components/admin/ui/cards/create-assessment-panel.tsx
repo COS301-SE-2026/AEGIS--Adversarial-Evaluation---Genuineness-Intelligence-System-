@@ -6,7 +6,7 @@ import type {
   Difficulty,
 } from "../../../../app/(admin)/types/assessment";
 import { TARGET_ROLES } from "../../../../app/(admin)/types/mock-data";
-import { apiGet, apiPost } from "@/lib/apiClient";
+import { apiGet, apiPost, apiPut } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
 import { X, Search, Check } from "lucide-react";
 
@@ -42,6 +42,95 @@ interface AdversarialQuestionOption {
   validation_status: string;
 }
 
+type EvidenceStatus =
+  | "SUFFICIENT_DATA"
+  | "LIMITED_DATA"
+  | "INSUFFICIENT_DATA"
+  | "UNAVAILABLE";
+
+type IntegrityDecision = "ACCEPT" | "MODIFY" | "REJECT";
+
+interface IntegrityWeightRecommendation {
+  question_id: string;
+  current_approved_weight: number;
+  ai_suggested_weight: number | null;
+  recommendation_reason: string | null;
+  evidence_status: EvidenceStatus;
+  recommendation_available: boolean;
+}
+
+interface IntegrityWeightRecommendationsResponse {
+  assessment_id: string;
+  recommendations: IntegrityWeightRecommendation[];
+}
+
+// BACKEND Note: recommendations/decisions/weights endpoints are scoped to  assessment_id, but questions are chosen 
+// before the assessment exists in this wizard. Weighting state is held locally and only PUT/POSTed to the real endpoints
+// after assessment creation. Needs a draft-assessment or question-id-only recommendations path before real integration.
+const USE_MOCK_INTEGRITY_DATA = true;
+
+const EVIDENCE_LABEL: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "Sufficient data",
+  LIMITED_DATA: "Limited data",
+  INSUFFICIENT_DATA: "Insufficient data",
+  UNAVAILABLE: "Unavailable",
+};
+
+const EVIDENCE_STYLE: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "text-status-success border-status-success-dim bg-status-success-dim/10",
+  LIMITED_DATA: "text-status-warning border-status-warning/40 bg-status-warning/10",
+  INSUFFICIENT_DATA: "text-white-smoke/50 border-default-border bg-tertiary-surface",
+  UNAVAILABLE: "text-white-smoke/40 border-default-border bg-tertiary-surface",
+};
+
+function generateMockRecommendations(
+  questionIds: string[],
+): IntegrityWeightRecommendation[] {
+  return questionIds.map((id, i) => {
+    const bucket = i % 4;
+    if (bucket === 0) {
+      return {
+        question_id: id,
+        current_approved_weight: 0.5,
+        ai_suggested_weight: 0.75,
+        recommendation_reason:
+          "Elevated review: observed pattern in prior candidate responses to this question.",
+        evidence_status: "SUFFICIENT_DATA",
+        recommendation_available: true,
+      };
+    }
+    if (bucket === 1) {
+      return {
+        question_id: id,
+        current_approved_weight: 0.5,
+        ai_suggested_weight: 0.6,
+        recommendation_reason:
+          "Limited response volume — treat this recommendation as provisional.",
+        evidence_status: "LIMITED_DATA",
+        recommendation_available: true,
+      };
+    }
+    if (bucket === 2) {
+      return {
+        question_id: id,
+        current_approved_weight: 0.5,
+        ai_suggested_weight: null,
+        recommendation_reason: null,
+        evidence_status: "INSUFFICIENT_DATA",
+        recommendation_available: false,
+      };
+    }
+    return {
+      question_id: id,
+      current_approved_weight: 0.5,
+      ai_suggested_weight: null,
+      recommendation_reason: null,
+      evidence_status: "UNAVAILABLE",
+      recommendation_available: false,
+    };
+  });
+}
+
 //type FilterValue = string;
 
 const DEFAULT_FORM: CreateAssessmentForm = {
@@ -66,7 +155,7 @@ const DEFAULT_FORM: CreateAssessmentForm = {
 };
 
 export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
-  const [step, setStep] = useState(0); //more steps coming later, only 1 for now
+  const [step, setStep] = useState(0); 
   const [formData, setFormData] = useState<CreateAssessmentForm>(DEFAULT_FORM);
   const [selectedIds, setSelectedIds] = useState<number[]>([]); //this tracks the selected question
   const [isCreating, setIsCreating] = useState(false);
@@ -77,6 +166,11 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [questionSearch, setQuestionSearch] = useState("");
   const [patternFilter, setPatternFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [recommendations, setRecommendations] = useState<Record<string, IntegrityWeightRecommendation>>({});
+  const [approvedWeights, setApprovedWeights] = useState<Record<string, number>>({});
+  const [weightDecisions, setWeightDecisions] = useState<Record<string, IntegrityDecision>>({});
+  const [weightsLoading, setWeightsLoading] = useState(false);
+  const [weightsError, setWeightsError] = useState<string | null>(null);
 
   const updateForm = useCallback(
     <K extends keyof CreateAssessmentForm>(
@@ -114,6 +208,59 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
       isMounted = false;
     };
   }, []);
+
+
+  useEffect(() => {
+  if (step !== 2 || selectedIds.length === 0) return;
+  let isMounted = true;
+  const loadRecommendations = async () => {
+    setWeightsLoading(true);
+    setWeightsError(null);
+    try {
+      const ids = selectedIds.map(String);
+      const recs = USE_MOCK_INTEGRITY_DATA
+        ? generateMockRecommendations(ids)
+        : (
+            await apiPost<IntegrityWeightRecommendationsResponse>(
+              `/api/v1/assessments/draft/integrity-weights/recommendations`,
+              { question_ids: ids },
+              { headers: getAuthHeaders() },
+            )
+          ).recommendations;
+      if (!isMounted) return;
+      setRecommendations((prev) => {
+        const next = { ...prev };
+        recs.forEach((r) => {
+          next[r.question_id] = r;
+        });
+        return next;
+      });
+      setApprovedWeights((prev) => {
+        const next = { ...prev };
+        recs.forEach((r) => {
+          if (next[r.question_id] === undefined) {
+            next[r.question_id] = r.current_approved_weight;
+          }
+        });
+        return next;
+      });
+    } catch (err) {
+      if (isMounted) {
+        setWeightsError(
+          err instanceof Error ? err.message : "Failed to load recommendations.",
+        );
+      }
+    } finally {
+      if (isMounted) setWeightsLoading(false);
+    }
+  };
+  void loadRecommendations();
+  return () => {
+    isMounted = false;
+  };
+}, [step, selectedIds]);
+
+
 
   useEffect(() => {
     if (isCreating) return;
@@ -174,6 +321,21 @@ const allFilteredSelected =
     );
   };
 
+  const handleWeightChange = (questionId: string, value: number) => {
+  setApprovedWeights((prev) => ({ ...prev, [questionId]: value }));
+  setWeightDecisions((prev) => ({ ...prev, [questionId]: "MODIFY" }));
+};
+
+const handleAcceptSuggestion = (rec: IntegrityWeightRecommendation) => {
+  if (rec.ai_suggested_weight === null) return;
+  setApprovedWeights((prev) => ({ ...prev, [rec.question_id]: rec.ai_suggested_weight as number }));
+  setWeightDecisions((prev) => ({ ...prev, [rec.question_id]: "ACCEPT" }));
+};
+
+const handleRejectSuggestion = (questionId: string) => {
+  setWeightDecisions((prev) => ({ ...prev, [questionId]: "REJECT" }));
+};
+
   const createIt = async () => {
     setCreateError(null);
     setIsCreating(true);
@@ -217,6 +379,39 @@ const allFilteredSelected =
         );
       } catch {}
     }
+
+    if (!USE_MOCK_INTEGRITY_DATA) {
+  const weightsPayload = {
+    weights: selectedIds.map((id) => {
+      const key = String(id);
+      return { question_id: key, weight: approvedWeights[key] ?? 0.5 };
+    }),
+  };
+  const decisionsPayload = {
+    decisions: selectedIds
+      .map(String)
+      .filter((key) => weightDecisions[key])
+      .map((key) => ({
+        question_id: key,
+        decision: weightDecisions[key],
+        ...(weightDecisions[key] !== "REJECT" ? { approved_weight: approvedWeights[key] } : {}),
+      })),
+  };
+  try {
+    await apiPut(
+      `/api/v1/assessments/${createdAssessmentId}/integrity-weights`,
+      weightsPayload,
+      { headers: getAuthHeaders() },
+    );
+    await apiPost(
+      `/api/v1/assessments/${createdAssessmentId}/integrity-weights/decisions`,
+      decisionsPayload,
+      { headers: getAuthHeaders() },
+    );
+  } catch {
+    // Integrity-weight submission failure must not block assessment creation.
+  }
+}
 
     setIsCreating(false);
     await onCreated?.();
@@ -334,7 +529,8 @@ const allFilteredSelected =
             {[
               { id: 0, label: "Basic", sub: "details" },
               { id: 1, label: "Questions", sub: "select" },
-              { id: 2, label: "Confirm", sub: "final" },
+              { id: 2, label: "Weighting", sub: "integrity" },
+              { id: 3, label: "Confirm", sub: "final" },
             ].map((s) => {
               let stepCircleClass = "border-default-border text-default-border";
 
@@ -554,8 +750,148 @@ const allFilteredSelected =
   </div>
 )}
 
+{step === 2 && (
+  <div className="mb-6">
+    <div className={sectionTitleCls}>Integrity Weighting</div>
+    <div className="font-jetbrains text-[10px] text-white-smoke/40 mb-4 leading-relaxed">
+      Set the approved integrity weight for each question. AI suggestions are
+      reference only — accepting, editing, or rejecting is always an explicit
+      action and never changes the approved weight on its own.
+    </div>
+
+    {weightsLoading && (
+      <div className="flex items-center justify-center py-10 font-jetbrains text-[12px] text-white-smoke/40">
+        Loading recommendations...
+      </div>
+    )}
+
+    {weightsError && (
+      <div className="mb-3 font-jetbrains text-[10px] text-status-warning">
+        Recommendations unavailable ({weightsError}) — weights default to 0.5 and can still be set manually.
+      </div>
+    )}
+
+    {!weightsLoading && selectedIds.length === 0 && (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="font-staatliches text-[18px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1.5">
+          NO QUESTIONS SELECTED
+        </div>
+        <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.22)]">
+          Go back and select at least one question to configure weighting.
+        </div>
+      </div>
+    )}
+
+    <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2">
+      {selectedIds.map((rawId) => {
+        const id = String(rawId);
+        const question = questions.find((q) => q.adv_question_id === rawId);
+        const rec = recommendations[id];
+        const approved = approvedWeights[id] ?? rec?.current_approved_weight ?? 0.5;
+        const decision = weightDecisions[id];
+        const label = question
+          ? question.content.length > 90
+            ? `${question.content.slice(0, 90)}...`
+            : question.content
+          : `Question #${id}`;
+
+        return (
+          <div key={id} className="border border-default-border rounded-[5px] px-4 py-3.5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke min-w-0 truncate">
+                {label}
+              </div>
+              {rec && (
+                <span
+                  className={`shrink-0 font-jetbrains text-[9px] px-2 py-0.5 rounded border uppercase tracking-wide ${EVIDENCE_STYLE[rec.evidence_status]}`}
+                >
+                  {EVIDENCE_LABEL[rec.evidence_status]}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3.5">
+              <div>
+                <label className={`${labelCls} block mb-1.5`}>Approved Weight</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={approved}
+                  onChange={(e) =>
+                    handleWeightChange(id, Math.min(1, Math.max(0, Number(e.target.value))))
+                  }
+                  className={inputCls}
+                />
+                {decision && (
+                  <div
+                    className={`mt-1.5 font-jetbrains text-[9px] uppercase tracking-wide ${
+                      decision === "REJECT" ? "text-white-smoke/40" : "text-status-success"
+                    }`}
+                  >
+                    {decision === "ACCEPT"
+                      ? "Suggestion accepted"
+                      : decision === "MODIFY"
+                      ? "Manually set"
+                      : "Suggestion rejected"}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className={`${labelCls} block mb-1.5`}>AI Suggested Weight</label>
+                {rec?.recommendation_available && rec.ai_suggested_weight !== null ? (
+                  <>
+                    <div className="bg-tertiary-surface border border-default-border rounded-[5px] px-3.5 py-2.5 font-ibm text-[13px] text-white-smoke/80">
+                      {rec.ai_suggested_weight.toFixed(2)}
+                    </div>
+                    {rec.recommendation_reason && (
+                      <div className="mt-1.5 font-jetbrains text-[9px] text-white-smoke/40 leading-relaxed">
+                        {rec.recommendation_reason}
+                      </div>
+                    )}
+                    <div className="flex gap-1.5 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleAcceptSuggestion(rec)}
+                        className={`font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase transition-colors duration-150 ${
+                          decision === "ACCEPT"
+                            ? "bg-status-success-dim/20 border-status-success text-status-success"
+                            : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+                        }`}
+                      >
+                        Accept
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRejectSuggestion(id)}
+                        className={`font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase transition-colors duration-150 ${
+                          decision === "REJECT"
+                            ? "bg-system-red/15 border-system-red text-system-red"
+                            : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+                        }`}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="bg-tertiary-surface border border-default-border rounded-[5px] px-3.5 py-2.5 font-jetbrains text-[10px] text-white-smoke/40">
+                    No recommendation — {rec ? EVIDENCE_LABEL[rec.evidence_status].toLowerCase() : "not yet loaded"}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </div>
+)}
+
             {/* Section 3 */}
-            {step === 2 && (
+            {step === 3 && (
               <div>
                 <div className="font-staatliches text-base tracking-[0.07em] mb-4 flex items-center gap-2">
                   READY TO GO
@@ -578,6 +914,12 @@ const allFilteredSelected =
                     <span className="text-white-smoke/60">Questions:</span>{" "}
                     {selectedIds.length} (target {formData.questionCount})
                   </div>
+                   <div>
+                    <span className="text-white-smoke/60">Integrity weights:</span>{" "}
+                    {selectedIds.filter((id) => weightDecisions[String(id)] === "ACCEPT").length} accepted,{" "}
+                    {selectedIds.filter((id) => weightDecisions[String(id)] === "MODIFY").length} modified,{" "}
+                    {selectedIds.filter((id) => weightDecisions[String(id)] === "REJECT").length} rejected
+                  </div>
                 </div>
               </div>
             )}
@@ -593,7 +935,7 @@ const allFilteredSelected =
             <div className="flex justify-end">
               <div className="font-ibm-plex text-[12px] text-white-smoke/40 mr-auto">
                 {" "}
-                Step {step + 1}/3
+                Step {step + 1}/4
               </div>
               <div className="flex gap-3">
                 {step > 0 && (
@@ -605,7 +947,7 @@ const allFilteredSelected =
                     BACK
                   </button>
                 )}
-                {step < 2 ? (
+                {step < 3 ? (
                   <button
                     type="button"
                     onClick={() => setStep((s) => s + 1)}
