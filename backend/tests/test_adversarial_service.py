@@ -12,9 +12,11 @@ from app.models.coding_test_cases import CodingTestCase
 from app.models.question_bank import QuestionBank, QuestionType
 from app.schema.adversarial import TestCaseResult
 from app.services.adversarial_service import (
+    _GENERATOR_MODEL,
     _SYSTEM_PROMPT_V1,
     _SYSTEM_PROMPT_V2_PATH,
     _VALIDATION_SYSTEM_PROMPT,
+    _VALIDATOR_MODEL,
     _build_user_message,
     _build_verification_user_message,
     _call_gemini_and_parse,
@@ -280,12 +282,12 @@ def test_call_gemini_and_parse_default_uses_v1_prompt():
     source_question = _mock_question()
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(strategy, source_question)
 
-    assert mock_call_gemini.call_args.args[0] == _SYSTEM_PROMPT_V1
+    assert mock_call_llm.call_args.args[0] == _SYSTEM_PROMPT_V1
 
 
 @requires_local_v2_file
@@ -294,14 +296,14 @@ def test_call_gemini_and_parse_v2_selects_v2_prompt():
     source_question = _mock_question()
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(
             strategy, source_question, prompt_version="v2"
         )
 
-    assert mock_call_gemini.call_args.args[0] == _load_system_prompt_v2()
+    assert mock_call_llm.call_args.args[0] == _load_system_prompt_v2()
 
 
 def test_call_gemini_and_parse_invalid_prompt_version_raises():
@@ -358,9 +360,9 @@ def test_call_gemini_and_parse_v2_uses_v2_few_shot_examples():
     source_question = _mock_question()
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(
             strategy,
             source_question,
@@ -368,7 +370,7 @@ def test_call_gemini_and_parse_v2_uses_v2_few_shot_examples():
             prompt_version="v2",
         )
 
-    user_message = mock_call_gemini.call_args.args[1]
+    user_message = mock_call_llm.call_args.args[1]
     assert "readings" in user_message
     assert "Global Interpreter Lock" not in user_message
 
@@ -379,14 +381,14 @@ def test_call_gemini_and_parse_v1_few_shot_examples_unaffected():
     source_question = _mock_question()
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(
             strategy, source_question, use_few_shot=True
         )
 
-    user_message = mock_call_gemini.call_args.args[1]
+    user_message = mock_call_llm.call_args.args[1]
     assert "Global Interpreter Lock" in user_message
     assert "readings" not in user_message
 
@@ -399,9 +401,9 @@ def test_generate_adversarial_question_forwards_prompt_version():
     )
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         generate_adversarial_question(
             mock_db,
             source_question_id=1,
@@ -410,7 +412,7 @@ def test_generate_adversarial_question_forwards_prompt_version():
             prompt_version="v2",
         )
 
-    assert mock_call_gemini.call_args.args[0] == _load_system_prompt_v2()
+    assert mock_call_llm.call_args.args[0] == _load_system_prompt_v2()
 
 
 @requires_local_v2_file
@@ -423,9 +425,9 @@ def test_regenerate_adversarial_question_forwards_prompt_version():
     )
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         regenerate_adversarial_question(
             mock_db,
             adv_question_id=5,
@@ -434,7 +436,7 @@ def test_regenerate_adversarial_question_forwards_prompt_version():
             prompt_version="v2",
         )
 
-    assert mock_call_gemini.call_args.args[0] == _load_system_prompt_v2()
+    assert mock_call_llm.call_args.args[0] == _load_system_prompt_v2()
 
 
 def test_generate_adversarial_question_404_when_source_missing():
@@ -474,8 +476,8 @@ def test_generate_adversarial_question_422_on_invalid_json():
         strategy_result=_mock_strategy(),
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value="not valid json",
+        "app.services.adversarial_service.call_llm",
+        return_value=("not valid json", _GENERATOR_MODEL),
     ):
         with pytest.raises(HTTPException) as exc_info:
             generate_adversarial_question(
@@ -497,8 +499,8 @@ def test_generate_adversarial_question_422_on_missing_fields():
         "correct_answer": "8",
     }
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(incomplete),
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(incomplete), _GENERATOR_MODEL),
     ):
         with pytest.raises(HTTPException) as exc_info:
             generate_adversarial_question(
@@ -517,16 +519,16 @@ def test_generate_adversarial_question_success():
     )
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = generate_adversarial_question(
             mock_db,
             source_question_id=1,
             strategy_id=2,
         )
 
-    assert mock_call_gemini.call_count == 2
+    assert mock_call_llm.call_count == 2
     assert result.source_question_id == 1
     assert result.strategy_id == 2
     assert result.llm == "gemini-3.1-flash-lite"
@@ -550,14 +552,17 @@ def test_verify_generated_item_false_raises_422():
         strategy_result=_mock_strategy(),
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
+        "app.services.adversarial_service.call_llm",
         side_effect=[
-            json.dumps(VALID_RESPONSE),
-            json.dumps(
-                {
-                    "correct_answer_is_valid": False,
-                    "reason": "8 is not the correct sum.",
-                }
+            (json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+            (
+                json.dumps(
+                    {
+                        "correct_answer_is_valid": False,
+                        "reason": "8 is not the correct sum.",
+                    }
+                ),
+                _GENERATOR_MODEL,
             ),
         ],
     ):
@@ -583,11 +588,14 @@ def test_verify_generated_item_true_generation_proceeds():
         strategy_result=_mock_strategy(),
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
+        "app.services.adversarial_service.call_llm",
         side_effect=[
-            json.dumps(VALID_RESPONSE),
-            json.dumps(
-                {"correct_answer_is_valid": True, "reason": "ok"}
+            (json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+            (
+                json.dumps(
+                    {"correct_answer_is_valid": True, "reason": "ok"}
+                ),
+                _GENERATOR_MODEL,
             ),
         ],
     ):
@@ -604,8 +612,8 @@ def test_verify_generated_item_true_generation_proceeds():
 
 def test_verify_via_gemini_invalid_json_response_returns_none():
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value="not valid json",
+        "app.services.adversarial_service.call_llm",
+        return_value=("not valid json", _GENERATOR_MODEL),
     ):
         result = _verify_via_gemini(VALID_RESPONSE)
 
@@ -636,12 +644,12 @@ def test_verify_generated_item_coding_piston_success_skips_gemini():
         "app.services.adversarial_service.PistonClient",
         return_value=mock_piston_instance,
     ), patch(
-        "app.services.adversarial_service.call_gemini",
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+    ) as mock_call_llm:
         result = _verify_generated_item(parsed, source_question, mock_db)
 
     assert result is None
-    mock_call_gemini.assert_not_called()
+    mock_call_llm.assert_not_called()
 
 
 def test_verify_generated_item_coding_piston_failure_raises_422():
@@ -681,9 +689,9 @@ def test_generate_adversarial_question_verify_false_skips():
     )
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = generate_adversarial_question(
             mock_db,
             source_question_id=1,
@@ -691,7 +699,7 @@ def test_generate_adversarial_question_verify_false_skips():
             verify=False,
         )
 
-    assert mock_call_gemini.call_count == 1
+    assert mock_call_llm.call_count == 1
     assert result.content == VALID_RESPONSE["weaponised_question"]
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
@@ -810,16 +818,16 @@ def test_regenerate_adversarial_question_success():
     )
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = regenerate_adversarial_question(
             mock_db,
             adv_question_id=5,
             strategy_id=2,
         )
 
-    assert mock_call_gemini.call_count == 2
+    assert mock_call_llm.call_count == 2
     assert result is adv_question
     assert result.content == VALID_RESPONSE["weaponised_question"]
     assert result.correct_answer == VALID_RESPONSE["correct_answer"]
@@ -845,9 +853,9 @@ def test_regenerate_adversarial_question_verify_false_skips():
     )
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = regenerate_adversarial_question(
             mock_db,
             adv_question_id=5,
@@ -855,7 +863,7 @@ def test_regenerate_adversarial_question_verify_false_skips():
             verify=False,
         )
 
-    assert mock_call_gemini.call_count == 1
+    assert mock_call_llm.call_count == 1
     assert result.content == VALID_RESPONSE["weaponised_question"]
     mock_db.commit.assert_called_once()
 
@@ -1190,9 +1198,12 @@ def test_validate_adversarial_question_source_answer_is_not_adversarial_answer()
         question_result=source_question,
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(
-            {"final_answer": "D", "reasoning": "D is correct."}
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "D", "reasoning": "D is correct."}
+            ),
+            _VALIDATOR_MODEL,
         ),
     ):
         result = validate_adversarial_question(
@@ -1241,9 +1252,12 @@ def test_validate_adversarial_question_success_mcq():
         question_result=source_question,
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(
-            {"final_answer": "8", "reasoning": "8 is correct."}
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "8", "reasoning": "8 is correct."}
+            ),
+            _VALIDATOR_MODEL,
         ),
     ):
         result = validate_adversarial_question(
@@ -1273,9 +1287,12 @@ def test_validate_adversarial_question_gemini_took_bait_true():
         question_result=source_question,
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(
-            {"final_answer": " 13 ", "reasoning": "It is 13."}
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": " 13 ", "reasoning": "It is 13."}
+            ),
+            _VALIDATOR_MODEL,
         ),
     ):
         result = validate_adversarial_question(
@@ -1296,9 +1313,12 @@ def test_validate_adversarial_question_gemini_took_bait_false():
         question_result=source_question,
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(
-            {"final_answer": "8", "reasoning": "It is 8."}
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "8", "reasoning": "It is 8."}
+            ),
+            _VALIDATOR_MODEL,
         ),
     ):
         result = validate_adversarial_question(
@@ -1320,9 +1340,12 @@ def test_validate_adversarial_question_gemini_took_bait_normalised():
         question_result=source_question,
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(
-            {"final_answer": " true ", "reasoning": "It is true."}
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": " true ", "reasoning": "It is true."}
+            ),
+            _VALIDATOR_MODEL,
         ),
     ):
         result = validate_adversarial_question(
@@ -1342,8 +1365,8 @@ def test_validate_adversarial_question_invalid_json_response():
         question_result=source_question,
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value="I think the answer is 8",
+        "app.services.adversarial_service.call_llm",
+        return_value=("I think the answer is 8", _VALIDATOR_MODEL),
     ):
         result = validate_adversarial_question(
             mock_db, adv_question_id=5
@@ -1364,9 +1387,12 @@ def test_validate_adversarial_question_coding_no_piston():
         question_result=source_question,
     )
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(
-            {"final_answer": "print(8)", "reasoning": "ok"}
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "print(8)", "reasoning": "ok"}
+            ),
+            _VALIDATOR_MODEL,
         ),
     ), patch(
         "app.services.adversarial_service.settings.piston_enabled",
@@ -1403,9 +1429,12 @@ def test_validate_adversarial_question_coding_with_piston():
     }
 
     with patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(
-            {"final_answer": "print(8)", "reasoning": "ok"}
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "print(8)", "reasoning": "ok"}
+            ),
+            _VALIDATOR_MODEL,
         ),
     ), patch(
         "app.services.adversarial_service.settings.piston_enabled",
@@ -1499,13 +1528,16 @@ def test_v1_prompt_works_when_v2_file_missing(tmp_path):
         "app.services.adversarial_service._SYSTEM_PROMPT_V2_PATH",
         missing_path,
     ), patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
-    ) as mock_call_gemini:
-        result = _call_gemini_and_parse(strategy, source_question)
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
+        result, served_by = _call_gemini_and_parse(
+            strategy, source_question
+        )
 
-    assert mock_call_gemini.call_args.args[0] == _SYSTEM_PROMPT_V1
+    assert mock_call_llm.call_args.args[0] == _SYSTEM_PROMPT_V1
     assert result == VALID_RESPONSE
+    assert served_by == _GENERATOR_MODEL
 
 
 def test_v2_prompt_missing_file_raises_clear_error(tmp_path):
@@ -1553,8 +1585,8 @@ def test_v2_few_shot_examples_missing_file_raises_clear_error(
         "app.services.adversarial_service._SEED_LIBRARIES",
         {"v2": missing_path},
     ), patch(
-        "app.services.adversarial_service.call_gemini",
-        return_value=json.dumps(VALID_RESPONSE),
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
     ):
         with pytest.raises(FileNotFoundError) as exc_info:
             _call_gemini_and_parse(

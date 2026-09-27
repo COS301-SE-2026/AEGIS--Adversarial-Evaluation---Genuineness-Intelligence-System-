@@ -104,6 +104,10 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-1.5-flash"
 
+    # OpenRouter API configuration (fallback provider for Gemini)
+    openrouter_api_key: str | None = None
+    openrouter_model: str = "qwen/qwen3.8-27b:free"
+
     # Piston sandbox configuration
     piston_base_url: str = "http://localhost:2000"
     piston_request_timeout_seconds: int = 30
