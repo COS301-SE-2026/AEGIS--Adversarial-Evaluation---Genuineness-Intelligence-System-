@@ -47,10 +47,9 @@ def call_llm(
             exc,
         )
         try:
-            text = call_openrouter(
-                system_instruction, contents, settings.openrouter_model
+            return call_openrouter(
+                system_instruction, contents, settings.openrouter_models
             )
-            return text, settings.openrouter_model
         except OpenRouterError as fallback_exc:
             raise LLMProviderError(
                 "Both providers failed to respond: "

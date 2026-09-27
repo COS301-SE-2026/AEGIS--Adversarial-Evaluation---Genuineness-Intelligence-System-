@@ -18,7 +18,9 @@ class OpenRouterError(RuntimeError):
     "We will raise this when the OpenRouter API request cannot be satisfied"
 
 
-def call_openrouter(system_instruction: str, contents: str, model: str) -> str:
+def call_openrouter(
+    system_instruction: str, contents: str, models: list[str]
+) -> tuple[str, str]:
     if not settings.openrouter_api_key:
         raise OpenRouterError(
             "OPENROUTER_API_KEY is not configured; cannot use the "
@@ -26,7 +28,7 @@ def call_openrouter(system_instruction: str, contents: str, model: str) -> str:
         )
 
     payload = {
-        "model": model,
+        "models": models,
         "messages": [
             {
                 "role": "system",
@@ -52,11 +54,19 @@ def call_openrouter(system_instruction: str, contents: str, model: str) -> str:
         raise OpenRouterError("Unable to reach OpenRouter.") from exc
 
     try:
-        return data["choices"][0]["message"]["content"]
+        content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
         raise OpenRouterError(
             "OpenRouter response missing expected content"
         ) from exc
+
+    served_by = data.get("model")
+    if not served_by:
+        raise OpenRouterError(
+            "OpenRouter response missing 'model' field; cannot "
+            "determine which model served this request"
+        )
+    return content, served_by
 
 
 def extract_error_message(response: httpx.Response) -> str:

@@ -40,22 +40,23 @@ def test_call_llm_gemini_succeeds_skips_openrouter():
 
 def test_call_llm_falls_back_to_openrouter_on_api_error():
     api_error = _mock_api_error(429)
+    fallback_models = ["qwen/qwen3.8-27b:free", "nvidia/nemotron-3.5-lightning:free"]
 
     with patch(
         "app.core.gemini._call_gemini", side_effect=api_error
     ), patch(
         "app.core.gemini.call_openrouter",
-        return_value='{"a": 2}',
+        return_value=('{"a": 2}', "nvidia/nemotron-3.5-lightning:free"),
     ) as mock_openrouter, patch(
-        "app.core.gemini.settings.openrouter_model",
-        "qwen/qwen3.8-27b:free",
+        "app.core.gemini.settings.openrouter_models",
+        fallback_models,
     ):
         text, served_by = call_llm("sys", "user", "gemini-3.1-flash-lite")
 
     assert text == '{"a": 2}'
-    assert served_by == "qwen/qwen3.8-27b:free"
+    assert served_by == "nvidia/nemotron-3.5-lightning:free"
     mock_openrouter.assert_called_once_with(
-        "sys", "user", "qwen/qwen3.8-27b:free"
+        "sys", "user", fallback_models
     )
 
 
@@ -65,11 +66,8 @@ def test_call_llm_falls_back_to_openrouter_on_connection_error():
         side_effect=requests.exceptions.ConnectionError("unreachable"),
     ), patch(
         "app.core.gemini.call_openrouter",
-        return_value='{"a": 3}',
-    ) as mock_openrouter, patch(
-        "app.core.gemini.settings.openrouter_model",
-        "qwen/qwen3.8-27b:free",
-    ):
+        return_value=('{"a": 3}', "qwen/qwen3.8-27b:free"),
+    ) as mock_openrouter:
         text, served_by = call_llm("sys", "user", "gemini-3.1-flash-lite")
 
     assert text == '{"a": 3}'
@@ -83,7 +81,7 @@ def test_call_llm_falls_back_to_openrouter_on_timeout():
         side_effect=requests.exceptions.Timeout("too slow"),
     ), patch(
         "app.core.gemini.call_openrouter",
-        return_value='{"a": 4}',
+        return_value=('{"a": 4}', "qwen/qwen3.8-27b:free"),
     ):
         text, _ = call_llm("sys", "user", "gemini-3.1-flash-lite")
 
