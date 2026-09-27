@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiGet, ApiError } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
-import { ReviewBand, ReviewPriorityResponse } from "@/app/(admin)/types/metrics";
-import { QuestionAnalytics, QuestionAnalyticsResponse, REVIEW_BAND_META, clampScore } from "@/app/(admin)/types/metrics";
+import { ReviewPriorityResponse } from "@/app/(admin)/types/metrics";
+import { QuestionAnalytics, QuestionAnalyticsResponse, REVIEW_BAND_META } from "@/app/(admin)/types/metrics";
 import { QuestionNavigator } from "./question-navigator";
 import { CandidateAnswerViewer } from "./candidate-answer-viewer";
 import { ReviewScoreCard } from "./review-score-card";
 import { TelemetryDashboard } from "./telemetry-dashboard";
 
-
-import { mockOverallPriority, mockQuestionAnalytics } from "./mock";
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 async function fetchReviewPriority(assessmentId: string) {
   return apiGet<ReviewPriorityResponse>(
@@ -56,27 +54,18 @@ export function ReviewPriorityBadge() {
       try {
         setIsLoading(true);
 
-        if (USE_MOCK_DATA) {
-          await new Promise((resolve) => setTimeout(resolve, 600));
-          if (isMounted) {
-            setOverallPriority(mockOverallPriority);
-            processQuestions(mockQuestionAnalytics.questions);
-            setError(null);
-          } 
-        } else {
-          const [priorityRes, analyticsRes] = await Promise.all([
-            fetchReviewPriority(params.id),
-            fetchQuestionAnalytics(params.id),
-          ]);
+        const [priorityRes, analyticsRes] = await Promise.all([
+          fetchReviewPriority(params.id),
+          fetchQuestionAnalytics(params.id),
+        ]);
 
-          if (isMounted) {
-            setOverallPriority(priorityRes);
-            processQuestions(analyticsRes.questions);
-            setError(null);
-          }
+        if (isMounted) {
+          setOverallPriority(priorityRes);
+          processQuestions(analyticsRes.questions);
+          setError(null);
         }
       } catch (err) {
-        if (!isMounted) {
+        if (isMounted) {
           setError(getErrorMessage(err));
         }
       } finally {
