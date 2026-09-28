@@ -658,7 +658,135 @@ const availableRecs = trapRecs.filter(
         );
       })}
 
-
+       {/* Observed metrics */}
+      {metricsError ? (
+        <div className="font-jetbrains text-[10px] text-status-warning">
+          Trap metrics unavailable ({metricsError}). You can still generate using the technique selector above.
+        </div>
+      ) : (
+        !trapLoading &&
+        (trapMetrics.length === 0 ? (
+          <div className="text-center py-6">
+            <div className="font-staatliches text-[16px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1">
+              NO TRAP METRICS YET
+            </div>
+            <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.22)]">
+              Metrics appear once questions have completed attempts.
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-180">
+              <div
+                className={`${TRAP_GRID} px-3 pb-2 font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/40`}
+              >
+                <div>Trap</div>
+                <div>Questions</div>
+                <div>Attempts</div>
+                <div>Elevated review</div>
+                <div>Review-signal rate</div>
+                <div>Evidence</div>
+                <div />
+              </div>
+              <div className="space-y-2">
+                {trapMetrics.map((m) => {
+                  const selected = strategyId === Number(m.trap_id);
+                  const rate =
+                    m.review_signal_rate === null
+                      ? null
+                      : Math.min(100, Math.max(0, m.review_signal_rate));
+                  const sufficient = m.evidence_status === "SUFFICIENT_DATA";
+                  const limited = m.evidence_status === "LIMITED_DATA";
+                  return (
+                    <div
+                      key={m.trap_id}
+                      className={`rounded-[5px] border px-3 py-2.5 transition-colors duration-150 ${
+                        selected
+                          ? "border-system-red bg-system-red/5"
+                          : "border-default-border"
+                      }`}
+                    >
+                      <div className={TRAP_GRID}>
+                        <div className="min-w-0">
+                          <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke truncate">
+                            {m.trap_name}
+                          </div>
+                          <div className="font-jetbrains text-[9px] text-white-smoke/40">
+                            ID {m.trap_id}
+                          </div>
+                        </div>
+                        <div className="font-jetbrains text-[12px] text-white-smoke">
+                          {m.generated_questions}
+                        </div>
+                        <div className="font-jetbrains text-[12px] text-white-smoke">
+                          {m.completed_attempts}
+                        </div>
+                        <div className="font-jetbrains text-[12px] text-white-smoke">
+                          {m.elevated_review_count}
+                        </div>
+                        <div>
+                          {rate === null || !(sufficient || limited) ? (
+                            <span className="font-jetbrains text-[12px] text-white-smoke/40">
+                              — <span className="text-[9px]">not reported</span>
+                            </span>
+                          ) : sufficient ? (
+                            <>
+                              <span className="font-jetbrains text-[12px] text-white-smoke">
+                                {rate.toFixed(1)}%
+                              </span>
+                              <div className="h-1 mt-1 rounded-full bg-tertiary-surface overflow-hidden">
+                                <div
+                                  className="h-full bg-white-smoke/70"
+                                  style={{ width: `${rate}%` }}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <span className="font-jetbrains text-[12px] text-status-warning/80">
+                              ~{rate.toFixed(0)}%{" "}
+                              <span className="text-[9px] uppercase">low sample</span>
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span
+                            className={`font-jetbrains text-[9px] px-2 py-0.5 rounded border uppercase tracking-wide ${EVIDENCE_STYLE[m.evidence_status]}`}
+                          >
+                            {EVIDENCE_LABEL[m.evidence_status]}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectTrap(m.trap_id)}
+                          className={`font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase transition-colors duration-150 ${
+                            selected
+                              ? "bg-system-red/15 border-system-red text-system-red"
+                              : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+                          }`}
+                        >
+                          {selected ? "Selected" : "Select"}
+                        </button>
+                      </div>
+                      {m.evidence_message && (
+                        <div className="font-jetbrains text-[9px] text-white-smoke/50 mt-2 leading-relaxed">
+                          {m.evidence_message}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="font-jetbrains text-[9px] text-white-smoke/30 mt-3 leading-relaxed">
+                Review-signal rate = elevated-review outcomes ÷ completed attempts. It is an observed
+                outcome, not a conclusion about any candidate, and rates from small samples are not reliable.
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  )}
+</div>
 
           {/* Generate Buttons */}
           <div className="flex gap-3">
