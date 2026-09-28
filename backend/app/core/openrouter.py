@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import concurrent.futures
+
 import httpx
 
 from app.core.config import settings
 
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _REQUEST_TIMEOUT_SECONDS = 30
+
+_MAX_TOKENS = 1024
 
 _JSON_ONLY_INSTRUCTION = (
     "\n\nRespond with JSON only, matching the exact schema requested "
@@ -16,6 +20,15 @@ _JSON_ONLY_INSTRUCTION = (
 
 class OpenRouterError(RuntimeError):
     "We will raise this when the OpenRouter API request cannot be satisfied"
+
+
+def _post_to_openrouter(payload: dict, headers: dict) -> dict:
+    with httpx.Client(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
+        response = client.post(
+            _OPENROUTER_URL, json=payload, headers=headers
+        )
+        response.raise_for_status()
+        return response.json()
 
 
 def call_openrouter(
@@ -29,6 +42,7 @@ def call_openrouter(
 
     payload = {
         "models": models,
+        "max_tokens": _MAX_TOKENS,
         "messages": [
             {
                 "role": "system",
@@ -39,19 +53,24 @@ def call_openrouter(
     }
     headers = {"Authorization": f"Bearer {settings.openrouter_api_key}"}
 
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     try:
-        with httpx.Client(timeout=_REQUEST_TIMEOUT_SECONDS) as client:
-            response = client.post(
-                _OPENROUTER_URL, json=payload, headers=headers
-            )
-            response.raise_for_status()
-            data = response.json()
-    except httpx.HTTPStatusError as exc:
-        raise OpenRouterError(
-            extract_error_message(exc.response)
-        ) from exc
-    except httpx.RequestError as exc:
-        raise OpenRouterError("Unable to reach OpenRouter.") from exc
+        future = executor.submit(_post_to_openrouter, payload, headers)
+        try:
+            data = future.result(timeout=_REQUEST_TIMEOUT_SECONDS)
+        except concurrent.futures.TimeoutError as exc:
+            raise OpenRouterError(
+                "OpenRouter request timed out after "
+                f"{_REQUEST_TIMEOUT_SECONDS}s"
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            raise OpenRouterError(
+                extract_error_message(exc.response)
+            ) from exc
+        except httpx.RequestError as exc:
+            raise OpenRouterError("Unable to reach OpenRouter.") from exc
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
     try:
         content = data["choices"][0]["message"]["content"]
