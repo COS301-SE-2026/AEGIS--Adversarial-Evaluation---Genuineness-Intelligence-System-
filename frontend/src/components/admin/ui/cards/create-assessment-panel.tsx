@@ -163,61 +163,74 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
 
 
   useEffect(() => {
-  if (step !== 2 || selectedIds.length === 0) return;
-  let isMounted = true;
-  const loadRecommendations = async () => {
-    setWeightsLoading(true);
-    setWeightsError(null);
-    try {
-      const defaultWeight = 1 / selectedIds.length;
-      const baseline = Object.fromEntries(
-        selectedIds.map((id) => [String(id), defaultWeight]),
-      ) as Record<string, number>;
-      setRecruiterWeights(baseline);
+  const controller = new AbortController();
+  if (step !== 2 || selectedIds.length === 0) {
+    return () => controller.abort();
+  }
 
+  const selectedQuestionIds = [...selectedIds];
+  const baseline = Object.fromEntries(
+    selectedQuestionIds.map((id) => [String(id), 1 / selectedQuestionIds.length]),
+  ) as Record<string, number>;
+
+  setWeightsLoading(true);
+  setWeightsError(null);
+  setRecommendationId(null);
+  setRecommendations({});
+  setRecruiterWeights(baseline);
+  setApprovedWeights(baseline);
+  setWeightDecisions({});
+
+  const loadRecommendations = async () => {
+    try {
       const response = await apiPost<IntegrityWeightRecommendationsResponse>(
         "/api/v1/integrity-weights/recommendations",
         {
-          questions: selectedIds.map((advQuestionId) => ({
+          questions: selectedQuestionIds.map((advQuestionId) => ({
             adv_question_id: advQuestionId,
             recruiter_weight: baseline[String(advQuestionId)],
           })),
         },
-        { headers: getAuthHeaders() },
+        { headers: getAuthHeaders(), signal: controller.signal },
       );
-      const recs = response.recommendations;
-      if (!isMounted) return;
+      if (controller.signal.aborted) return;
       setRecommendationId(response.recommendation_id);
-      setRecommendations((prev) => {
-        const next = { ...prev };
-        recs.forEach((r) => {
-          next[String(r.adv_question_id)] = r;
-        });
-        return next;
-      });
-      setApprovedWeights((prev) => {
-        const next = { ...prev };
-        recs.forEach((r) => {
-          const key = String(r.adv_question_id);
-          if (next[key] === undefined && r.recruiter_weight !== null) {
-            next[key] = r.recruiter_weight;
-          }
-        });
-        return next;
-      });
+      setRecommendations(
+        Object.fromEntries(
+          response.recommendations.map((recommendation) => [
+            String(recommendation.adv_question_id),
+            recommendation,
+          ]),
+        ),
+      );
+      setApprovedWeights((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          response.recommendations
+            .filter((recommendation) => recommendation.recruiter_weight !== null)
+            .map((recommendation) => [
+              String(recommendation.adv_question_id),
+              recommendation.recruiter_weight as number,
+            ]),
+        ),
+      }));
     } catch (err) {
-      if (isMounted) {
-        setWeightsError(
-          err instanceof Error ? err.message : "Failed to load recommendations.",
-        );
-      }
+      if (controller.signal.aborted) return;
+      setWeightsError(
+        err instanceof Error ? err.message : "Failed to load recommendations.",
+      );
     } finally {
-      if (isMounted) setWeightsLoading(false);
+      if (!controller.signal.aborted) setWeightsLoading(false);
     }
   };
-  void loadRecommendations();
+
+  const requestTimer = window.setTimeout(() => {
+    void loadRecommendations();
+  }, 300);
+
   return () => {
-    isMounted = false;
+    window.clearTimeout(requestTimer);
+    controller.abort();
   };
 }, [step, selectedIds]);
 

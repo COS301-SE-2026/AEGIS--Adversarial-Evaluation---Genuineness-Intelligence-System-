@@ -2226,8 +2226,7 @@ def test_request_pre_assessment_returns_ai_recommendations():
             "copy_event_count": 0.0,
         },
     }
-    gemini_response = MagicMock()
-    gemini_response.text = json.dumps(
+    llm_response = json.dumps(
         {
             "recommendations": [
                 {
@@ -2243,16 +2242,14 @@ def test_request_pre_assessment_returns_ai_recommendations():
             ]
         }
     )
-    gemini_client = MagicMock()
-    gemini_client.models.generate_content.return_value = gemini_response
     persisted_response = MagicMock()
     with patch(
         "app.services.assessment._historical_adversarial_integrity_evidence",
         side_effect=lambda db, question_id: evidence[question_id],
     ), patch(
-        "app.services.assessment.get_gemini_client",
-        return_value=gemini_client,
-    ), patch(
+        "app.services.assessment.call_llm",
+        return_value=(llm_response, "gemini"),
+    ) as mock_call_llm, patch(
         "app.services.assessment._persist_pre_assessment_recommendations",
         return_value=persisted_response,
     ) as persist:
@@ -2262,10 +2259,8 @@ def test_request_pre_assessment_returns_ai_recommendations():
             questions=_recommendation_inputs(0.5, 0.5),
         )
     assert result is persisted_response
-    gemini_client.models.generate_content.assert_called_once()
-    prompt = gemini_client.models.generate_content.call_args.kwargs[
-        "contents"
-    ]
+    mock_call_llm.assert_called_once()
+    prompt = mock_call_llm.call_args.args[1]
     assert '"recruiter_weight": 0.5' in prompt
     persist.assert_called_once()
     recommendations = persist.call_args.args[2]
@@ -2289,8 +2284,8 @@ def test_request_pre_assessment_records_ai_failure():
         "app.services.assessment._historical_adversarial_integrity_evidence",
         side_effect=lambda db, question_id: evidence[question_id],
     ), patch(
-        "app.services.assessment.get_gemini_client",
-        side_effect=RuntimeError("Gemini unavailable"),
+        "app.services.assessment.call_llm",
+        side_effect=RuntimeError("Both providers unavailable"),
     ), patch(
         "app.services.assessment._persist_pre_assessment_recommendations",
         return_value=MagicMock(),

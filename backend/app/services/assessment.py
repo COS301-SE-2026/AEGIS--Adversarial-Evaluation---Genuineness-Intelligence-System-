@@ -9,7 +9,7 @@ from typing import Any, Optional
 from fastapi import HTTPException, status
 from google.genai import types
 from sqlalchemy.orm import Session, selectinload
-from app.core.gemini import get_gemini_client
+from app.core.gemini import call_llm, get_gemini_client
 from app.core.piston import PistonClient, PistonError
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
@@ -1547,9 +1547,7 @@ def request_pre_assessment_integrity_recommendations(
     )
 
     try:
-        response = get_gemini_client().models.generate_content(
-            model=_INTEGRITY_WEIGHT_MODEL,
-            contents=(
+        recommendation_prompt = (
                 "Recommend a complete review-priority weight allocation "
                 "for the selected adversarial questions. A higher weight "
                 "means that suspicious integrity signals for that question "
@@ -1569,14 +1567,14 @@ def request_pre_assessment_integrity_recommendations(
                 "\"suggested_weight\":number,"
                 "\"recommendation\":string}]}\n"
                 f"Evidence: {evidence_prompt}"
-            ),
-            config=types.GenerateContentConfig(
-                temperature=0.0,
-                response_mime_type="application/json",
-            ),
+        )
+        response_text, _served_by = call_llm(
+            "Return only the requested JSON object.",
+            recommendation_prompt,
+            _INTEGRITY_WEIGHT_MODEL,
         )
         parsed = _parse_integrity_recommendations(
-            response.text,
+            response_text,
             expected_ids,
             id_field="adv_question_id",
         )

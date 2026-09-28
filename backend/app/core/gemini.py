@@ -1,5 +1,6 @@
 import logging
 
+import httpx
 import requests
 from google import genai
 from google.genai import errors as genai_errors
@@ -11,6 +12,14 @@ from app.core.openrouter import OpenRouterError, call_openrouter
 _JSON_MIME_TYPE = "application/json"
 
 _logger = logging.getLogger(__name__)
+
+_GEMINI_FALLBACK_ERRORS = (
+    genai_errors.APIError,
+    requests.RequestException,
+    httpx.RequestError,
+    TimeoutError,
+    OSError,
+)
 
 
 class LLMProviderError(RuntimeError):
@@ -40,7 +49,7 @@ def call_llm(
 ) -> tuple[str, str]:
     try:
         return _call_gemini(system_instruction, contents, model), model
-    except (genai_errors.APIError, requests.RequestException) as exc:
+    except _GEMINI_FALLBACK_ERRORS as exc:
         _logger.warning(
             "Gemini call failed (%s: %s), falling back to OpenRouter",
             type(exc).__name__,
