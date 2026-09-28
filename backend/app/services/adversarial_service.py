@@ -5,11 +5,10 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import HTTPException, status
-from google.genai import types
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.gemini import get_gemini_client
+from app.core.gemini import call_llm
 from app.core.piston import PistonClient, PistonError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
@@ -67,7 +66,6 @@ def _load_system_prompt_v2() -> str:
 
 _GENERATOR_MODEL = "gemini-3.1-flash-lite"
 _VALIDATOR_MODEL = "gemini-3.1-flash-lite"
-_JSON_MIME_TYPE = "application/json"
 _ADVERSARIAL_QUESTION_NOT_FOUND = "Adversarial question not found"
 
 _logger = logging.getLogger(__name__)
@@ -263,7 +261,7 @@ def _call_gemini_and_parse(
     source_question: QuestionBank,
     use_few_shot: bool = False,
     prompt_version: PromptVersion = PromptVersion.v1,
-) -> dict:
+) -> tuple[dict, str]:
     system_prompt = _select_system_prompt(prompt_version)
     examples_block = ""
     if use_few_shot:
@@ -277,18 +275,11 @@ def _call_gemini_and_parse(
         examples_block,
     )
 
-    client = get_gemini_client()
-    response = client.models.generate_content(
-        model=_GENERATOR_MODEL,
-        contents=user_message,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            temperature=0.0,
-            response_mime_type=_JSON_MIME_TYPE,
-        ),
+    raw_text, served_by = call_llm(
+        system_prompt, user_message, _GENERATOR_MODEL
     )
 
-    return _parse_gemini_response(response.text)
+    return _parse_gemini_response(raw_text), served_by
 
 
 def _build_verification_user_message(parsed: dict) -> str:
@@ -314,17 +305,12 @@ def _build_verification_user_message(parsed: dict) -> str:
 
 
 def _verify_via_gemini(parsed: dict) -> None:
-    client = get_gemini_client()
-    response = client.models.generate_content(
-        model=_GENERATOR_MODEL,
-        contents=_build_verification_user_message(parsed),
-        config=types.GenerateContentConfig(
-            system_instruction=_VERIFICATION_SYSTEM_PROMPT,
-            temperature=0.0,
-            response_mime_type=_JSON_MIME_TYPE,
-        ),
+    raw_text, _ = call_llm(
+        _VERIFICATION_SYSTEM_PROMPT,
+        _build_verification_user_message(parsed),
+        _GENERATOR_MODEL,
     )
-    raw_text = response.text or ""
+    raw_text = raw_text or ""
 
     try:
         verification = json.loads(raw_text)
@@ -438,7 +424,7 @@ def generate_adversarial_question(
             detail="Adversarial strategy not found",
         )
 
-    parsed = _call_gemini_and_parse(
+    parsed, served_by = _call_gemini_and_parse(
         strategy, source_question, prompt_version=prompt_version
     )
     if verify:
@@ -448,7 +434,7 @@ def generate_adversarial_question(
         source_question_id=source_question_id,
         content=parsed["weaponised_question"],
         strategy_id=strategy_id,
-        llm=_GENERATOR_MODEL,
+        llm=served_by,
         generated_at=datetime.now(timezone.utc),
         correct_answer=parsed["correct_answer"],
         predicted_wrong_answer=parsed["predicted_wrong_answer"],
@@ -512,7 +498,7 @@ def regenerate_adversarial_question(
             detail="Adversarial strategy not found",
         )
 
-    parsed = _call_gemini_and_parse(
+    parsed, served_by = _call_gemini_and_parse(
         strategy, source_question, prompt_version=prompt_version
     )
     if verify:
@@ -526,7 +512,7 @@ def regenerate_adversarial_question(
     adversarial_question.trap_mechanism = parsed["trap_mechanism"]
     adversarial_question.pattern_used = parsed["pattern_used"]
     adversarial_question.strategy_id = strategy_id
-    adversarial_question.llm = _GENERATOR_MODEL
+    adversarial_question.llm = served_by
     adversarial_question.generated_at = datetime.now(timezone.utc)
 
     db.commit()
@@ -622,17 +608,12 @@ def validate_adversarial_question(
             detail="Source question not found",
         )
 
-    client = get_gemini_client()
-    response = client.models.generate_content(
-        model=_VALIDATOR_MODEL,
-        contents=adversarial_question.content,
-        config=types.GenerateContentConfig(
-            system_instruction=_VALIDATION_SYSTEM_PROMPT,
-            temperature=0.0,
-            response_mime_type=_JSON_MIME_TYPE,
-        ),
+    raw_response, _ = call_llm(
+        _VALIDATION_SYSTEM_PROMPT,
+        adversarial_question.content,
+        _VALIDATOR_MODEL,
     )
-    raw_response = response.text or ""
+    raw_response = raw_response or ""
 
     predicted_wrong_answer = (
         adversarial_question.predicted_wrong_answer or ""
