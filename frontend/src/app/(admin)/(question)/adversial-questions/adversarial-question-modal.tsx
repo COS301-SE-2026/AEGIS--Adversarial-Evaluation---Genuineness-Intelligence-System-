@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, RefreshCw, Sparkles } from "lucide-react";
+import { X, RefreshCw, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import {QuestionBank, QuestionCategory,} from "../../types/questions";
 import { apiGet, apiPatch, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -75,6 +75,32 @@ interface AdversarialQuestionModalProps {
   categories: QuestionCategory[];
   onClose: () => void;
 }
+
+type EvidenceStatus =
+  | "SUFFICIENT_DATA"
+  | "LIMITED_DATA"
+  | "INSUFFICIENT_DATA"
+  | "UNAVAILABLE";
+
+interface TrapEffectivenessMetric {
+  trap_id: string;
+  trap_name: string;
+  generated_questions: number;
+  completed_attempts: number;
+  elevated_review_count: number; 
+  review_signal_rate: number | null;
+  evidence_status: EvidenceStatus;
+  evidence_message: string | null;
+}
+
+interface TrapRecommendation {
+  trap_id: string;
+  recommendation_available: boolean;
+  recommendation: string | null;
+  evidence_status: string;
+  reason: string | null;
+}
+
 
 export default function AdversarialQuestionModal({
   isOpen,
