@@ -146,7 +146,7 @@ function generateMockTrapMetrics(
           review_signal_rate: 44.4,
           evidence_status: "LIMITED_DATA",
           evidence_message:
-            "Only 9 completed attempts — this rate may change substantially with more data.",
+            "Only 9 completed attempts — rate may change with data",
         };
 
         case 2:
@@ -157,7 +157,7 @@ function generateMockTrapMetrics(
           elevated_review_count: 1,
           review_signal_rate: null,
           evidence_status: "INSUFFICIENT_DATA",
-          evidence_message: "Not enough completed attempts to report a rate.",
+          evidence_message: "Not enough attempts to report a rate.",
         };
       default:
         return {
@@ -700,10 +700,7 @@ const availableRecs = trapRecs.filter(
                   );
                 })}
               </div>
-              <div className="font-jetbrains text-[9px] text-white-smoke/30 mt-3 leading-relaxed">
-                Review-signal rate = elevated-review outcomes ÷ completed attempts. It is an observed
-                outcome, not a conclusion about any candidate, and rates from small samples are not reliable.
-              </div>
+              
             </div>
           </div>
         ))
