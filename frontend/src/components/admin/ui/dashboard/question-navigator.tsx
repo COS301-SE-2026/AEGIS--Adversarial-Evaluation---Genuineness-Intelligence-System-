@@ -45,7 +45,7 @@ export function QuestionNavigator({questions, selectedQuestionId, onSelectQuesti
                             <div className="flex items-center gap-2 text-xs text-default-text/50">
                                 
                                 <span className="font-jetbrains-mono">
-                                    <span>{question.answer?.score.toFixed(0) || 0}/{question.maximum_score}</span>
+                                <span>{question.answer?.score?.toFixed(0) ?? 0}/{question.maximum_score}</span>
                                     {!question.answered && 
                                         <span className="text-default-border"> Not Answered</span>
                                     }
