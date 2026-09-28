@@ -222,6 +222,12 @@ export default function AdversarialQuestionModal({
   const [isDeploying, setIsDeploying] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [trapMetrics, setTrapMetrics] = useState<TrapEffectivenessMetric[]>([]);
+  const [trapRecs, setTrapRecs] = useState<TrapRecommendation[]>([]);
+  const [trapLoading, setTrapLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [recsError, setRecsError] = useState<string | null>(null);
+  const [trapPanelOpen, setTrapPanelOpen] = useState(true);
   const selectedSource = questions.find(
     (q) => q.question_bank_id === sourceQuestionId,
   );
