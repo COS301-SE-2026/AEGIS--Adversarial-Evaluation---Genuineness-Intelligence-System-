@@ -259,6 +259,51 @@ export default function AdversarialQuestionModal({
     };
   }, []);
 
+  useEffect(() => {
+  if (strategies.length === 0) return;
+  let isMounted = true;
+  const loadTrapInsights = async () => {
+    setTrapLoading(true);
+    setMetricsError(null);
+    setRecsError(null);
+    const [metricsResult, recsResult] = await Promise.allSettled([
+      USE_MOCK_TRAP_DATA
+        ? Promise.resolve(generateMockTrapMetrics(strategies))
+        : apiGet<TrapEffectivenessMetric[]>(
+            "/api/v1/adversarial-strategies/effectiveness",
+            { headers: getAuthHeaders() },
+          ),
+      USE_MOCK_TRAP_DATA
+        ? Promise.resolve(generateMockTrapRecommendations(strategies))
+        : apiGet<TrapRecommendation[]>(
+            "/api/v1/adversarial-strategies/recommendations",
+            { headers: getAuthHeaders() },
+          ),
+    ]);
+    if (!isMounted) return;
+    
+    if (metricsResult.status === "fulfilled") setTrapMetrics(metricsResult.value);
+    else
+      setMetricsError(
+        metricsResult.reason instanceof Error
+          ? metricsResult.reason.message
+          : "Failed to load trap metrics.",
+      );
+    if (recsResult.status === "fulfilled") setTrapRecs(recsResult.value);
+    else
+      setRecsError(
+        recsResult.reason instanceof Error
+          ? recsResult.reason.message
+          : "Failed to load recommendations.",
+      );
+    setTrapLoading(false);
+  };
+  void loadTrapInsights();
+  return () => {
+    isMounted = false;
+  };
+}, [strategies]);
+
   const resetGenerationState = () => {
     setGenerated(null);
     setGenerateError(null);
