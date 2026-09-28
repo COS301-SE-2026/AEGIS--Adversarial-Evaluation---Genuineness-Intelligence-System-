@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, RefreshCw, Sparkles } from "lucide-react";
+import { X, RefreshCw, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import {QuestionBank, QuestionCategory,} from "../../types/questions";
 import { apiGet, apiPatch, apiPost } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -76,6 +76,127 @@ interface AdversarialQuestionModalProps {
   onClose: () => void;
 }
 
+type EvidenceStatus =
+  | "SUFFICIENT_DATA"
+  | "LIMITED_DATA"
+  | "INSUFFICIENT_DATA"
+  | "UNAVAILABLE";
+
+interface TrapEffectivenessMetric {
+  trap_id: string;
+  trap_name: string;
+  generated_questions: number;
+  completed_attempts: number;
+  elevated_review_count: number; 
+  review_signal_rate: number | null;
+  evidence_status: EvidenceStatus;
+  evidence_message: string | null;
+}
+
+interface TrapRecommendation {
+  trap_id: string;
+  recommendation_available: boolean;
+  recommendation: string | null;
+  evidence_status: string;
+  reason: string | null;
+}
+
+// backend note: metrics shape and both endpoint paths below are placeholders (only TrapRecommendation is frozen).
+const USE_MOCK_TRAP_DATA = true;
+
+const EVIDENCE_LABEL: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "Sufficient data",
+  LIMITED_DATA: "Limited data",
+  INSUFFICIENT_DATA: "Insufficient data",
+  UNAVAILABLE: "Unavailable",
+};
+
+const EVIDENCE_STYLE: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "text-status-success border-status-success-dim bg-status-success-dim/10",
+  LIMITED_DATA: "text-status-warning border-status-warning/40 bg-status-warning/10",
+  INSUFFICIENT_DATA: "text-white-smoke/50 border-default-border bg-tertiary-surface",
+  UNAVAILABLE: "text-white-smoke/40 border-default-border bg-tertiary-surface",
+};
+
+const TRAP_GRID =
+  "grid grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_minmax(130px,1.3fr)_auto] gap-3 items-center";
+
+function generateMockTrapMetrics(
+  strategies: AdversarialStrategy[],
+): TrapEffectivenessMetric[] {
+  return strategies.map((s, i) => {
+    const base = { trap_id: String(s.strategy_id), trap_name: s.strategy_name };
+    switch (i % 4) {
+      case 0:
+        return {
+          ...base,
+          generated_questions: 12,
+          completed_attempts: 84,
+          elevated_review_count: 27,
+          review_signal_rate: 32.1,
+          evidence_status: "SUFFICIENT_DATA",
+          evidence_message: null,
+        };
+      case 1:
+        return {
+          ...base,
+          generated_questions: 5,
+          completed_attempts: 9,
+          elevated_review_count: 4,
+          review_signal_rate: 44.4,
+          evidence_status: "LIMITED_DATA",
+          evidence_message:
+            "Only 9 completed attempts — rate may change with data",
+        };
+
+        case 2:
+        return {
+          ...base,
+          generated_questions: 2,
+          completed_attempts: 2,
+          elevated_review_count: 1,
+          review_signal_rate: null,
+          evidence_status: "INSUFFICIENT_DATA",
+          evidence_message: "Not enough attempts to report a rate.",
+        };
+      default:
+        return {
+          ...base,
+          generated_questions: 0,
+          completed_attempts: 0,
+          elevated_review_count: 0,
+          review_signal_rate: null,
+          evidence_status: "UNAVAILABLE",
+          evidence_message: "Metrics are unavailable for this trap.",
+        };
+    }
+  });
+}
+
+function generateMockTrapRecommendations(
+  strategies: AdversarialStrategy[],
+): TrapRecommendation[] {
+  return strategies.map((s, i) =>
+    i === 0
+      ? {
+          trap_id: String(s.strategy_id),
+          recommendation_available: true,
+          recommendation:
+            "Consider this trap for your next question — observed outcomes are consistent across a large sample.",
+          evidence_status: "SUFFICIENT_DATA",
+          reason: "84 completed attempts with a stable review-signal rate.",
+        }
+      : {
+          trap_id: String(s.strategy_id),
+          recommendation_available: false,
+          recommendation: null,
+          evidence_status: i % 4 === 3 ? "UNAVAILABLE" : "INSUFFICIENT_DATA",
+          reason: null,
+        },
+  );
+}
+
+
 export default function AdversarialQuestionModal({
   isOpen,
   onClose,
@@ -101,6 +222,12 @@ export default function AdversarialQuestionModal({
   const [isDeploying, setIsDeploying] = useState(false);
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [trapMetrics, setTrapMetrics] = useState<TrapEffectivenessMetric[]>([]);
+  const [trapRecs, setTrapRecs] = useState<TrapRecommendation[]>([]);
+  const [trapLoading, setTrapLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+  const [recsError, setRecsError] = useState<string | null>(null);
+  const [trapPanelOpen, setTrapPanelOpen] = useState(true);
   const selectedSource = questions.find(
     (q) => q.question_bank_id === sourceQuestionId,
   );
@@ -132,12 +259,69 @@ export default function AdversarialQuestionModal({
     };
   }, []);
 
+  useEffect(() => {
+  if (strategies.length === 0) return;
+  let isMounted = true;
+  const loadTrapInsights = async () => {
+    setTrapLoading(true);
+    setMetricsError(null);
+    setRecsError(null);
+    const [metricsResult, recsResult] = await Promise.allSettled([
+      USE_MOCK_TRAP_DATA
+        ? Promise.resolve(generateMockTrapMetrics(strategies))
+        : apiGet<TrapEffectivenessMetric[]>(
+            "/api/v1/adversarial-strategies/effectiveness",
+            { headers: getAuthHeaders() },
+          ),
+      USE_MOCK_TRAP_DATA
+        ? Promise.resolve(generateMockTrapRecommendations(strategies))
+        : apiGet<TrapRecommendation[]>(
+            "/api/v1/adversarial-strategies/recommendations",
+            { headers: getAuthHeaders() },
+          ),
+    ]);
+    if (!isMounted) return;
+    
+    if (metricsResult.status === "fulfilled") setTrapMetrics(metricsResult.value);
+    else
+      setMetricsError(
+        metricsResult.reason instanceof Error
+          ? metricsResult.reason.message
+          : "Failed to load trap metrics.",
+      );
+    if (recsResult.status === "fulfilled") setTrapRecs(recsResult.value);
+    else
+      setRecsError(
+        recsResult.reason instanceof Error
+          ? recsResult.reason.message
+          : "Failed to load recommendations.",
+      );
+    setTrapLoading(false);
+  };
+  void loadTrapInsights();
+  return () => {
+    isMounted = false;
+  };
+}, [strategies]);
+
   const resetGenerationState = () => {
     setGenerated(null);
     setGenerateError(null);
     setValidationResult(null);
     setValidationError(null);
   };
+
+  // Explicit recruiter action only 
+const handleSelectTrap = (trapId: string) => {
+  const id = Number(trapId);
+  if (Number.isNaN(id)) return;
+  setStrategyId(id);
+  resetGenerationState();
+};
+
+const availableRecs = trapRecs.filter(
+  (r) => r.recommendation_available && r.recommendation,
+);
 
   const handleGenerate = async () => {
     if (!sourceQuestionId || !strategyId) return;
@@ -319,6 +503,211 @@ export default function AdversarialQuestionModal({
               <p className="text-xs text-system-red mt-1">{strategiesError}</p>
             )}
           </div>
+
+
+{/* Trap Effectiveness */}
+<div className="border border-tertiary-surface rounded-[5px] bg-secondary-surface">
+  <button
+    type="button"
+    onClick={() => setTrapPanelOpen((o) => !o)}
+    className="w-full flex items-center justify-between px-4 py-3 cursor-pointer"
+  >
+    <div className="text-left">
+      <div className="font-staatliches text-[16px] tracking-[0.06em] text-white-smoke">
+        TRAP EFFECTIVENESS
+      </div>
+      <div className="font-jetbrains text-[10px] text-white-smoke/40 mt-0.5">
+        observed outcomes from completed attempts
+      </div>
+    </div>
+    {trapPanelOpen ? (
+      <ChevronUp size={16} className="text-white-smoke/40" />
+    ) : (
+      <ChevronDown size={16} className="text-white-smoke/40" />
+    )}
+  </button>
+
+  {trapPanelOpen && (
+    <div className="px-4 pb-4 space-y-4 border-t border-tertiary-surface pt-4">
+      {trapLoading && (
+        <div className="font-jetbrains text-[12px] text-white-smoke/40 py-4 text-center">
+          Loading trap metrics...
+        </div>
+      )}
+
+      {/* Advisory recommendation — visually distinct from observed metrics */}
+      {recsError && (
+        <div className="font-jetbrains text-[10px] text-status-warning">
+          Recommendations unavailable ({recsError}). You can still choose a technique above.
+        </div>
+      )}
+      {availableRecs.map((rec) => {
+        const name =
+          strategies.find((s) => String(s.strategy_id) === rec.trap_id)
+            ?.strategy_name ?? `Trap #${rec.trap_id}`;
+        const statusLabel =
+          EVIDENCE_LABEL[rec.evidence_status as EvidenceStatus] ?? rec.evidence_status;
+        return (
+          <div
+            key={rec.trap_id}
+            className="border border-dashed border-status-info/50 bg-status-info/5 rounded-[5px] px-4 py-3"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-jetbrains text-[9px] tracking-wider uppercase text-status-info">
+                Suggested · advisory
+              </span>
+              <span className="font-jetbrains text-[9px] uppercase tracking-wide text-white-smoke/40">
+                {statusLabel}
+              </span>
+            </div>
+            <div className="font-staatliches text-[14px] tracking-[0.04em] text-white-smoke">
+              {name}
+            </div>
+            <div className="font-ibm text-[12px] text-white-smoke/80 mt-1">
+              {rec.recommendation}
+            </div>
+            {rec.reason && (
+              <div className="font-jetbrains text-[9px] text-white-smoke/40 mt-1">
+                {rec.reason}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSelectTrap(rec.trap_id)}
+              className="mt-2.5 font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase bg-background border-status-info/50 text-status-info hover:bg-tertiary-surface transition-colors duration-150"
+            >
+              Use this trap
+            </button>
+          </div>
+        );
+      })}
+
+       {/* Observed metrics */}
+      {metricsError ? (
+        <div className="font-jetbrains text-[10px] text-status-warning">
+          Trap metrics unavailable ({metricsError}). You can still generate using the technique selector above.
+        </div>
+      ) : (
+        !trapLoading &&
+        (trapMetrics.length === 0 ? (
+          <div className="text-center py-6">
+            <div className="font-staatliches text-[16px] tracking-[0.06em] text-[rgba(245,245,245,0.22)] mb-1">
+              NO TRAP METRICS YET
+            </div>
+            <div className="font-jetbrains text-[10px] text-[rgba(245,245,245,0.22)]">
+              Metrics appear once questions have completed attempts.
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-200">
+              <div
+                className={`${TRAP_GRID} px-3 pb-2 font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/40`}
+              >
+                <div>Trap</div>
+                <div>Questions</div>
+                <div>Attempts</div>
+                <div>Elevated review</div>
+                <div>Review-signal rate</div>
+                <div>Evidence</div>
+                <div />
+              </div>
+              <div className="space-y-2">
+                {trapMetrics.map((m) => {
+                  const selected = strategyId === Number(m.trap_id);
+                  const rate =
+                    m.review_signal_rate === null
+                      ? null
+                      : Math.min(100, Math.max(0, m.review_signal_rate));
+                  const sufficient = m.evidence_status === "SUFFICIENT_DATA";
+                  const limited = m.evidence_status === "LIMITED_DATA";
+                  return (
+                    <div
+                      key={m.trap_id}
+                      className={`rounded-[5px] border px-3 py-2.5 transition-colors duration-150 ${
+                        selected
+                          ? "border-system-red bg-system-red/5"
+                          : "border-default-border"
+                      }`}
+                    >
+                      <div className={TRAP_GRID}>
+                        <div className="min-w-0">
+                          <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke truncate">
+                            {m.trap_name}
+                          </div>
+                          <div className="font-jetbrains text-[9px] text-white-smoke/40">
+                            ID {m.trap_id}
+                          </div>
+                        </div>
+                        <div className="font-jetbrains text-[12px] text-white-smoke">
+                          {m.generated_questions}
+                        </div>
+                        <div className="font-jetbrains text-[12px] text-white-smoke">
+                          {m.completed_attempts}
+                        </div>
+                        <div className="font-jetbrains text-[12px] text-white-smoke">
+                          {m.elevated_review_count}
+                        </div>
+                        <div>
+                          {rate === null || !(sufficient || limited) ? (
+                            <span className="font-jetbrains text-[12px] text-white-smoke/40">
+                              — <span className="text-[9px]">not reported</span>
+                            </span>
+                          ) : sufficient ? (
+                            <>
+                              <span className="font-jetbrains text-[12px] text-white-smoke">
+                                {rate.toFixed(1)}%
+                              </span>
+                              <div className="h-1 mt-1 rounded-full bg-tertiary-surface overflow-hidden">
+                                <div
+                                  className="h-full bg-white-smoke/70"
+                                  style={{ width: `${rate}%` }}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <span className="font-jetbrains text-[12px] text-status-warning/80">
+                              ~{rate.toFixed(0)}%{" "}
+                              <span className="text-[9px] uppercase">low sample</span>
+                            </span>
+                          )}
+                        </div>
+                        <div>
+                          <span
+                            className={`inline-block whitespace-nowrap font-jetbrains text-[9px] px-2 py-0.5 rounded border uppercase tracking-wide ${EVIDENCE_STYLE[m.evidence_status]}`}
+                          >
+                            {EVIDENCE_LABEL[m.evidence_status]}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectTrap(m.trap_id)}
+                          className={`font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase transition-colors duration-150 ${
+                            selected
+                              ? "bg-system-red/15 border-system-red text-system-red"
+                              : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
+                          }`}
+                        >
+                          {selected ? "Selected" : "Select"}
+                        </button>
+                      </div>
+                      {m.evidence_message && (
+                        <div className="font-jetbrains text-[9px] text-white-smoke/50 mt-2 leading-relaxed">
+                          {m.evidence_message}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  )}
+</div>
 
           {/* Generate Buttons */}
           <div className="flex gap-3">
