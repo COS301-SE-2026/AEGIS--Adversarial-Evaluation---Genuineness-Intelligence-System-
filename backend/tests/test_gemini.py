@@ -11,7 +11,12 @@ os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GOOGLE_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("GOOGLE_REDIRECT_URI", "http://localhost:8000/callback")
 
-from app.core.gemini import LLMProviderError, call_llm
+from app.core.gemini import (
+    LLMProviderError,
+    _call_gemini,
+    call_llm,
+    get_gemini_client,
+)
 from app.core.openrouter import OpenRouterError
 
 
@@ -19,6 +24,44 @@ def _mock_api_error(status_code, error_cls=genai_errors.ClientError):
     response = MagicMock(spec=requests.Response)
     response.json.return_value = {"error": {"message": "boom"}}
     return error_cls(status_code, response)
+
+
+def test_get_gemini_client_constructs_with_configured_api_key():
+    with patch(
+        "app.core.gemini.settings.gemini_api_key", "test-gemini-key"
+    ), patch("app.core.gemini.genai.Client") as mock_client_cls:
+        mock_client_cls.return_value = "the-real-sdk-client"
+        result = get_gemini_client()
+
+    mock_client_cls.assert_called_once_with(api_key="test-gemini-key")
+    assert result == "the-real-sdk-client"
+
+
+def test_call_gemini_passes_through_config_and_returns_response_text():
+    mock_client = MagicMock()
+    mock_client.models.generate_content.return_value = MagicMock(
+        text='{"weaponised_question": "What does f(6) return?"}',
+    )
+
+    with patch(
+        "app.core.gemini.get_gemini_client", return_value=mock_client
+    ) as mock_get_client:
+        result = _call_gemini(
+            "system instruction text",
+            "user contents text",
+            "gemini-3.1-flash-lite",
+        )
+
+    mock_get_client.assert_called_once_with()
+    assert result == '{"weaponised_question": "What does f(6) return?"}'
+
+    call_kwargs = mock_client.models.generate_content.call_args.kwargs
+    assert call_kwargs["model"] == "gemini-3.1-flash-lite"
+    assert call_kwargs["contents"] == "user contents text"
+    config = call_kwargs["config"]
+    assert config.system_instruction == "system instruction text"
+    assert config.temperature == 0.0
+    assert config.response_mime_type == "application/json"
 
 
 def test_call_llm_gemini_succeeds_skips_openrouter():
