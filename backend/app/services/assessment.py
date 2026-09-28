@@ -1151,6 +1151,8 @@ def add_question_to_assessment(
     adv_question_id: int,
     display_order: int | None = None,
     marks: float | None = None,
+    recommendation_id: str | None = None,
+    recruiter_id: int | None = None,
 ) -> AssessmentQuestion:
     assessment = (
         db.query(Assessment)
@@ -1192,11 +1194,66 @@ def add_question_to_assessment(
             ),
         )
 
+    recommendation_values = {}
+    if recommendation_id is not None:
+        if recruiter_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="A recruiter is required to apply recommendation weights.",
+            )
+        try:
+            recommendation_uuid = uuid.UUID(recommendation_id)
+        except ValueError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid recommendation_id.",
+            ) from error
+
+        recommendation_item = (
+            db.query(IntegrityWeightRecommendationItem)
+            .join(IntegrityWeightRecommendationSet)
+            .filter(
+                IntegrityWeightRecommendationSet.recommendation_id
+                == recommendation_uuid,
+                IntegrityWeightRecommendationSet.recruiter_id == recruiter_id,
+                IntegrityWeightRecommendationSet.status == "decided",
+                IntegrityWeightRecommendationItem.adv_question_id
+                == adv_question_id,
+            )
+            .first()
+        )
+        if recommendation_item is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "A decided recommendation is required for this "
+                    "question."
+                ),
+            )
+        decision_status = {
+            WeightDecision.ACCEPT.value: RecommendationStatus.ACCEPTED,
+            WeightDecision.MODIFY.value: RecommendationStatus.MODIFIED,
+            WeightDecision.REJECT.value: RecommendationStatus.REJECTED,
+        }
+        recommendation_values = {
+            "recruiter_weight": recommendation_item.recruiter_weight,
+            "ai_suggested_weight": recommendation_item.ai_suggested_weight,
+            "approved_weight": recommendation_item.approved_weight,
+            "recommendation_status": decision_status[
+                recommendation_item.recruiter_decision
+            ],
+            "ai_recommendation": recommendation_item.ai_recommendation,
+            "ai_generated_at": recommendation_item.ai_generated_at,
+            "approved_by": recruiter_id,
+            "approved_at": recommendation_item.decided_at,
+        }
+
     assessment_question = AssessmentQuestion(
         assessments_id=assessment_id,
         adv_question_id=adv_question_id,
         display_order=display_order,
         marks=marks,
+        **recommendation_values,
     )
     db.add(assessment_question)
     db.commit()

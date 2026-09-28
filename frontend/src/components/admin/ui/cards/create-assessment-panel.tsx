@@ -67,6 +67,17 @@ interface IntegrityWeightRecommendationsResponse {
   recommendations: IntegrityWeightRecommendation[];
 }
 
+interface IntegrityWeightDecisionsResponse {
+  recommendation_id: string;
+  approved_weights: Array<{
+    adv_question_id: number;
+    approved_weight: number | null;
+    decision: IntegrityDecision;
+  }>;
+  total_approved_weight: number;
+  ready_for_assessment_creation: boolean;
+}
+
 const EVIDENCE_LABEL: Record<EvidenceStatus, string> = {
   available: "Sufficient data",
   insufficient_data: "Insufficient data",
@@ -315,6 +326,51 @@ const handleRejectSuggestion = (questionId: string) => {
     setCreateError(null);
     setIsCreating(true);
 
+    if (!recommendationId) {
+      setCreateError("Integrity recommendations are not ready yet.");
+      setIsCreating(false);
+      return;
+    }
+
+    const missingDecisions = selectedIds.filter(
+      (questionId) => !weightDecisions[String(questionId)],
+    );
+    if (missingDecisions.length > 0) {
+      setCreateError(
+        "Choose accept or reject for every selected question.",
+      );
+      setIsCreating(false);
+      return;
+    }
+
+    let approvedResults: IntegrityWeightDecisionsResponse["approved_weights"];
+    try {
+      const decisionResponse = await apiPost<IntegrityWeightDecisionsResponse>(
+        "/api/v1/integrity-weights/decisions",
+        {
+          recommendation_id: recommendationId,
+          decisions: selectedIds.map((advQuestionId) => {
+            const decision = weightDecisions[String(advQuestionId)];
+            return {
+              adv_question_id: advQuestionId,
+              decision,
+              ...(decision === "modify"
+                ? { approved_weight: approvedWeights[String(advQuestionId)] }
+                : {}),
+            };
+          }),
+        },
+        { headers: getAuthHeaders() },
+      );
+      approvedResults = decisionResponse.approved_weights;
+    } catch (err) {
+      setCreateError(
+        err instanceof Error ? err.message : "Failed to save weight decisions.",
+      );
+      setIsCreating(false);
+      return;
+    }
+
     let createdAssessmentId: number;
     try {
       const created = await apiPost<CreatedAssessment>(
@@ -335,14 +391,25 @@ const handleRejectSuggestion = (questionId: string) => {
       return;
     }
 
-    for (const advQuestionId of selectedIds) {
+    for (const approved of approvedResults) {
       try {
         await apiPost(
           `/api/v1/assessments/${createdAssessmentId}/questions`,
-          { adv_question_id: advQuestionId },
+          {
+            adv_question_id: approved.adv_question_id,
+            recommendation_id: recommendationId,
+          },
           { headers: getAuthHeaders() },
         );
-      } catch {}
+      } catch (err) {
+        setCreateError(
+          err instanceof Error
+            ? `Failed to add question ${approved.adv_question_id}: ${err.message}`
+            : `Failed to add question ${approved.adv_question_id}.`,
+        );
+        setIsCreating(false);
+        return;
+      }
     }
 
     for (const candidateId of formData.assignedCandidates) {
