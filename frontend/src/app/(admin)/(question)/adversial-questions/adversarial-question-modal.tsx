@@ -504,6 +504,162 @@ const availableRecs = trapRecs.filter(
             )}
           </div>
 
+            {/* Trap Effectiveness */}
+<div className="border border-tertiary-surface rounded-[5px] bg-secondary-surface">
+  <button
+    type="button"
+    onClick={() => setTrapPanelOpen((o) => !o)}
+    className="w-full flex items-center justify-between px-4 py-3 cursor-pointer"
+  >
+    <div className="text-left">
+      <div className="font-staatliches text-[16px] tracking-[0.06em] text-white-smoke">
+        TRAP EFFECTIVENESS
+      </div>
+      <div className="font-jetbrains text-[10px] text-white-smoke/40 mt-0.5">
+        observed outcomes from completed attempts
+      </div>
+    </div>
+    {trapPanelOpen ? (
+      <ChevronUp size={16} className="text-white-smoke/40" />
+    ) : (
+      <ChevronDown size={16} className="text-white-smoke/40" />
+    )}
+  </button>
+
+  {trapPanelOpen && (
+    <div className="px-4 pb-4 space-y-4 border-t border-tertiary-surface pt-4">
+      {trapLoading && (
+        <div className="font-jetbrains text-[12px] text-white-smoke/40 py-4 text-center">
+          Loading trap metrics...
+        </div>
+      )}
+
+      {/* Advisory recommendation — visually distinct from observed metrics */}
+      {recsError && (
+        <div className="font-jetbrains text-[10px] text-status-warning">
+          Recommendations unavailable ({recsError}). You can still choose a technique above.
+        </div>
+      )}
+      {availableRecs.map((rec) => {
+        const name =
+          strategies.find((s) => String(s.strategy_id) === rec.trap_id)
+            ?.strategy_name ?? `Trap #${rec.trap_id}`;
+        const statusLabel =
+          EVIDENCE_LABEL[rec.evidence_status as EvidenceStatus] ?? rec.evidence_status;
+        return (
+          <div
+            key={rec.trap_id}
+            className="border border-dashed border-status-info/50 bg-status-info/5 rounded-[5px] px-4 py-3"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-jetbrains text-[9px] tracking-wider uppercase text-status-info">
+                Suggested · advisory
+              </span>
+              <span className="font-jetbrains text-[9px] uppercase tracking-wide text-white-smoke/40">
+                {statusLabel}
+              </span>
+            </div>
+            <div className="font-staatliches text-[14px] tracking-[0.04em] text-white-smoke">
+              {name}
+            </div>
+            <div className="font-ibm text-[12px] text-white-smoke/80 mt-1">
+              {rec.recommendation}
+            </div>
+            {rec.reason && (
+              <div className="font-jetbrains text-[9px] text-white-smoke/40 mt-1">
+                {rec.reason}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSelectTrap(rec.trap_id)}
+              className="mt-2.5 font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase bg-background border-status-info/50 text-status-info hover:bg-tertiary-surface transition-colors duration-150"
+            >
+              Use this trap
+            </button>
+          </div>
+        );
+      })}
+
+{/* Trap Effectiveness */}
+<div className="border border-tertiary-surface rounded-[5px] bg-secondary-surface">
+  <button
+    type="button"
+    onClick={() => setTrapPanelOpen((o) => !o)}
+    className="w-full flex items-center justify-between px-4 py-3 cursor-pointer"
+  >
+    <div className="text-left">
+      <div className="font-staatliches text-[16px] tracking-[0.06em] text-white-smoke">
+        TRAP EFFECTIVENESS
+      </div>
+      <div className="font-jetbrains text-[10px] text-white-smoke/40 mt-0.5">
+        observed outcomes from completed attempts
+      </div>
+    </div>
+    {trapPanelOpen ? (
+      <ChevronUp size={16} className="text-white-smoke/40" />
+    ) : (
+      <ChevronDown size={16} className="text-white-smoke/40" />
+    )}
+  </button>
+
+  {trapPanelOpen && (
+    <div className="px-4 pb-4 space-y-4 border-t border-tertiary-surface pt-4">
+      {trapLoading && (
+        <div className="font-jetbrains text-[12px] text-white-smoke/40 py-4 text-center">
+          Loading trap metrics...
+        </div>
+      )}
+
+      {/* Advisory recommendation — visually distinct from observed metrics */}
+      {recsError && (
+        <div className="font-jetbrains text-[10px] text-status-warning">
+          Recommendations unavailable ({recsError}). You can still choose a technique above.
+        </div>
+      )}
+      {availableRecs.map((rec) => {
+        const name =
+          strategies.find((s) => String(s.strategy_id) === rec.trap_id)
+            ?.strategy_name ?? `Trap #${rec.trap_id}`;
+        const statusLabel =
+          EVIDENCE_LABEL[rec.evidence_status as EvidenceStatus] ?? rec.evidence_status;
+        return (
+          <div
+            key={rec.trap_id}
+            className="border border-dashed border-status-info/50 bg-status-info/5 rounded-[5px] px-4 py-3"
+          >
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-jetbrains text-[9px] tracking-wider uppercase text-status-info">
+                Suggested · advisory
+              </span>
+              <span className="font-jetbrains text-[9px] uppercase tracking-wide text-white-smoke/40">
+                {statusLabel}
+              </span>
+            </div>
+            <div className="font-staatliches text-[14px] tracking-[0.04em] text-white-smoke">
+              {name}
+            </div>
+            <div className="font-ibm text-[12px] text-white-smoke/80 mt-1">
+              {rec.recommendation}
+            </div>
+            {rec.reason && (
+              <div className="font-jetbrains text-[9px] text-white-smoke/40 mt-1">
+                {rec.reason}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => handleSelectTrap(rec.trap_id)}
+              className="mt-2.5 font-jetbrains text-[9px] tracking-wider px-2.5 py-1 rounded-[5px] cursor-pointer border uppercase bg-background border-status-info/50 text-status-info hover:bg-tertiary-surface transition-colors duration-150"
+            >
+              Use this trap
+            </button>
+          </div>
+        );
+      })}
+
+
+
           {/* Generate Buttons */}
           <div className="flex gap-3">
             <button
