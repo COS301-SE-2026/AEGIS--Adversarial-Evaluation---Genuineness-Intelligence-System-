@@ -101,6 +101,54 @@ interface TrapRecommendation {
   reason: string | null;
 }
 
+// backend note: metrics shape and both endpoint paths below are placeholders (only TrapRecommendation is frozen).
+const USE_MOCK_TRAP_DATA = true;
+
+const EVIDENCE_LABEL: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "Sufficient data",
+  LIMITED_DATA: "Limited data",
+  INSUFFICIENT_DATA: "Insufficient data",
+  UNAVAILABLE: "Unavailable",
+};
+
+const EVIDENCE_STYLE: Record<EvidenceStatus, string> = {
+  SUFFICIENT_DATA: "text-status-success border-status-success-dim bg-status-success-dim/10",
+  LIMITED_DATA: "text-status-warning border-status-warning/40 bg-status-warning/10",
+  INSUFFICIENT_DATA: "text-white-smoke/50 border-default-border bg-tertiary-surface",
+  UNAVAILABLE: "text-white-smoke/40 border-default-border bg-tertiary-surface",
+};
+
+const TRAP_GRID =
+  "grid grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_minmax(0,1.3fr)_auto] gap-3 items-center";
+
+function generateMockTrapMetrics(
+  strategies: AdversarialStrategy[],
+): TrapEffectivenessMetric[] {
+  return strategies.map((s, i) => {
+    const base = { trap_id: String(s.strategy_id), trap_name: s.strategy_name };
+    switch (i % 4) {
+      case 0:
+        return {
+          ...base,
+          generated_questions: 12,
+          completed_attempts: 84,
+          elevated_review_count: 27,
+          review_signal_rate: 32.1,
+          evidence_status: "SUFFICIENT_DATA",
+          evidence_message: null,
+        };
+      case 1:
+        return {
+          ...base,
+          generated_questions: 5,
+          completed_attempts: 9,
+          elevated_review_count: 4,
+          review_signal_rate: 44.4,
+          evidence_status: "LIMITED_DATA",
+          evidence_message:
+            "Only 9 completed attempts — this rate may change substantially with more data.",
+        };
+
 
 export default function AdversarialQuestionModal({
   isOpen,
