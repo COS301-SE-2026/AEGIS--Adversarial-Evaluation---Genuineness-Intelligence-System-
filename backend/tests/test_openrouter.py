@@ -219,6 +219,23 @@ def test_call_openrouter_raises_on_200_response_with_error_body():
     assert "503" in str(exc_info.value)
     assert "missing expected content" not in str(exc_info.value)
 
+def test_call_openrouter_raises_on_200_response_with_non_dict_error_body():
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "id": "gen-123",
+        "error": "rate limited",
+    }
+    with patch(
+        "app.core.openrouter.settings.openrouter_api_key", "test-key"
+    ), patch("app.core.openrouter.httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.post.return_value = response
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        with pytest.raises(OpenRouterError) as exc_info:
+            call_openrouter("sys", "user", _MODELS)
+    assert str(exc_info.value) == "rate limited"
+
 def test_extract_error_message_uses_json_message():
     request = httpx.Request(
         "POST", "https://openrouter.ai/api/v1/chat/completions"
