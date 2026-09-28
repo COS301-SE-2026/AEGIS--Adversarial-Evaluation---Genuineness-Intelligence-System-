@@ -30,3 +30,10 @@ class AdversarialQuestion(Base):
                             back_populates="adversarial_questions")
     assessment_questions = relationship("AssessmentQuestion",
                                         back_populates="adversarial_question")
+
+
+    @property
+    def source_question_title(self):
+        if self.source_question is None:
+            return None
+        return self.source_question.title

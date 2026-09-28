@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
 from app.core.gemini import call_llm
@@ -759,9 +759,12 @@ def get_all_strategies(db: Session) -> list:
 
 
 def get_all_adversarial_questions(db: Session) -> list:
-    return db.query(AdversarialQuestion).filter(
-        AdversarialQuestion.validation_status == "validated"
-    ).all()
+    return (
+        db.query(AdversarialQuestion)
+        .options(joinedload(AdversarialQuestion.source_question))
+        .filter(AdversarialQuestion.validation_status == "validated")
+        .all()
+    )
 
 
 def get_all_draft_adversarial_questions(db: Session) -> list:
