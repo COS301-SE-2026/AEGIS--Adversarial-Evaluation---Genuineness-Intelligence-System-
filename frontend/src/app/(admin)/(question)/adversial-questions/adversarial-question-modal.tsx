@@ -311,6 +311,18 @@ export default function AdversarialQuestionModal({
     setValidationError(null);
   };
 
+  // Explicit recruiter action only 
+const handleSelectTrap = (trapId: string) => {
+  const id = Number(trapId);
+  if (Number.isNaN(id)) return;
+  setStrategyId(id);
+  resetGenerationState();
+};
+
+const availableRecs = trapRecs.filter(
+  (r) => r.recommendation_available && r.recommendation,
+);
+
   const handleGenerate = async () => {
     if (!sourceQuestionId || !strategyId) return;
 
