@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
+from app.core.gemini import LLMProviderError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
@@ -510,6 +511,30 @@ def test_generate_adversarial_question_422_on_missing_fields():
             )
 
     assert exc_info.value.status_code == 422
+
+
+def test_generate_adversarial_question_503_on_llm_provider_error():
+    mock_db = _mock_db(
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        side_effect=LLMProviderError(
+            "Both providers failed to respond: gemini=boom; "
+            "openrouter=boom"
+        ),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            generate_adversarial_question(
+                mock_db,
+                source_question_id=1,
+                strategy_id=2,
+            )
+
+    assert exc_info.value.status_code == 503
+    assert "temporarily unavailable" in exc_info.value.detail
+    assert "boom" not in exc_info.value.detail
 
 
 def test_generate_adversarial_question_success():

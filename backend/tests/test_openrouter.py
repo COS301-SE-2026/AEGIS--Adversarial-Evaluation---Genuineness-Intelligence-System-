@@ -53,6 +53,29 @@ def test_call_openrouter_sends_models_list_in_request_body():
     assert "sys prompt" in call_kwargs["json"]["messages"][0]["content"]
     assert "JSON only" in call_kwargs["json"]["messages"][0]["content"]
 
+def test_call_openrouter_json_only_instruction_forbids_reasoning_text():
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "model": _MODELS[1],
+        "choices": [{"message": {"content": '{"ok": true}'}}],
+    }
+    with patch(
+        "app.core.openrouter.settings.openrouter_api_key", "test-key"
+    ), patch("app.core.openrouter.httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.post.return_value = response
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        call_openrouter("sys prompt", "user content", _MODELS)
+    system_message = mock_client.post.call_args.kwargs["json"]["messages"][0][
+        "content"
+    ]
+    assert "no reasoning" in system_message
+    assert "no preamble" in system_message
+    assert "no chain-of-thought" in system_message
+    assert "first character of your response must be `{`" in system_message
+    assert "last character must be `}`" in system_message
+
 def test_call_openrouter_sets_max_tokens_in_request_body():
     response = MagicMock()
     response.raise_for_status.return_value = None
@@ -172,6 +195,29 @@ def test_call_openrouter_missing_choices_raises_openrouter_error():
         with pytest.raises(OpenRouterError) as exc_info:
             call_openrouter("sys", "user", _MODELS)
     assert "missing expected content" in str(exc_info.value)
+
+def test_call_openrouter_raises_on_200_response_with_error_body():
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "id": "gen-123",
+        "error": {
+            "message": "Upstream error from Nvidia: Service overloaded",
+            "code": 503,
+            "metadata": {"error_type": "provider_overloaded"},
+        },
+    }
+    with patch(
+        "app.core.openrouter.settings.openrouter_api_key", "test-key"
+    ), patch("app.core.openrouter.httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.post.return_value = response
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        with pytest.raises(OpenRouterError) as exc_info:
+            call_openrouter("sys", "user", _MODELS)
+    assert "Upstream error from Nvidia" in str(exc_info.value)
+    assert "503" in str(exc_info.value)
+    assert "missing expected content" not in str(exc_info.value)
 
 def test_extract_error_message_uses_json_message():
     request = httpx.Request(
