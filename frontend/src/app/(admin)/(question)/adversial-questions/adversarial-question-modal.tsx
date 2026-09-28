@@ -149,6 +149,53 @@ function generateMockTrapMetrics(
             "Only 9 completed attempts — this rate may change substantially with more data.",
         };
 
+        case 2:
+        return {
+          ...base,
+          generated_questions: 2,
+          completed_attempts: 2,
+          elevated_review_count: 1,
+          review_signal_rate: null,
+          evidence_status: "INSUFFICIENT_DATA",
+          evidence_message: "Not enough completed attempts to report a rate.",
+        };
+      default:
+        return {
+          ...base,
+          generated_questions: 0,
+          completed_attempts: 0,
+          elevated_review_count: 0,
+          review_signal_rate: null,
+          evidence_status: "UNAVAILABLE",
+          evidence_message: "Metrics are unavailable for this trap.",
+        };
+    }
+  });
+}
+
+function generateMockTrapRecommendations(
+  strategies: AdversarialStrategy[],
+): TrapRecommendation[] {
+  return strategies.map((s, i) =>
+    i === 0
+      ? {
+          trap_id: String(s.strategy_id),
+          recommendation_available: true,
+          recommendation:
+            "Consider this trap for your next question — observed outcomes are consistent across a large sample.",
+          evidence_status: "SUFFICIENT_DATA",
+          reason: "84 completed attempts with a stable review-signal rate.",
+        }
+      : {
+          trap_id: String(s.strategy_id),
+          recommendation_available: false,
+          recommendation: null,
+          evidence_status: i % 4 === 3 ? "UNAVAILABLE" : "INSUFFICIENT_DATA",
+          reason: null,
+        },
+  );
+}
+
 
 export default function AdversarialQuestionModal({
   isOpen,
