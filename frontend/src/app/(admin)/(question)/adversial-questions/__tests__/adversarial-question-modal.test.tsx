@@ -41,6 +41,12 @@ const strategies = [
   },
 ];
 
+function mockApiGetByUrl(url: string) {
+  if (url.includes("trap-effectiveness")) return Promise.resolve({ items: [] });
+  if (url.includes("trap-recommendations")) return Promise.resolve({ items: [] });
+  return Promise.resolve(strategies);
+}
+
 const generatedQuestion = {
   adv_question_id: 42,
   source_question_id: 1,
@@ -130,7 +136,7 @@ async function reachDeployableState(onClose = jest.fn(), onSubmit = jest.fn()) {
 describe("AdversarialQuestionModal — Deploy", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedApiGet.mockResolvedValue(strategies);
+    mockedApiGet.mockImplementation(mockApiGetByUrl);
   });
 
   it("calls POST /adversarial-questions/{adv_question_id}/save with no body when Deploy is clicked", async () => {
@@ -195,7 +201,7 @@ describe("AdversarialQuestionModal — Deploy", () => {
 describe("AdversarialQuestionModal — Validate", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedApiGet.mockResolvedValue(strategies);
+    mockedApiGet.mockImplementation(mockApiGetByUrl);
   });
 
   it("calls POST /adversarial-questions/{adv_question_id}/validate with no body when Validate is clicked", async () => {
@@ -257,7 +263,7 @@ describe("AdversarialQuestionModal — Validate", () => {
 describe("AdversarialQuestionModal — Regenerate", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedApiGet.mockResolvedValue(strategies);
+    mockedApiGet.mockImplementation(mockApiGetByUrl);
   });
 
   it("calls PATCH /adversarial-questions/{adv_question_id}/regenerate with the strategy_id, not a new POST to generate-adversarial", async () => {
