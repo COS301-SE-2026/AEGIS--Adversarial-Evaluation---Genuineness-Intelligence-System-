@@ -100,7 +100,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
       // even if the source-question lookup is slow or fails.
       const [sourceSettled, adversarialSettled] = await Promise.allSettled([
         loadSourceQuestions(),
-        apiGet<AdversarialQuestionResponse[]>("/api/v1/adversarial-questions/", {
+        apiGet<AdversarialQuestionResponse[]>("/api/v1/adversarial-questions", {
           headers: getAuthHeaders(),
         }),
       ]);

@@ -469,7 +469,7 @@ const handleRejectSuggestion = (questionId: string) => {
     let createdAssessmentId: number;
     try {
       const created = await apiPost<CreatedAssessment>(
-        "/api/v1/assessments",
+        "/api/v1/assessments/",
         {
           title: formData.name,
           description: formData.description,
