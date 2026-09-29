@@ -1,6 +1,9 @@
+import asyncio
+import time
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
+import httpx
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -733,3 +736,111 @@ def test_delete_adversarial_204_on_success(mock_delete):
     mock_delete.assert_called_once()
     call_args = mock_delete.call_args[0]
     assert call_args[1] == 5
+
+
+LLM_UNAVAILABLE = HTTPException(
+    status_code=503,
+    detail="AI question generation is temporarily unavailable",
+)
+
+
+@patch("app.api.routes.adversarial.generate_adversarial_question")
+def test_generate_adversarial_503_when_llm_unavailable(mock_generate):
+    mock_generate.side_effect = LLM_UNAVAILABLE
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.post(GENERATE_URL, json=GENERATE_BODY)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+    assert "temporarily unavailable" in response.json()["detail"]
+
+
+@patch("app.api.routes.adversarial.regenerate_adversarial_question")
+def test_regenerate_adversarial_503_when_llm_unavailable(mock_regenerate):
+    mock_regenerate.side_effect = LLM_UNAVAILABLE
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.patch(
+        "/api/v1/adversarial-questions/5/regenerate",
+        json=GENERATE_BODY,
+    )
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+
+
+@patch("app.api.routes.adversarial.validate_adversarial_question")
+def test_validate_adversarial_503_when_llm_unavailable(mock_validate):
+    mock_validate.side_effect = LLM_UNAVAILABLE
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    response = client.post(VALIDATE_URL)
+    app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+
+
+@patch("app.api.routes.adversarial.get_all_strategies")
+@patch("app.api.routes.adversarial.generate_adversarial_question")
+def test_slow_llm_call_does_not_block_other_requests(
+    mock_generate, mock_get_all
+):
+    def slow_generate(*args, **kwargs):
+        time.sleep(0.5)
+        raise LLM_UNAVAILABLE
+
+    mock_generate.side_effect = slow_generate
+    mock_get_all.return_value = []
+
+    async def run():
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="http://test"
+        ) as async_client:
+            started = time.monotonic()
+            slow = asyncio.create_task(
+                async_client.post(GENERATE_URL, json=GENERATE_BODY)
+            )
+            await asyncio.sleep(0.1)
+            fast = await async_client.get("/api/v1/adversarial-strategies/")
+            fast_elapsed = time.monotonic() - started
+            slow_response = await slow
+            return fast, fast_elapsed, slow_response
+
+    app.dependency_overrides[get_db] = _db_override
+    app.dependency_overrides[get_current_user] = _auth_override(
+        "RECRUITER"
+    )
+    try:
+        fast, fast_elapsed, slow_response = asyncio.run(run())
+    finally:
+        app.dependency_overrides.clear()
+
+    assert fast.status_code == 200
+    assert slow_response.status_code == 503
+    assert fast_elapsed < 0.4
+
+
+def test_no_route_handler_runs_on_the_event_loop():
+    import inspect
+
+    from fastapi.routing import APIRoute
+
+    blocking = [
+        route.path
+        for route in app.routes
+        if isinstance(route, APIRoute)
+        and inspect.iscoroutinefunction(route.endpoint)
+    ]
+
+    assert blocking == []

@@ -22,7 +22,7 @@ router = APIRouter(prefix="/questions", tags=["questions"])
     response_model=list[CodingTestCaseResponse],
     status_code=status.HTTP_200_OK,
 )
-async def get_test_cases_for_source_question(
+def get_test_cases_for_source_question(
     question_bank_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -40,7 +40,7 @@ async def get_test_cases_for_source_question(
     "/source/{question_bank_id}/test-cases/{test_case_id}",
     status_code=status.HTTP_204_NO_CONTENT
 )
-async def delete_test_case_for_adv_question(
+def delete_test_case_for_adv_question(
     test_case_id: int,
     question_bank_id: int,
     db: Session = Depends(get_db),
@@ -59,7 +59,7 @@ async def delete_test_case_for_adv_question(
     response_model=CodingTestCaseResponse,
     status_code=status.HTTP_201_CREATED
 )
-async def create_test_case_for_adv_question(
+def create_test_case_for_adv_question(
     question_bank_id: int,
     payload: CodingTestCaseCreate,
     db: Session = Depends(get_db),
@@ -82,7 +82,7 @@ async def create_test_case_for_adv_question(
     response_model=CodingTestCaseResponse,
     status_code=status.HTTP_200_OK
 )
-async def update_test_case_for_adv_question(
+def update_test_case_for_adv_question(
     question_bank_id: int,
     test_case_id: int,
     payload: CodingTestCaseUpdate,

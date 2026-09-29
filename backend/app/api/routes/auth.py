@@ -25,7 +25,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # Redirects the browser to Google's OAuth consent screen to begin login
 @router.get("/google/login")
-async def google_login():
+def google_login():
     url = get_google_auth_url()
     return RedirectResponse(url=url, status_code=302)
 
@@ -33,7 +33,7 @@ async def google_login():
 # Receives Google's authorization code, exchanges it for user info,
 # and returns a signed* JWT.
 @router.get("/google/callback")
-async def google_callback(
+def google_callback(
     code: str,
     error: str | None = None,
     db: Session = Depends(get_db),

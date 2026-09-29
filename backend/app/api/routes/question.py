@@ -16,7 +16,7 @@ category_router = APIRouter(prefix="/categories", tags=["categories"])
     status_code=status.HTTP_200_OK,
     summary="Get all question categories"
 )
-async def list_categories(
+def list_categories(
     db: Session = Depends(get_db)
 ):
     return get_all_categories(db)
@@ -27,7 +27,7 @@ async def list_categories(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a source question"
 )
-async def delete_question(
+def delete_question(
     question_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)

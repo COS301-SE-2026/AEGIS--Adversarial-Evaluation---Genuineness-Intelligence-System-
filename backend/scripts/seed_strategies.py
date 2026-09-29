@@ -1,4 +1,4 @@
-"""Seed the adversarial_strategies table with the 10 trap
+"""Seed the adversarial_strategies table with the 11 trap
 patterns. Safe to run multiple times: existing rows are
 matched by strategy_name and skipped.
 """
@@ -135,6 +135,20 @@ STRATEGIES = [
             "The model matches a lexical token from the "
             "question to a distractor option instead of "
             "recognising the correct answer is absent."
+        ),
+    },
+    {
+        "strategy_name": "METHOD_SEMANTIC_INVERSION",
+        "description": (
+            "A canonical method or operation name (e.g. "
+            "push/pop, enqueue/dequeue) is redefined to "
+            "perform the other's role."
+        ),
+        "trap_mechanism_summary": (
+            "The model resolves the method by its familiar "
+            "name rather than tracing its redefined body, and "
+            "answers as if the canonical behaviour still "
+            "applied."
         ),
     },
 ]

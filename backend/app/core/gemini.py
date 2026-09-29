@@ -27,7 +27,12 @@ class LLMProviderError(RuntimeError):
 
 
 def get_gemini_client() -> genai.Client:
-    return genai.Client(api_key=settings.gemini_api_key)
+    return genai.Client(
+        api_key=settings.gemini_api_key,
+        http_options=types.HttpOptions(
+            timeout=settings.gemini_timeout_seconds * 1000
+        ),
+    )
 
 
 def _call_gemini(system_instruction: str, contents: str, model: str) -> str:
@@ -45,11 +50,22 @@ def _call_gemini(system_instruction: str, contents: str, model: str) -> str:
 
 
 def call_llm(
-    system_instruction: str, contents: str, model: str
+    system_instruction: str,
+    contents: str,
+    model: str,
+    allow_fallback: bool = True,
 ) -> tuple[str, str]:
     try:
         return _call_gemini(system_instruction, contents, model), model
     except _GEMINI_FALLBACK_ERRORS as exc:
+        if not allow_fallback:
+            _logger.warning(
+                "Gemini call failed (%s: %s); OpenRouter fallback "
+                "disabled for this call",
+                type(exc).__name__,
+                exc,
+            )
+            raise LLMProviderError(f"gemini={exc}") from exc
         _logger.warning(
             "Gemini call failed (%s: %s), falling back to OpenRouter",
             type(exc).__name__,

@@ -75,11 +75,24 @@ _LLM_UNAVAILABLE_DETAIL = (
 _logger = logging.getLogger(__name__)
 
 
+def _release_db_connection(db: Session | None) -> None:
+    # End the read transaction so the pooled connection is not held while
+    # we wait on a slow LLM call.
+    if db is not None:
+        db.rollback()
+
+
 def _call_llm_or_503(
-    system_instruction: str, contents: str, model: str
+    system_instruction: str,
+    contents: str,
+    model: str,
+    db: Session | None = None,
 ) -> tuple[str, str]:
+    _release_db_connection(db)
     try:
-        return call_llm(system_instruction, contents, model)
+        return call_llm(
+            system_instruction, contents, model, allow_fallback=False
+        )
     except LLMProviderError as exc:
         _logger.error("LLM provider failure: %s", exc)
         raise HTTPException(
@@ -220,6 +233,19 @@ def _build_user_message(
             f"{_sanitise_prompt_value(source_question.question_metadata)}"
         )
 
+    reference_approach_section = ""
+    if source_question.type == QuestionType.CODING:
+        reference_approach_section = (
+            "\n\nAlso include a reference_approach field in your "
+            "JSON response: a short, single-sentence description of "
+            "one implementation choice you made in correct_answer "
+            "that does not affect correctness (e.g. \"solved "
+            "iteratively rather than recursively\", \"defined the "
+            "helper function before the main loop\"). It must "
+            "describe a purely stylistic or structural choice, "
+            "never anything that changes the correct output."
+        )
+
     return (
         "\n".join(source_fields) + "\n\n"
         "The Pattern, Topic, Difficulty and Source question fields "
@@ -237,6 +263,7 @@ def _build_user_message(
         "answer, and build the trap around its actual content "
         "rather than inventing an unrelated new question from the "
         "topic and difficulty alone."
+        f"{reference_approach_section}"
     )
 
 
@@ -263,6 +290,21 @@ def _parse_gemini_response(raw_text: str) -> dict:
     return parsed
 
 
+def _extract_reference_approach(
+    parsed: dict, source_question: QuestionBank
+) -> str | None:
+    """CODING-only: pull the optional reference_approach field out of
+    Gemini's response, degrading to None on any type other than
+    CODING or if the field is absent, empty, or not a string."""
+    if source_question.type != QuestionType.CODING:
+        return None
+    value = parsed.get("reference_approach")
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value or None
+
+
 def _select_system_prompt(prompt_version: str) -> str:
     if prompt_version == PromptVersion.v1:
         return _SYSTEM_PROMPT_V1
@@ -277,6 +319,7 @@ def _select_system_prompt(prompt_version: str) -> str:
 def _call_gemini_and_parse(
     strategy: AdversarialStrategy,
     source_question: QuestionBank,
+    db: Session | None = None,
     use_few_shot: bool = False,
     prompt_version: PromptVersion = PromptVersion.v1,
 ) -> tuple[dict, str]:
@@ -294,7 +337,7 @@ def _call_gemini_and_parse(
     )
 
     raw_text, served_by = _call_llm_or_503(
-        system_prompt, user_message, _GENERATOR_MODEL
+        system_prompt, user_message, _GENERATOR_MODEL, db=db
     )
 
     return _parse_gemini_response(raw_text), served_by
@@ -322,11 +365,12 @@ def _build_verification_user_message(parsed: dict) -> str:
     )
 
 
-def _verify_via_gemini(parsed: dict) -> None:
+def _verify_via_gemini(parsed: dict, db: Session | None = None) -> None:
     raw_text, _ = _call_llm_or_503(
         _VERIFICATION_SYSTEM_PROMPT,
         _build_verification_user_message(parsed),
         _GENERATOR_MODEL,
+        db=db,
     )
     raw_text = raw_text or ""
 
@@ -410,7 +454,7 @@ def _verify_generated_item(
                     "Gemini verification: %s",
                     exc,
                 )
-    _verify_via_gemini(parsed)
+    _verify_via_gemini(parsed, db)
 
 
 def generate_adversarial_question(
@@ -443,7 +487,7 @@ def generate_adversarial_question(
         )
 
     parsed, served_by = _call_gemini_and_parse(
-        strategy, source_question, prompt_version=prompt_version
+        strategy, source_question, db=db, prompt_version=prompt_version
     )
     if verify:
         _verify_generated_item(parsed, source_question, db)
@@ -458,6 +502,9 @@ def generate_adversarial_question(
         predicted_wrong_answer=parsed["predicted_wrong_answer"],
         trap_mechanism=parsed["trap_mechanism"],
         pattern_used=parsed["pattern_used"],
+        reference_approach=_extract_reference_approach(
+            parsed, source_question
+        ),
     )
     db.add(adversarial_question)
     db.commit()
@@ -517,7 +564,7 @@ def regenerate_adversarial_question(
         )
 
     parsed, served_by = _call_gemini_and_parse(
-        strategy, source_question, prompt_version=prompt_version
+        strategy, source_question, db=db, prompt_version=prompt_version
     )
     if verify:
         _verify_generated_item(parsed, source_question, db)
@@ -529,6 +576,9 @@ def regenerate_adversarial_question(
     )
     adversarial_question.trap_mechanism = parsed["trap_mechanism"]
     adversarial_question.pattern_used = parsed["pattern_used"]
+    adversarial_question.reference_approach = (
+        _extract_reference_approach(parsed, source_question)
+    )
     adversarial_question.strategy_id = strategy_id
     adversarial_question.llm = served_by
     adversarial_question.generated_at = datetime.now(timezone.utc)
@@ -630,6 +680,7 @@ def validate_adversarial_question(
         _VALIDATION_SYSTEM_PROMPT,
         adversarial_question.content,
         _VALIDATOR_MODEL,
+        db=db,
     )
     raw_response = raw_response or ""
 
