@@ -10,6 +10,7 @@ from app.models.candidate_response import CandidateResponse
 from app.models.candidate_response_metrics import CandidateResponseMetrics
 from app.models.question_bank import QuestionBank
 from app.schema.trap_effectiveness import TrapEffectivenessItem
+from app.schema.trap_recommendations import TrapRecommendationItem
 from app.services.cohort_metrics import (
     MIN_COHORT_CANDIDATES,
     cohort_average_active_time_ms,
@@ -189,4 +190,60 @@ def get_trap_effectiveness(db: Session) -> list[TrapEffectivenessItem]:
     return [
         _build_trap_effectiveness_item(db, strategy_id, strategy_name)
         for strategy_id, strategy_name in _deployed_strategies(db)
+    ]
+
+
+def _top_recommendation_trap_id(
+    items: list[TrapEffectivenessItem],
+) -> Optional[int]:
+    sufficient_items = [
+        item for item in items if item.evidence_status == SUFFICIENT_DATA
+    ]
+    if not sufficient_items:
+        return None
+
+    top_item = max(
+        sufficient_items,
+        key=lambda item: (item.review_signal_rate or 0.0, -item.trap_id),
+    )
+    return top_item.trap_id
+
+
+def _build_trap_recommendation_item(
+    item: TrapEffectivenessItem, is_top_pick: bool,
+) -> TrapRecommendationItem:
+    if not is_top_pick:
+        return TrapRecommendationItem(
+            trap_id=item.trap_id,
+            recommendation_available=False,
+            recommendation=None,
+            evidence_status=item.evidence_status,
+            reason=None,
+        )
+
+    return TrapRecommendationItem(
+        trap_id=item.trap_id,
+        recommendation_available=True,
+        recommendation=(
+            "Consider this trap for your next question — "
+            f"{item.completed_attempt_count} completed attempts with a "
+            f"{item.review_signal_rate:.1f}% review-signal rate."
+        ),
+        evidence_status=item.evidence_status,
+        reason=(
+            "Highest review-signal rate among strategies with "
+            "sufficient data."
+        ),
+    )
+
+
+def get_trap_recommendations(db: Session) -> list[TrapRecommendationItem]:
+    effectiveness_items = get_trap_effectiveness(db)
+    top_pick_id = _top_recommendation_trap_id(effectiveness_items)
+
+    return [
+        _build_trap_recommendation_item(
+            item, item.trap_id == top_pick_id,
+        )
+        for item in effectiveness_items
     ]
