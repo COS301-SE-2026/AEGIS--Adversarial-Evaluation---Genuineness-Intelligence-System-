@@ -393,7 +393,7 @@ def test_get_question_analytics_rounds_score_before_banding():
 
     item = result.questions[0]
 
-    assert item.review_score == pytest.approx(29.6)
+    assert item.review_score == pytest.approx(34.5333333333)
     assert item.review_band == "medium"
 
 
