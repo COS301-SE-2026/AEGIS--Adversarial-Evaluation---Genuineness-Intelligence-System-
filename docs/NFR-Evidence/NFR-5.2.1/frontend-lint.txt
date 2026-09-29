@@ -1,0 +1,68 @@
+Command: pnpm --dir frontend lint
+Date: 2026-09-29
+
+$ eslint
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\app\(admin)\(dashboard)\dashboard\page.tsx
+  6:10  warning  'HelpCircle' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\app\(admin)\(question)\question-bank\question-modal-router.tsx
+  3:10  warning  'ComponentType' is defined but never used     @typescript-eslint/no-unused-vars
+  4:10  warning  'QuestionBank' is defined but never used      @typescript-eslint/no-unused-vars
+  4:24  warning  'QuestionCategory' is defined but never used  @typescript-eslint/no-unused-vars
+  4:42  warning  'QuestionPayload' is defined but never used   @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\app\(admin)\(users)\candidates\page.tsx
+  19:26  warning  'setSuccessMessage' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\admin\ui\buttons\assessment-filter-bar.tsx
+  12:7  warning  'FILTER_OPTIONS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  15:3  warning  'filter' is defined but never used                   @typescript-eslint/no-unused-vars
+  17:3  warning  'onFilterChange' is defined but never used           @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\admin\ui\buttons\candidate-filter-bar.tsx
+  19:3  warning  'roleFilter' is defined but never used      @typescript-eslint/no-unused-vars
+  20:3  warning  'onRoleChange' is defined but never used    @typescript-eslint/no-unused-vars
+  21:3  warning  'roleOptions' is defined but never used     @typescript-eslint/no-unused-vars
+  22:3  warning  'statusFilter' is defined but never used    @typescript-eslint/no-unused-vars
+  23:3  warning  'onStatusChange' is defined but never used  @typescript-eslint/no-unused-vars
+  24:3  warning  'statusOptions' is defined but never used   @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\admin\ui\cards\assessment-card.tsx
+  25:11  warning  'ApiCandidate' is defined but never used          @typescript-eslint/no-unused-vars
+  31:11  warning  'InviteResponse' is defined but never used        @typescript-eslint/no-unused-vars
+  35:10  warning  'StatusBadge' is defined but never used           @typescript-eslint/no-unused-vars
+  74:9   warning  'aiHighlight' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\admin\ui\cards\user-table.tsx
+  46:10  warning  'StatusToggle' is defined but never used    @typescript-eslint/no-unused-vars
+  84:3   warning  'onToggleStatus' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\admin\ui\dashboard\review-priority-badge.tsx
+  14:7  warning  'USE_MOCK_DATA' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\admin\ui\input\auth-form.tsx
+  96:11  warning  'targetEndpoint' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\admin\ui\modals\candidate-assignment-modal.tsx
+  108:6  warning  React Hook useMemo has a missing dependency: 'selected'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\auth\auth-access-gate.tsx
+  25:6  warning  React Hook useMemo has an unnecessary dependency: 'pathname'. Either exclude it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\candidate\layouts\navbar.tsx
+   9:10  warning  'NotificationBell' is defined but never used  @typescript-eslint/no-unused-vars
+  10:10  warning  'UserIcon' is defined but never used          @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\candidate\ui\cards\assesment-card.tsx
+  42:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\components\candidate\ui\cards\test-code-editor-card.tsx
+  97:16  warning  'monaco' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\sambu\OneDrive\Documents\School\Y3\COS 301\Capstone\AEGIS\frontend\src\hooks\use-session-timeout.ts
+  75:6  warning  React Hook useEffect has a missing dependency: 'startTimer'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 30 problems (0 errors, 30 warnings)
+
+Exit code: 0

@@ -87,7 +87,7 @@ const regeneratedQuestion = {
   generated_at: "2026-01-02T00:00:00Z",
 };
 
-async function reachGeneratedState(onClose = jest.fn(), onSubmit = jest.fn()) {
+async function reachGeneratedState(onClose = jest.fn()) {
   const user = userEvent.setup();
 
   render(
@@ -98,7 +98,6 @@ async function reachGeneratedState(onClose = jest.fn(), onSubmit = jest.fn()) {
       questions={questions}
       categories={categories}
       onClose={onClose}
-      onSubmit={onSubmit}
     />
   );
 
@@ -119,8 +118,8 @@ async function reachGeneratedState(onClose = jest.fn(), onSubmit = jest.fn()) {
   return user;
 }
 
-async function reachDeployableState(onClose = jest.fn(), onSubmit = jest.fn()) {
-  const user = await reachGeneratedState(onClose, onSubmit);
+async function reachDeployableState(onClose = jest.fn()) {
+  const user = await reachGeneratedState(onClose);
 
   mockedApiPost.mockResolvedValueOnce(validateResponse);
   await user.click(screen.getByRole("button", { name: /^validate$/i }));
