@@ -1,0 +1,5 @@
+Command: python -m mypy --config-file mypy.ini app
+Date: 2026-09-29
+
+Interrupted
+Exit code: 2
