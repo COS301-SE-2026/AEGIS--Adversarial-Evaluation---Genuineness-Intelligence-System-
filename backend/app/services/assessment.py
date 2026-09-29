@@ -1199,7 +1199,9 @@ def add_question_to_assessment(
         if recruiter_id is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="A recruiter is required to apply recommendation weights.",
+                detail=(
+                    "A recruiter is required to apply recommendation weights."
+                ),
             )
         try:
             recommendation_uuid = uuid.UUID(recommendation_id)

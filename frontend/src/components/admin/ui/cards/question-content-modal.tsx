@@ -16,19 +16,14 @@ export default function QuestionContentModal({
   content,
   onClose,
 }: Props) {
-  function handleEscape(e: KeyboardEvent) {
-    if (e.key === "Escape") onClose();
-  }
-
-  function registerEscapeListener() {
-    function removeEscapeListener() {
-      document.removeEventListener("keydown", handleEscape);
+  useEffect(() => {
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
     }
-    document.addEventListener("keydown", handleEscape);
-    return removeEscapeListener;
-  }
 
-  useEffect(registerEscapeListener, [onClose]);
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">

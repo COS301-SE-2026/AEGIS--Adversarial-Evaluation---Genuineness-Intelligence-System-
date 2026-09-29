@@ -249,15 +249,15 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
     selectedQuestionIds.map((id) => [String(id), 1 / selectedQuestionIds.length]),
   ) as Record<string, number>;
 
-  setWeightsLoading(true);
-  setWeightsError(null);
-  setRecommendationId(null);
-  setRecommendations({});
-  setRecruiterWeights(baseline);
-  setApprovedWeights(baseline);
-  setWeightDecisions({});
-
   const loadRecommendations = async () => {
+    if (controller.signal.aborted) return;
+    setWeightsLoading(true);
+    setWeightsError(null);
+    setRecommendationId(null);
+    setRecommendations({});
+    setRecruiterWeights(baseline);
+    setApprovedWeights(baseline);
+    setWeightDecisions({});
     try {
       const response = await apiPost<IntegrityWeightRecommendationsResponse>(
         "/api/v1/integrity-weights/recommendations",

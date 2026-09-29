@@ -213,7 +213,10 @@ def _aggregate_question_scores(
 
     has_complete_approved_weights = (
         len(question_scores) == len(question_weights)
-        and all(weight is not None and weight >= 0 for weight in question_weights)
+        and all(
+            weight is not None and weight >= 0
+            for weight in question_weights
+        )
     )
     if has_complete_approved_weights:
         total_weight = sum(question_weights)
