@@ -63,7 +63,7 @@ export const candidateColumns: AnalyticsTableColumn<AssessmentCandidateResult>[]
     },
     {
         key: "integrity",
-        header: "Integrity Flag Score",
+        header: "Integrity Risk Score",
         render: renderIntegrity,
     },
     {
