@@ -1,6 +1,7 @@
 import os
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 import requests
 from google.genai import errors as genai_errors
@@ -33,8 +34,20 @@ def test_get_gemini_client_constructs_with_configured_api_key():
         mock_client_cls.return_value = "the-real-sdk-client"
         result = get_gemini_client()
 
-    mock_client_cls.assert_called_once_with(api_key="test-gemini-key")
+    mock_client_cls.assert_called_once()
+    call_kwargs = mock_client_cls.call_args.kwargs
+    assert call_kwargs["api_key"] == "test-gemini-key"
     assert result == "the-real-sdk-client"
+
+
+def test_get_gemini_client_sets_request_timeout_in_milliseconds():
+    with patch(
+        "app.core.gemini.settings.gemini_timeout_seconds", 7
+    ), patch("app.core.gemini.genai.Client") as mock_client_cls:
+        get_gemini_client()
+
+    http_options = mock_client_cls.call_args.kwargs["http_options"]
+    assert http_options.timeout == 7000
 
 
 def test_call_gemini_passes_through_config_and_returns_response_text():
@@ -131,6 +144,33 @@ def test_call_llm_falls_back_to_openrouter_on_timeout():
     assert text == '{"a": 4}'
 
 
+def test_call_llm_falls_back_to_openrouter_on_httpx_timeout():
+    with patch(
+        "app.core.gemini._call_gemini",
+        side_effect=httpx.ReadTimeout("gemini hung"),
+    ), patch(
+        "app.core.gemini.call_openrouter",
+        return_value=('{"a": 5}', "qwen/qwen3.8-27b:free"),
+    ) as mock_openrouter:
+        text, served_by = call_llm("sys", "user", "gemini-3.1-flash-lite")
+
+    assert text == '{"a": 5}'
+    assert served_by == "qwen/qwen3.8-27b:free"
+    mock_openrouter.assert_called_once()
+
+
+def test_call_llm_raises_when_gemini_times_out_and_fallback_fails():
+    with patch(
+        "app.core.gemini._call_gemini",
+        side_effect=httpx.ReadTimeout("gemini hung"),
+    ), patch(
+        "app.core.gemini.call_openrouter",
+        side_effect=OpenRouterError("timed out"),
+    ):
+        with pytest.raises(LLMProviderError):
+            call_llm("sys", "user", "gemini-3.1-flash-lite")
+
+
 def test_call_llm_raises_when_both_providers_fail():
     api_error = _mock_api_error(500, genai_errors.ServerError)
 
@@ -173,3 +213,32 @@ def test_call_llm_does_not_fall_back_on_unrelated_exception():
             call_llm("sys", "user", "gemini-3.1-flash-lite")
 
     mock_openrouter.assert_not_called()
+
+
+def test_call_llm_without_fallback_raises_on_gemini_timeout():
+    with patch(
+        "app.core.gemini._call_gemini",
+        side_effect=httpx.ReadTimeout("gemini hung"),
+    ), patch(
+        "app.core.gemini.call_openrouter"
+    ) as mock_openrouter:
+        with pytest.raises(LLMProviderError) as exc_info:
+            call_llm(
+                "sys", "user", "gemini-3.1-flash-lite",
+                allow_fallback=False,
+            )
+
+    assert "gemini" in str(exc_info.value)
+    mock_openrouter.assert_not_called()
+
+
+def test_call_llm_without_fallback_still_returns_gemini_success():
+    with patch(
+        "app.core.gemini._call_gemini", return_value='{"a": 6}'
+    ):
+        text, served_by = call_llm(
+            "sys", "user", "gemini-3.1-flash-lite", allow_fallback=False
+        )
+
+    assert text == '{"a": 6}'
+    assert served_by == "gemini-3.1-flash-lite"

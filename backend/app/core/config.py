@@ -103,6 +103,7 @@ class Settings(BaseSettings):
     # Gemini API configuration
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-1.5-flash"
+    gemini_timeout_seconds: int = 10
 
     # OpenRouter API configuration (fallback provider for Gemini)
     openrouter_api_key: str | None = None
