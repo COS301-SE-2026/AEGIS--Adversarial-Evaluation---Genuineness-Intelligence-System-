@@ -102,17 +102,19 @@ export function ReviewPriorityBadge() {
   return (
     <div className="rounded-lg border border-default-border bg-secondary-surface overflow-hidden">
 
-      <div className="flex flex-col items-center text-center border-b border-tertiary-surface p-6">
-        <h2 className="text-xl tracking-widest text-default-text mb-6 self-start">
+      <div className="border-b border-tertiary-surface p-6">
+        <h2 className="text-xl tracking-widest text-default-text mb-6">
           Overall Review Priority
         </h2>
 
-        <div className="flex flex-col items-center gap-4 w-full">
-
-          <div className="flex flex-col items-center gap-2">
-
+        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8">
+          
+          <div className="flex flex-col items-center justify-center gap-2">
+            <span className="text-6xl font-bold text-default-text">
+              {overallPriority.score}
+            </span>
             <div 
-              className="mt-2 inline-flex rounded-full px-4 py-1 text-sm font-bold border" 
+              className="mt-6 inline-flex rounded-full px-6 py-2 text-md font-bold border" 
               style={{ 
                 backgroundColor: `${bandMeta.color}15`, 
                 color: bandMeta.color,
@@ -122,22 +124,19 @@ export function ReviewPriorityBadge() {
               {bandMeta.label} Priority
             </div>
           </div>
-        </div>
-        <div className="mt-5">
-          <h3 className="mb-2 text-lg tracking-widest text-default-text/90">
-            Observed Patterns
-          </h3>
-          {overallPriority.contributing_factors.length > 0 ? (
-            <ul className="list-disc space-y-1 pl-5 text text-default-text">
-              {overallPriority.contributing_factors.map(renderContributingFactor)}
-            </ul>
-          ) : (
-            <p className="text-sm text-default-border">
-              No contributing factors recorded
-            </p>
-          )}
-        </div>
 
+          <div className=" border border-tertiary-surface rounded-md px-6 py-2 items-center text-center md:text-left">
+            {overallPriority.contributing_factors.length > 0 ? (
+              <ul className="list-disc space-y-1 pl-5 text text-default-text">
+                {overallPriority.contributing_factors.map(renderContributingFactor)}
+              </ul>
+            ) : (
+              <p className="text-sm text-default-border">
+                No contributing factors recorded
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="flex min-h-150">
