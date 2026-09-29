@@ -9,7 +9,7 @@ from typing import Any, Optional
 from fastapi import HTTPException, status
 from google.genai import types
 from sqlalchemy.orm import Session, selectinload
-from app.core.gemini import get_gemini_client
+from app.core.gemini import call_llm, get_gemini_client
 from app.core.piston import PistonClient, PistonError
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
@@ -1151,6 +1151,8 @@ def add_question_to_assessment(
     adv_question_id: int,
     display_order: int | None = None,
     marks: float | None = None,
+    recommendation_id: str | None = None,
+    recruiter_id: int | None = None,
 ) -> AssessmentQuestion:
     assessment = (
         db.query(Assessment)
@@ -1192,11 +1194,68 @@ def add_question_to_assessment(
             ),
         )
 
+    recommendation_values = {}
+    if recommendation_id is not None:
+        if recruiter_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "A recruiter is required to apply recommendation weights."
+                ),
+            )
+        try:
+            recommendation_uuid = uuid.UUID(recommendation_id)
+        except ValueError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid recommendation_id.",
+            ) from error
+
+        recommendation_item = (
+            db.query(IntegrityWeightRecommendationItem)
+            .join(IntegrityWeightRecommendationSet)
+            .filter(
+                IntegrityWeightRecommendationSet.recommendation_id
+                == recommendation_uuid,
+                IntegrityWeightRecommendationSet.recruiter_id == recruiter_id,
+                IntegrityWeightRecommendationSet.status == "decided",
+                IntegrityWeightRecommendationItem.adv_question_id
+                == adv_question_id,
+            )
+            .first()
+        )
+        if recommendation_item is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "A decided recommendation is required for this "
+                    "question."
+                ),
+            )
+        decision_status = {
+            WeightDecision.ACCEPT.value: RecommendationStatus.ACCEPTED,
+            WeightDecision.MODIFY.value: RecommendationStatus.MODIFIED,
+            WeightDecision.REJECT.value: RecommendationStatus.REJECTED,
+        }
+        recommendation_values = {
+            "recruiter_weight": recommendation_item.recruiter_weight,
+            "ai_suggested_weight": recommendation_item.ai_suggested_weight,
+            "approved_weight": recommendation_item.approved_weight,
+            "recommendation_status": decision_status[
+                recommendation_item.recruiter_decision
+            ],
+            "ai_recommendation": recommendation_item.ai_recommendation,
+            "ai_generated_at": recommendation_item.ai_generated_at,
+            "approved_by": recruiter_id,
+            "approved_at": recommendation_item.decided_at,
+        }
+
     assessment_question = AssessmentQuestion(
         assessments_id=assessment_id,
         adv_question_id=adv_question_id,
         display_order=display_order,
         marks=marks,
+        **recommendation_values,
     )
     db.add(assessment_question)
     db.commit()
@@ -1547,9 +1606,7 @@ def request_pre_assessment_integrity_recommendations(
     )
 
     try:
-        response = get_gemini_client().models.generate_content(
-            model=_INTEGRITY_WEIGHT_MODEL,
-            contents=(
+        recommendation_prompt = (
                 "Recommend a complete review-priority weight allocation "
                 "for the selected adversarial questions. A higher weight "
                 "means that suspicious integrity signals for that question "
@@ -1569,14 +1626,14 @@ def request_pre_assessment_integrity_recommendations(
                 "\"suggested_weight\":number,"
                 "\"recommendation\":string}]}\n"
                 f"Evidence: {evidence_prompt}"
-            ),
-            config=types.GenerateContentConfig(
-                temperature=0.0,
-                response_mime_type="application/json",
-            ),
+        )
+        response_text, _served_by = call_llm(
+            "Return only the requested JSON object.",
+            recommendation_prompt,
+            _INTEGRITY_WEIGHT_MODEL,
         )
         parsed = _parse_integrity_recommendations(
-            response.text,
+            response_text,
             expected_ids,
             id_field="adv_question_id",
         )

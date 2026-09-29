@@ -119,7 +119,7 @@ export default function AssessmentPage() {
 
         <InfoCard
           type="metric"
-          title="Average Integrity Score"
+          title="Average Integrity Risk Score"
           value={averageIntegrityScore === null ? "—" : averageIntegrityScore}
           icon="ai"
         />

@@ -286,6 +286,8 @@ async def add_question_to_assessment_route(
         payload.adv_question_id,
         payload.display_order,
         payload.marks,
+        recommendation_id=payload.recommendation_id,
+        recruiter_id=int(current_user["user_id"]),
     )
 
 

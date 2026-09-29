@@ -46,6 +46,9 @@ class AssessmentQuestionCreate(BaseModel):
     marks: Optional[float] = Field(
         None, description="Marks override for this question",
     )
+    recommendation_id: Optional[str] = Field(
+        None, description="Decided pre-assessment recommendation set",
+    )
 
 
 class AssessmentQuestionCreatedResponse(BaseModel):

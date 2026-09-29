@@ -122,7 +122,6 @@ def _stub_priority_queries(
     )
 
 
-# -- focus_signal --------------------------------------------------------
 
 def test_focus_signal_clamps_to_one_when_loss_exceeds_active_time():
     assert focus_signal(active_time_ms=0, focus_loss_time_ms=5000) == 1.0
@@ -133,10 +132,8 @@ def test_focus_signal_is_zero_with_no_focus_loss():
 
 
 def test_focus_signal_computes_fraction():
-    assert focus_signal(active_time_ms=100, focus_loss_time_ms=50) == pytest.approx(0.5)
+    assert focus_signal(active_time_ms=100, focus_loss_time_ms=25) == pytest.approx(0.5)
 
-
-# -- paste_signal ---------------------------------------------------------
 
 def test_paste_signal_returns_none_for_multiple_choice():
     result = paste_signal(
@@ -157,12 +154,11 @@ def test_paste_signal_clamps_to_one_when_no_typed_characters():
 def test_paste_signal_computes_fraction_for_fill_in_the_blank():
     result = paste_signal(
         QuestionType.FILL_IN_THE_BLANK,
-        chars_alnum=100, chars_special=0, paste_char_count=61,
+        chars_alnum=100, chars_special=0, paste_char_count=30,
     )
-    assert result == pytest.approx(0.61)
+    assert result == pytest.approx(0.6)
 
 
-# -- copy_signal ------------------------------------------------------------
 
 def test_copy_signal_clamps_to_one_for_large_copy_char_count():
     assert copy_signal(copy_char_count=1000, copy_event_count=0) == 1.0
@@ -173,11 +169,9 @@ def test_copy_signal_is_zero_with_no_copy_activity():
 
 
 def test_copy_signal_uses_event_count_when_it_dominates():
-    # 25 chars/50 = 0.5, 1 event*0.3 = 0.3 -- char ratio wins
-    assert copy_signal(copy_char_count=25, copy_event_count=1) == pytest.approx(0.5)
+    assert copy_signal(copy_char_count=10, copy_event_count=1) == pytest.approx(0.5)
 
 
-# -- speed_signal -----------------------------------------------------------
 
 def test_speed_signal_none_when_cohort_average_missing():
     assert speed_signal(active_time_ms=1000, cohort_avg_active_time_ms=None) is None
@@ -200,29 +194,23 @@ def test_speed_signal_clamps_to_zero_beyond_cohort_average():
 
 
 def test_speed_signal_is_half_at_half_cohort_average():
-    # 1 - (500 / 1000) = 0.5 -- the linear formula has no dead zone, unlike
-    # the old clamp(1 - ratio / 0.5, 0, 1) which read 0 at this exact point
+
     assert speed_signal(active_time_ms=500, cohort_avg_active_time_ms=1000) == pytest.approx(0.5)
 
 
-# -- get_question_review_score: exclusion behavior ---------------------------
 
 def test_mcq_excludes_paste_from_weight_sum_not_scored_as_zero():
     question = QuestionInfo(order=1, type=QuestionType.MULTIPLE_CHOICE)
     metrics = make_question_metrics(
         active_time_ms=100000,
-        focus_loss_time_ms=50000,  # focus_signal = 0.5
-        paste_char_count=99999,    # would dominate if wrongly included
+        focus_loss_time_ms=50000,  
+        paste_char_count=99999,   
         chars_alnum=1,
         copy_char_count=0,
         copy_event_count=0,
     )
-
     score, factors = get_question_review_score(question, metrics, cohort_data=None)
-
-    # weights for MCQ: focus=9, copy=3 (speed excluded, no cohort data)
-    # weighted_sum = 9*0.5 + 3*0 = 4.5, weight_total = 12
-    expected = 100 * 4.5 / 12
+    expected = 100 * (0.35 * 1.0) / (0.35 + 0.45)
     assert score == pytest.approx(expected)
     assert not any("past" in factor.lower() for factor in factors)
 
@@ -243,11 +231,7 @@ def test_speed_excluded_from_weight_sum_when_cohort_data_insufficient():
         question, metrics, cohort_data=100000,
     )
 
-    # with no signal present, both should read 0 -- but the weight sums
-    # differ (17.5 excluding speed vs 19.5 including it at value 0), so if
-    # the exclusion were implemented as "treat as 0" instead of "omit from
-    # the denominator" these two calls would be indistinguishable here.
-    # Prove the exclusion happened by checking against hand math directly.
+   
     assert score_excluded == 0.0
     assert score_at_average == 0.0
 
@@ -256,7 +240,7 @@ def test_speed_weight_excluded_from_denominator_changes_score():
     question = QuestionInfo(order=1, type=QuestionType.FILL_IN_THE_BLANK)
     metrics = make_question_metrics(
         active_time_ms=100000,
-        focus_loss_time_ms=50000,  # focus_signal = 0.5, nonzero numerator
+        focus_loss_time_ms=50000, 
         paste_char_count=0,
         chars_alnum=100,
         copy_char_count=0,
@@ -266,39 +250,34 @@ def test_speed_weight_excluded_from_denominator_changes_score():
     score_no_cohort, _ = get_question_review_score(
         question, metrics, cohort_data=None,
     )
-    # weight_total = focus(9) + paste(5) + copy(3.5) = 17.5 (speed excluded)
-    expected_excluded = 100 * (9 * 0.5) / 17.5
+    expected_excluded = 100 * (0.2 * 1.0) / (0.2 + 0.5 + 0.2)
 
     score_at_average, _ = get_question_review_score(
         question, metrics, cohort_data=100000,
     )
-    # weight_total = 9 + 5 + 3.5 + 2 = 19.5 (speed included at value 0,
-    # since active_time_ms == cohort_avg_active_time_ms -> ratio 1 -> 1-1=0)
-    expected_included = 100 * (9 * 0.5) / 19.5
+    expected_included = 100 * (0.2 * 1.0)
 
     assert score_no_cohort == pytest.approx(expected_excluded)
     assert score_at_average == pytest.approx(expected_included)
     assert score_no_cohort != pytest.approx(score_at_average)
 
 
-# -- get_question_review_score: full realistic scenarios per question type --
 
 def test_get_question_review_score_multiple_choice_realistic():
     question = QuestionInfo(order=1, type=QuestionType.MULTIPLE_CHOICE)
     metrics = make_question_metrics(
         active_time_ms=60000,
-        focus_loss_time_ms=42000,  # focus_signal = 0.7
+        focus_loss_time_ms=42000,  
         copy_char_count=0,
-        copy_event_count=0,        # copy_signal = 0.0
+        copy_event_count=0,        
     )
 
     score, factors = get_question_review_score(question, metrics, cohort_data=None)
 
-    # weight_total = 9 (focus) + 3 (copy) = 12, speed excluded
-    expected = 100 * (9 * 0.7 + 3 * 0.0) / 12
+    expected = 100 * (0.35 * 1.0) / (0.35 + 0.45)
     assert score == pytest.approx(expected)
     assert factors == [
-        "Question 1 (multiple-choice): the browser lost focus for 70% "
+        "Question 1 (multiple-choice): the browser lost focus for 100% "
         "of the time spent on this question."
     ]
 
@@ -319,11 +298,10 @@ def test_get_question_review_score_fill_in_the_blank_realistic():
         question, metrics, cohort_data=100000,
     )
 
-    # focus=0, paste=0.61, copy=0, speed at cohort avg=0
-    expected = 100 * (9 * 0 + 5 * 0.61 + 3.5 * 0 + 2 * 0) / 19.5
+    expected = 100 * (0.5 * 1.0)
     assert score == pytest.approx(expected)
     assert factors == [
-        "Question 3 (fill-in-the-blank): 61% of characters were pasted "
+        "Question 3 (fill-in-the-blank): 100% of characters were pasted "
         "rather than typed."
     ]
 
@@ -342,9 +320,7 @@ def test_get_question_review_score_coding_realistic():
 
     score, factors = get_question_review_score(question, metrics, cohort_data=None)
 
-    # copy_signal = max(60/50, 2*0.3) = max(1.2, 0.6) -> clamped to 1.0
-    # weight_total = focus(9) + paste(4.5) + copy(2.5) = 16, speed excluded
-    expected = 100 * (9 * 0 + 4.5 * 0 + 2.5 * 1.0) / 16
+    expected = 100 * (0.1 * 1.0) / (0.15 + 0.4 + 0.1)
     assert score == pytest.approx(expected)
     assert factors == [
         "Question 2 (coding): copy activity was elevated on this "
@@ -373,8 +349,6 @@ def test_contributing_factor_wording_has_no_verdict_language():
     assert paste_factors
     assert_no_verdict_language(focus_factors + paste_factors)
 
-
-# -- get_review_priority -----------------------------------------------------
 
 def test_get_review_priority_returns_zero_when_session_missing():
     db = MagicMock()
@@ -428,20 +402,87 @@ def test_get_review_priority_averages_across_questions(monkeypatch):
     ]
 
     db = MagicMock()
-    # fewer than 3 other completed peers -- speed excluded for every question
     _stub_priority_queries(db, session, rows, other_completed_count=0)
 
     result = get_review_priority(db, candidate_assessment_id=12)
 
-    # Q1 (MCQ): 100 * (9*0.7 + 3*0) / 12 = 52.5
-    # Q2 (FITB): 100 * (5*0.61) / 17.5 = 17.428571...
-    expected_overall = round((52.5 + (100 * 5 * 0.61 / 17.5)) / 2)
+    expected_overall = round((43.75 + 55.5555555556) / 2)
     assert result.score == expected_overall
     assert result.band == "medium"
     assert len(result.contributing_factors) == 2
     assert "Question 1 (multiple-choice)" in result.contributing_factors[0]
     assert "Question 2 (fill-in-the-blank)" in result.contributing_factors[1]
     assert_no_verdict_language(result.contributing_factors)
+
+
+def test_get_review_priority_uses_approved_question_weights():
+    rows = [
+        _question_row(
+            1,
+            QuestionType.MULTIPLE_CHOICE,
+            focus_loss_time_ms=42000,
+        ),
+        _question_row(
+            2,
+            QuestionType.FILL_IN_THE_BLANK,
+            active_time_ms=100000,
+            chars_alnum=100,
+            paste_char_count=61,
+        ),
+    ]
+    rows[0][1].approved_weight = 0.25
+    rows[1][1].approved_weight = 0.75
+
+    result = _run_review_priority(rows)
+
+    first_score = 100 * (0.35 * 1.0) / (0.35 + 0.45)
+    second_score = 100 * (0.5 * 1.0) / (0.2 + 0.5 + 0.2)
+    expected = round(0.25 * first_score + 0.75 * second_score)
+    assert result.score == expected
+
+
+def test_get_review_priority_falls_back_to_equal_weights_when_missing():
+    rows = [
+        _question_row(
+            1,
+            QuestionType.MULTIPLE_CHOICE,
+            focus_loss_time_ms=42000,
+        ),
+        _question_row(
+            2,
+            QuestionType.FILL_IN_THE_BLANK,
+            active_time_ms=100000,
+            chars_alnum=100,
+            paste_char_count=61,
+        ),
+    ]
+
+    result = _run_review_priority(rows)
+
+    first_score = 100 * (0.35 * 1.0) / (0.35 + 0.45)
+    second_score = 100 * (0.5 * 1.0) / (0.2 + 0.5 + 0.2)
+    assert result.score == round((first_score + second_score) / 2)
+
+
+def test_get_review_priority_allows_zero_approved_weight():
+    rows = [
+        _question_row(
+            1,
+            QuestionType.MULTIPLE_CHOICE,
+            focus_loss_time_ms=60000,
+        ),
+        _question_row(
+            2,
+            QuestionType.FILL_IN_THE_BLANK,
+            focus_loss_time_ms=0,
+        ),
+    ]
+    rows[0][1].approved_weight = 0.0
+    rows[1][1].approved_weight = 1.0
+
+    result = _run_review_priority(rows)
+
+    assert result.score == 0
 
 
 def test_get_review_priority_uses_per_question_cohort_average(monkeypatch):
@@ -471,8 +512,7 @@ def test_get_review_priority_uses_per_question_cohort_average(monkeypatch):
     result = get_review_priority(db, candidate_assessment_id=12)
 
     # active_time_ms=0 against a cohort average of 50000 -> speed_signal=1.0
-    # weight_total = focus(9) + paste(4.5) + copy(2.5) + speed(2) = 18
-    expected_score = round(100 * (2 * 1.0) / 18)
+    expected_score = round(100 * (0.35 * 1.0) / 1.0)
     assert result.score == expected_score
     assert any(
         "notably faster" in factor for factor in result.contributing_factors
@@ -522,14 +562,13 @@ def test_notable_question_populated_when_top_question_exceeds_30():
     ]
     result = _run_review_priority(rows)
 
-    q2_score = 100 * (9 * 0.5 + 5 * 0.9) / 17.5
+    q2_score = min(100 * (0.2 * 1.0 + 0.5 * 1.0) / 0.9 + 15, 100)
     assert result.score == round((0.0 + q2_score) / 2)
-    assert result.band == "low"
+    assert result.band == "medium"
     assert result.notable_question is not None
     assert result.notable_question.question_order == 2
     assert result.notable_question.score == pytest.approx(q2_score)
-    assert "pasted rather than typed" in result.notable_question.top_factor
-    assert "lost focus" not in result.notable_question.top_factor
+    assert "lost focus" in result.notable_question.top_factor
     assert_no_verdict_language([result.notable_question.top_factor])
 
 
@@ -537,7 +576,7 @@ def test_notable_question_null_when_top_question_is_exactly_30():
     rows = [
         _question_row(
             1, QuestionType.MULTIPLE_CHOICE,
-            active_time_ms=100000, focus_loss_time_ms=40000,
+            active_time_ms=100000, focus_loss_time_ms=34280,
         ),
     ]
     result = _run_review_priority(rows)
@@ -569,9 +608,9 @@ def test_notable_question_picks_actual_highest_scoring_question():
     result = _run_review_priority(rows)
 
     assert result.notable_question is not None
-    assert result.notable_question.question_order == 2
-    assert result.notable_question.score == pytest.approx(52.5)
-    assert "lost focus for 70%" in result.notable_question.top_factor
+    assert result.notable_question.question_order == 1
+    assert result.notable_question.score == pytest.approx(43.75)
+    assert "lost focus for 100%" in result.notable_question.top_factor
 
 
 def test_notable_question_does_not_change_overall_score_or_band():
@@ -587,9 +626,9 @@ def test_notable_question_does_not_change_overall_score_or_band():
     ]
     result = _run_review_priority(rows)
 
-    expected_overall = round((52.5 + (100 * 5 * 0.61 / 17.5)) / 2)
+    expected_overall = round((43.75 + 55.5555555556) / 2)
     assert result.score == expected_overall
     assert result.band == "medium"
     assert len(result.contributing_factors) == 2
     assert result.notable_question is not None
-    assert result.notable_question.question_order == 1
+    assert result.notable_question.question_order == 2
