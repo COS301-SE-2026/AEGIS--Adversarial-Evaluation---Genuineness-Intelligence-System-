@@ -885,7 +885,7 @@ def test_get_all_adversarial_questions_returns_list():
         MagicMock(validation_status="validated"),
     ]
     mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.all.return_value = (
+    mock_db.query.return_value.options.return_value.filter.return_value.all.return_value = (
         questions
     )
 

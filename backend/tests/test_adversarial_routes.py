@@ -99,6 +99,7 @@ def test_generate_adversarial_201_on_success(mock_generate):
     mock_generate.return_value = MagicMock(
         adv_question_id=5,
         source_question_id=1,
+        source_question_title="Two Sum",
         content="What does f(6) return?",
         strategy_id=2,
         llm="gemini-2.5-flash",
@@ -192,6 +193,7 @@ def test_get_adversarial_questions_200_with_list(mock_get):
         MagicMock(
             adv_question_id=5,
             source_question_id=1,
+            source_question_title="Two Sum",
             content="What does f(6) return?",
             strategy_id=2,
             llm="gemini-2.5-flash",
@@ -301,6 +303,7 @@ def test_regenerate_adversarial_200_on_success(mock_regen):
     mock_regen.return_value = MagicMock(
         adv_question_id=5,
         source_question_id=1,
+        source_question_title="Two Sum",
         content="What does f(7) return?",
         strategy_id=2,
         llm="gemini-3.1-flash-lite",
@@ -509,6 +512,7 @@ def test_save_adversarial_200_on_success(mock_save):
     mock_save.return_value = MagicMock(
         adv_question_id=5,
         source_question_id=1,
+        source_question_title="Two Sum",
         content="What does f(6) return?",
         strategy_id=2,
         llm="gemini-3.1-flash-lite",
@@ -555,6 +559,7 @@ def test_get_all_adversarial_questions_200_for_recruiter(mock_get):
         MagicMock(
             adv_question_id=5,
             source_question_id=1,
+            source_question_title="Two Sum",
             content="What does f(6) return?",
             strategy_id=2,
             llm="gemini-2.5-flash",
@@ -612,6 +617,7 @@ def test_get_every_adversarial_question_200_for_recruiter_all_statuses(
         MagicMock(
             adv_question_id=5,
             source_question_id=1,
+            source_question_title="Two Sum",
             content="What does f(6) return?",
             strategy_id=2,
             llm="gemini-2.5-flash",
@@ -625,6 +631,7 @@ def test_get_every_adversarial_question_200_for_recruiter_all_statuses(
         MagicMock(
             adv_question_id=6,
             source_question_id=1,
+            source_question_title="Two Sum",
             content="What does f(7) return?",
             strategy_id=2,
             llm="gemini-2.5-flash",
