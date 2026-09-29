@@ -929,12 +929,6 @@ const handleRejectSuggestion = (questionId: string) => {
                     {selectedIds.filter((id) => weightDecisions[String(id)] === "modify").length} modified,{" "}
                     {selectedIds.filter((id) => weightDecisions[String(id)] === "reject").length} rejected
                   </div>
-                  {recommendationId && (
-                    <div className="break-all">
-                      <span className="text-white-smoke/60">Recommendation set:</span>{" "}
-                      {recommendationId}
-                    </div>
-                  )}
                 </div>
               </div>
             )}
