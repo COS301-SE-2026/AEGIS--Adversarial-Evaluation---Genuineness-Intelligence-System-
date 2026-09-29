@@ -51,7 +51,7 @@ export default function AssessmentsPage() {
     try {
       setLoadingData(true);
       setDataError(null);
-      const data = await apiGet<ApiAssessment[]>("/api/v1/assessments", {
+      const data = await apiGet<ApiAssessment[]>("/api/v1/assessments/", {
         headers: getAuthHeaders(),
       });
       setAssessments(data);
