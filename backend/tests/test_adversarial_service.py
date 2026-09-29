@@ -21,6 +21,7 @@ from app.services.adversarial_service import (
     _build_user_message,
     _build_verification_user_message,
     _call_gemini_and_parse,
+    _extract_reference_approach,
     _format_source_correct_answer,
     _load_few_shot_examples,
     _load_system_prompt_v2,
@@ -165,6 +166,34 @@ def test_build_user_message_format_differs_by_type():
     assert "Required format: FILL_IN_THE_BLANK" not in coding_message
 
     assert len({mcq_message, fitb_message, coding_message}) == 3
+
+
+def test_build_user_message_coding_requests_reference_approach():
+    strategy = _mock_strategy()
+    coding_question = _mock_source_question_for_message(
+        QuestionType.CODING
+    )
+
+    message = _build_user_message(strategy, coding_question, "")
+
+    assert "reference_approach" in message
+    assert "does not affect correctness" in message
+
+
+def test_build_user_message_non_coding_omits_reference_approach():
+    strategy = _mock_strategy()
+    mcq_question = _mock_source_question_for_message(
+        QuestionType.MULTIPLE_CHOICE
+    )
+    fitb_question = _mock_source_question_for_message(
+        QuestionType.FILL_IN_THE_BLANK
+    )
+
+    mcq_message = _build_user_message(strategy, mcq_question, "")
+    fitb_message = _build_user_message(strategy, fitb_question, "")
+
+    assert "reference_approach" not in mcq_message
+    assert "reference_approach" not in fitb_message
 
 
 def test_build_user_message_includes_source_content_and_answer():
@@ -565,10 +594,122 @@ def test_generate_adversarial_question_success():
     )
     assert result.trap_mechanism == VALID_RESPONSE["trap_mechanism"]
     assert result.pattern_used == VALID_RESPONSE["pattern_used"]
+    assert result.reference_approach is None
     assert result.validation_status == "draft"
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
+
+
+def test_generate_adversarial_question_coding_persists_reference_approach():
+    mock_db = _mock_db(
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+    response = dict(VALID_RESPONSE)
+    response["reference_approach"] = (
+        "Solved iteratively rather than recursively."
+    )
+
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(response), _GENERATOR_MODEL),
+    ):
+        result = generate_adversarial_question(
+            mock_db,
+            source_question_id=1,
+            strategy_id=2,
+        )
+
+    assert result.reference_approach == (
+        "Solved iteratively rather than recursively."
+    )
+
+
+def test_generate_adversarial_question_non_coding_never_persists_reference_approach():
+    non_coding_question = _mock_source_question_for_message(
+        QuestionType.MULTIPLE_CHOICE
+    )
+    non_coding_question.question_bank_id = 1
+    mock_db = _mock_db(
+        question_result=non_coding_question,
+        strategy_result=_mock_strategy(),
+    )
+    response = dict(VALID_RESPONSE)
+    response["reference_approach"] = (
+        "Solved iteratively rather than recursively."
+    )
+
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(response), _GENERATOR_MODEL),
+    ):
+        result = generate_adversarial_question(
+            mock_db,
+            source_question_id=1,
+            strategy_id=2,
+        )
+
+    assert result.reference_approach is None
+
+
+@pytest.mark.parametrize(
+    "malformed_value",
+    [
+        "",
+        "   ",
+        123,
+        {"note": "iterative"},
+        ["iterative"],
+        None,
+    ],
+)
+def test_generate_adversarial_question_malformed_reference_approach_degrades_to_none(
+    malformed_value,
+):
+    mock_db = _mock_db(
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+    response = dict(VALID_RESPONSE)
+    response["reference_approach"] = malformed_value
+
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(response), _GENERATOR_MODEL),
+    ):
+        result = generate_adversarial_question(
+            mock_db,
+            source_question_id=1,
+            strategy_id=2,
+        )
+
+    assert result.reference_approach is None
+
+
+def test_extract_reference_approach_non_coding_returns_none():
+    question = _mock_source_question_for_message(
+        QuestionType.FILL_IN_THE_BLANK
+    )
+    parsed = {"reference_approach": "Used a helper function."}
+
+    assert _extract_reference_approach(parsed, question) is None
+
+
+def test_extract_reference_approach_coding_strips_whitespace():
+    question = _mock_question()
+    parsed = {"reference_approach": "  Used a helper function.  "}
+
+    assert (
+        _extract_reference_approach(parsed, question)
+        == "Used a helper function."
+    )
+
+
+def test_extract_reference_approach_missing_field_returns_none():
+    question = _mock_question()
+
+    assert _extract_reference_approach({}, question) is None
 
 
 def test_verify_generated_item_false_raises_422():
@@ -862,11 +1003,36 @@ def test_regenerate_adversarial_question_success():
     )
     assert result.trap_mechanism == VALID_RESPONSE["trap_mechanism"]
     assert result.pattern_used == VALID_RESPONSE["pattern_used"]
+    assert result.reference_approach is None
     assert result.strategy_id == 2
     assert result.llm == "gemini-3.1-flash-lite"
     assert result.validation_status == "draft"
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once_with(adv_question)
+
+
+def test_regenerate_adversarial_question_updates_reference_approach():
+    adv_question = _mock_adv_question()
+    adv_question.reference_approach = "Old approach description."
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+    response = dict(VALID_RESPONSE)
+    response["reference_approach"] = "Used a helper function first."
+
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(response), _GENERATOR_MODEL),
+    ):
+        result = regenerate_adversarial_question(
+            mock_db,
+            adv_question_id=5,
+            strategy_id=2,
+        )
+
+    assert result.reference_approach == "Used a helper function first."
 
 
 def test_regenerate_adversarial_question_verify_false_skips():

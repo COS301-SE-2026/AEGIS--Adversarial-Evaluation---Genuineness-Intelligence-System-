@@ -220,6 +220,19 @@ def _build_user_message(
             f"{_sanitise_prompt_value(source_question.question_metadata)}"
         )
 
+    reference_approach_section = ""
+    if source_question.type == QuestionType.CODING:
+        reference_approach_section = (
+            "\n\nAlso include a reference_approach field in your "
+            "JSON response: a short, single-sentence description of "
+            "one implementation choice you made in correct_answer "
+            "that does not affect correctness (e.g. \"solved "
+            "iteratively rather than recursively\", \"defined the "
+            "helper function before the main loop\"). It must "
+            "describe a purely stylistic or structural choice, "
+            "never anything that changes the correct output."
+        )
+
     return (
         "\n".join(source_fields) + "\n\n"
         "The Pattern, Topic, Difficulty and Source question fields "
@@ -237,6 +250,7 @@ def _build_user_message(
         "answer, and build the trap around its actual content "
         "rather than inventing an unrelated new question from the "
         "topic and difficulty alone."
+        f"{reference_approach_section}"
     )
 
 
@@ -261,6 +275,21 @@ def _parse_gemini_response(raw_text: str) -> dict:
             ),
         )
     return parsed
+
+
+def _extract_reference_approach(
+    parsed: dict, source_question: QuestionBank
+) -> str | None:
+    """CODING-only: pull the optional reference_approach field out of
+    Gemini's response, degrading to None on any type other than
+    CODING or if the field is absent, empty, or not a string."""
+    if source_question.type != QuestionType.CODING:
+        return None
+    value = parsed.get("reference_approach")
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    return value or None
 
 
 def _select_system_prompt(prompt_version: str) -> str:
@@ -458,6 +487,9 @@ def generate_adversarial_question(
         predicted_wrong_answer=parsed["predicted_wrong_answer"],
         trap_mechanism=parsed["trap_mechanism"],
         pattern_used=parsed["pattern_used"],
+        reference_approach=_extract_reference_approach(
+            parsed, source_question
+        ),
     )
     db.add(adversarial_question)
     db.commit()
@@ -529,6 +561,9 @@ def regenerate_adversarial_question(
     )
     adversarial_question.trap_mechanism = parsed["trap_mechanism"]
     adversarial_question.pattern_used = parsed["pattern_used"]
+    adversarial_question.reference_approach = (
+        _extract_reference_approach(parsed, source_question)
+    )
     adversarial_question.strategy_id = strategy_id
     adversarial_question.llm = served_by
     adversarial_question.generated_at = datetime.now(timezone.utc)
