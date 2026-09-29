@@ -78,124 +78,49 @@ interface AdversarialQuestionModalProps {
 
 type EvidenceStatus =
   | "SUFFICIENT_DATA"
-  | "LIMITED_DATA"
   | "INSUFFICIENT_DATA"
-  | "UNAVAILABLE";
+  | "NO_DATA";
 
 interface TrapEffectivenessMetric {
-  trap_id: string;
+  trap_id: number;
   trap_name: string;
-  generated_questions: number;
-  completed_attempts: number;
-  elevated_review_count: number; 
+  generated_question_count: number;
+  completed_attempt_count: number;
+  elevated_review_count: number;
   review_signal_rate: number | null;
   evidence_status: EvidenceStatus;
-  evidence_message: string | null;
+}
+
+interface TrapEffectivenessResponse {
+  items: TrapEffectivenessMetric[];
 }
 
 interface TrapRecommendation {
-  trap_id: string;
+  trap_id: number;
   recommendation_available: boolean;
   recommendation: string | null;
-  evidence_status: string;
+  evidence_status: EvidenceStatus;
   reason: string | null;
 }
 
-// backend note: metrics shape and both endpoint paths below are placeholders (only TrapRecommendation is frozen).
-const USE_MOCK_TRAP_DATA = true;
+interface TrapRecommendationResponse {
+  items: TrapRecommendation[];
+}
 
 const EVIDENCE_LABEL: Record<EvidenceStatus, string> = {
   SUFFICIENT_DATA: "Sufficient data",
-  LIMITED_DATA: "Limited data",
   INSUFFICIENT_DATA: "Insufficient data",
-  UNAVAILABLE: "Unavailable",
+  NO_DATA: "No data",
 };
 
 const EVIDENCE_STYLE: Record<EvidenceStatus, string> = {
   SUFFICIENT_DATA: "text-status-success border-status-success-dim bg-status-success-dim/10",
-  LIMITED_DATA: "text-status-warning border-status-warning/40 bg-status-warning/10",
-  INSUFFICIENT_DATA: "text-white-smoke/50 border-default-border bg-tertiary-surface",
-  UNAVAILABLE: "text-white-smoke/40 border-default-border bg-tertiary-surface",
+  INSUFFICIENT_DATA: "text-status-warning border-status-warning/40 bg-status-warning/10",
+  NO_DATA: "text-white-smoke/40 border-default-border bg-tertiary-surface",
 };
 
 const TRAP_GRID =
   "grid grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_minmax(130px,1.3fr)_auto] gap-3 items-center";
-
-function generateMockTrapMetrics(
-  strategies: AdversarialStrategy[],
-): TrapEffectivenessMetric[] {
-  return strategies.map((s, i) => {
-    const base = { trap_id: String(s.strategy_id), trap_name: s.strategy_name };
-    switch (i % 4) {
-      case 0:
-        return {
-          ...base,
-          generated_questions: 12,
-          completed_attempts: 84,
-          elevated_review_count: 27,
-          review_signal_rate: 32.1,
-          evidence_status: "SUFFICIENT_DATA",
-          evidence_message: null,
-        };
-      case 1:
-        return {
-          ...base,
-          generated_questions: 5,
-          completed_attempts: 9,
-          elevated_review_count: 4,
-          review_signal_rate: 44.4,
-          evidence_status: "LIMITED_DATA",
-          evidence_message:
-            "Only 9 completed attempts — rate may change with data",
-        };
-
-        case 2:
-        return {
-          ...base,
-          generated_questions: 2,
-          completed_attempts: 2,
-          elevated_review_count: 1,
-          review_signal_rate: null,
-          evidence_status: "INSUFFICIENT_DATA",
-          evidence_message: "Not enough attempts to report a rate.",
-        };
-      default:
-        return {
-          ...base,
-          generated_questions: 0,
-          completed_attempts: 0,
-          elevated_review_count: 0,
-          review_signal_rate: null,
-          evidence_status: "UNAVAILABLE",
-          evidence_message: "Metrics are unavailable for this trap.",
-        };
-    }
-  });
-}
-
-function generateMockTrapRecommendations(
-  strategies: AdversarialStrategy[],
-): TrapRecommendation[] {
-  return strategies.map((s, i) =>
-    i === 0
-      ? {
-          trap_id: String(s.strategy_id),
-          recommendation_available: true,
-          recommendation:
-            "Consider this trap for your next question — observed outcomes are consistent across a large sample.",
-          evidence_status: "SUFFICIENT_DATA",
-          reason: "84 completed attempts with a stable review-signal rate.",
-        }
-      : {
-          trap_id: String(s.strategy_id),
-          recommendation_available: false,
-          recommendation: null,
-          evidence_status: i % 4 === 3 ? "UNAVAILABLE" : "INSUFFICIENT_DATA",
-          reason: null,
-        },
-  );
-}
-
 
 export default function AdversarialQuestionModal({
   isOpen,
@@ -267,18 +192,14 @@ export default function AdversarialQuestionModal({
     setMetricsError(null);
     setRecsError(null);
     const [metricsResult, recsResult] = await Promise.allSettled([
-      USE_MOCK_TRAP_DATA
-        ? Promise.resolve(generateMockTrapMetrics(strategies))
-        : apiGet<TrapEffectivenessMetric[]>(
-            "/api/v1/adversarial-strategies/effectiveness",
-            { headers: getAuthHeaders() },
-          ),
-      USE_MOCK_TRAP_DATA
-        ? Promise.resolve(generateMockTrapRecommendations(strategies))
-        : apiGet<TrapRecommendation[]>(
-            "/api/v1/adversarial-strategies/recommendations",
-            { headers: getAuthHeaders() },
-          ),
+      apiGet<TrapEffectivenessResponse>(
+        "/api/v1/adversarial-questions/trap-effectiveness",
+        { headers: getAuthHeaders() },
+      ).then((res) => res.items),
+      apiGet<TrapRecommendationResponse>(
+        "/api/v1/adversarial-questions/trap-recommendations",
+        { headers: getAuthHeaders() },
+      ).then((res) => res.items),
     ]);
     if (!isMounted) return;
     
@@ -312,10 +233,8 @@ export default function AdversarialQuestionModal({
   };
 
   // Explicit recruiter action only 
-const handleSelectTrap = (trapId: string) => {
-  const id = Number(trapId);
-  if (Number.isNaN(id)) return;
-  setStrategyId(id);
+const handleSelectTrap = (trapId: number) => {
+  setStrategyId(trapId);
   resetGenerationState();
 };
 
@@ -543,10 +462,9 @@ const availableRecs = trapRecs.filter(
       )}
       {availableRecs.map((rec) => {
         const name =
-          strategies.find((s) => String(s.strategy_id) === rec.trap_id)
+          strategies.find((s) => s.strategy_id === rec.trap_id)
             ?.strategy_name ?? `Trap #${rec.trap_id}`;
-        const statusLabel =
-          EVIDENCE_LABEL[rec.evidence_status as EvidenceStatus] ?? rec.evidence_status;
+        const statusLabel = EVIDENCE_LABEL[rec.evidence_status];
         return (
           <div
             key={rec.trap_id}
@@ -614,13 +532,13 @@ const availableRecs = trapRecs.filter(
               </div>
               <div className="space-y-2">
                 {trapMetrics.map((m) => {
-                  const selected = strategyId === Number(m.trap_id);
+                  const selected = strategyId === m.trap_id;
                   const rate =
                     m.review_signal_rate === null
                       ? null
                       : Math.min(100, Math.max(0, m.review_signal_rate));
                   const sufficient = m.evidence_status === "SUFFICIENT_DATA";
-                  const limited = m.evidence_status === "LIMITED_DATA";
+                  const insufficient = m.evidence_status === "INSUFFICIENT_DATA";
                   return (
                     <div
                       key={m.trap_id}
@@ -640,20 +558,16 @@ const availableRecs = trapRecs.filter(
                           </div>
                         </div>
                         <div className="font-jetbrains text-[12px] text-white-smoke">
-                          {m.generated_questions}
+                          {m.generated_question_count}
                         </div>
                         <div className="font-jetbrains text-[12px] text-white-smoke">
-                          {m.completed_attempts}
+                          {m.completed_attempt_count}
                         </div>
                         <div className="font-jetbrains text-[12px] text-white-smoke">
                           {m.elevated_review_count}
                         </div>
                         <div>
-                          {rate === null || !(sufficient || limited) ? (
-                            <span className="font-jetbrains text-[12px] text-white-smoke/40">
-                              — <span className="text-[9px]">not reported</span>
-                            </span>
-                          ) : sufficient ? (
+                          {sufficient && rate !== null ? (
                             <>
                               <span className="font-jetbrains text-[12px] text-white-smoke">
                                 {rate.toFixed(1)}%
@@ -665,10 +579,14 @@ const availableRecs = trapRecs.filter(
                                 />
                               </div>
                             </>
-                          ) : (
+                          ) : insufficient && rate !== null ? (
                             <span className="font-jetbrains text-[12px] text-status-warning/80">
                               ~{rate.toFixed(0)}%{" "}
                               <span className="text-[9px] uppercase">low sample</span>
+                            </span>
+                          ) : (
+                            <span className="font-jetbrains text-[12px] text-white-smoke/40">
+                              — <span className="text-[9px]">not reported</span>
                             </span>
                           )}
                         </div>
@@ -691,11 +609,6 @@ const availableRecs = trapRecs.filter(
                           {selected ? "Selected" : "Select"}
                         </button>
                       </div>
-                      {m.evidence_message && (
-                        <div className="font-jetbrains text-[9px] text-white-smoke/50 mt-2 leading-relaxed">
-                          {m.evidence_message}
-                        </div>
-                      )}
                     </div>
                   );
                 })}
