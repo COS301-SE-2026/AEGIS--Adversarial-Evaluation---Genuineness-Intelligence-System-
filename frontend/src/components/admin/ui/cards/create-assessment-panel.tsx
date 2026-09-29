@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useMemo } from "react";
+import type { MouseEvent } from "react";
 import type {
   CreateAssessmentForm,
   Difficulty,
@@ -8,7 +9,8 @@ import type {
 import { TARGET_ROLES } from "../../../../app/(admin)/types/mock-data";
 import { apiGet, apiPost, apiPut } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
-import { X, Search, Check } from "lucide-react";
+import { X, Search, Check, Info } from "lucide-react";
+import QuestionContentModal from "./question-content-modal";
 
 const labelCls =
   "font-ibm-plex text-[10px] tracking-[0.1em] text-white-smoke/40 uppercase font-medium";
@@ -34,6 +36,7 @@ interface CreatedAssessment {
 interface AdversarialQuestionOption {
   adv_question_id: number;
   source_question_id: number;
+  source_question_title?: string | null;
   content: string;
   strategy_id: number;
   llm: string | null;
@@ -154,6 +157,69 @@ const DEFAULT_FORM: CreateAssessmentForm = {
   techniques: [],
 };
 
+function getQuestionTitle(question: AdversarialQuestionOption): string {
+  return question.source_question_title ?? `Question #${question.adv_question_id}`;
+}
+
+interface QuestionCardProps {
+  readonly question: AdversarialQuestionOption;
+  readonly selected: boolean;
+  readonly onToggle: (id: number) => void;
+  readonly onOpen: (question: AdversarialQuestionOption) => void;
+}
+
+function QuestionCard({ question, selected, onToggle, onOpen }: QuestionCardProps) {
+  function handleToggle() {
+    onToggle(question.adv_question_id);
+  }
+
+  function handleInfoClick(e: MouseEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    onOpen(question);
+  }
+
+  return (
+    <label
+      className={`flex items-center gap-3 pl-3.5 pr-2 py-2.5 rounded-[5px] border transition-colors duration-150 cursor-pointer ${
+        selected
+          ? "border-system-red bg-system-red/5"
+          : "border-default-border hover:bg-code-editor"
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={handleToggle}
+        className="h-3.5 w-3.5 cursor-pointer accent-system-red shrink-0"
+      />
+      <div className="min-w-0 flex-1">
+        <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke truncate">
+          {getQuestionTitle(question)}
+        </div>
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
+            {question.pattern_used ?? "—"}
+          </span>
+        </div>
+      </div>
+      {selected && (
+        <Check size={15} className="text-system-red shrink-0" />
+      )}
+      <button
+        type="button"
+        onClick={handleInfoClick}
+        aria-label={`View full question: ${getQuestionTitle(question)}`}
+        title="View full question"
+        className="w-8 h-8 flex items-center justify-center rounded-[5px] text-white-smoke/40 hover:text-white-smoke hover:bg-tertiary-surface transition-colors duration-150 cursor-pointer shrink-0"
+      >
+        <Info size={16} />
+      </button>
+    </label>
+  );
+}
+
+
 export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [step, setStep] = useState(0); 
   const [formData, setFormData] = useState<CreateAssessmentForm>(DEFAULT_FORM);
@@ -165,8 +231,7 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [questionSearch, setQuestionSearch] = useState("");
   const [patternFilter, setPatternFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [recommendations, setRecommendations] = useState<Record<string, IntegrityWeightRecommendation>>({});
+  const [activeQuestion, setActiveQuestion] = useState<AdversarialQuestionOption | null>(null);  const [recommendations, setRecommendations] = useState<Record<string, IntegrityWeightRecommendation>>({});
   const [approvedWeights, setApprovedWeights] = useState<Record<string, number>>({});
   const [weightDecisions, setWeightDecisions] = useState<Record<string, IntegrityDecision>>({});
   const [weightsLoading, setWeightsLoading] = useState(false);
@@ -260,16 +325,19 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   };
 }, [step, selectedIds]);
 
-
-
-  useEffect(() => {
-    if (isCreating) return;
-    const handleEscape = (e: KeyboardEvent) => {
+  function registerEscapeListener() {
+    if (isCreating || activeQuestion !== null) return;
+    function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
-    };
+    }
+    function removeEscapeListener() {
+      document.removeEventListener("keydown", handleEscape);
+    }
     document.addEventListener("keydown", handleEscape);
-    return () => document.removeEventListener("keydown", handleEscape);
-  }, [isCreating, onClose]);
+    return removeEscapeListener;
+  }
+
+  useEffect(registerEscapeListener, [isCreating, onClose, activeQuestion]);
 
   const patternOptions = useMemo(() => {
   const unique = new Set<string>();
@@ -279,25 +347,19 @@ export default function CreateAssessmentPanel({ onClose, onCreated }: Props) {
   return Array.from(unique).sort((a, b) => a.localeCompare(b));
 }, [questions]);
 
-const statusOptions = useMemo(() => {
-  const unique = new Set<string>();
-  questions.forEach((q) => {
-    if (q.validation_status) unique.add(q.validation_status);
-  });
-  return Array.from(unique).sort((a, b) => a.localeCompare(b));
-}, [questions]);
 
 const filteredQuestions = useMemo(() => {
   const q = questionSearch.trim().toLowerCase();
   return questions.filter((item) => {
-    const matchesSearch = !q || item.content.toLowerCase().includes(q);
+    const matchesSearch =
+      !q ||
+      getQuestionTitle(item).toLowerCase().includes(q) ||
+      item.content.toLowerCase().includes(q);
     const matchesPattern =
       patternFilter === "all" || item.pattern_used === patternFilter;
-    const matchesStatus =
-      statusFilter === "all" || item.validation_status === statusFilter;
-    return matchesSearch && matchesPattern && matchesStatus;
+    return matchesSearch && matchesPattern;
   });
-}, [questions, questionSearch, patternFilter, statusFilter]);
+}, [questions, questionSearch, patternFilter]);
 
 const allFilteredSelected =
   filteredQuestions.length > 0 &&
@@ -321,6 +383,14 @@ const allFilteredSelected =
     );
   };
 
+  function handleOpenQuestion(question: AdversarialQuestionOption) {
+    setActiveQuestion(question);
+  }
+
+  function handleCloseQuestion() {
+    setActiveQuestion(null);
+  }
+  
   const handleWeightChange = (questionId: string, value: number) => {
   setApprovedWeights((prev) => ({ ...prev, [questionId]: value }));
   setWeightDecisions((prev) => ({ ...prev, [questionId]: "MODIFY" }));
@@ -418,6 +488,18 @@ const handleRejectSuggestion = (questionId: string) => {
     onClose();
   };
 
+  function renderQuestionCard(q: AdversarialQuestionOption) {
+    return (
+      <QuestionCard
+        key={q.adv_question_id}
+        question={q}
+        selected={selectedIds.includes(q.adv_question_id)}
+        onToggle={toggleQuestion}
+        onOpen={handleOpenQuestion}
+      />
+    );
+  }
+
   const renderQuestionsList = () => {
   if (questionsLoading) {
     return (
@@ -448,52 +530,9 @@ const handleRejectSuggestion = (questionId: string) => {
     );
   }
 
-  return filteredQuestions.map((q) => {
-    const selected = selectedIds.includes(q.adv_question_id);
-    const label =
-      q.content.length > 90 ? `${q.content.slice(0, 90)}...` : q.content;
-
-    return (
-      <label
-        key={q.adv_question_id}
-        className={`flex items-start gap-3 px-3.5 py-3 rounded-[5px] border transition-colors duration-150 cursor-pointer ${
-          selected
-            ? "border-system-red bg-system-red/5"
-            : "border-default-border hover:bg-tertiary-surface"
-        }`}
-      >
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => toggleQuestion(q.adv_question_id)}
-          className="h-3.5 w-3.5 mt-0.5 cursor-pointer accent-system-red shrink-0"
-        />
-        <div className="min-w-0 flex-1">
-          <div className="font-staatliches text-[13px] tracking-[0.04em] text-white-smoke truncate">
-            {label}
-          </div>
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
-              {q.pattern_used ?? "—"}
-            </span>
-            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
-              {q.validation_status}
-            </span>
-            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
-              Strategy #{q.strategy_id}
-            </span>
-            <span className="font-jetbrains text-[9px] px-2 py-0.5 bg-tertiary-surface rounded uppercase tracking-wide text-white-smoke/60">
-              {q.llm ?? "—"}
-            </span>
-          </div>
-        </div>
-        {selected && (
-          <Check size={15} className="text-system-red mt-0.5 shrink-0" />
-        )}
-      </label>
-    );
-  });
+  return filteredQuestions.map(renderQuestionCard);
 };
+
 
 
   return (
@@ -662,7 +701,7 @@ const handleRejectSuggestion = (questionId: string) => {
     </div>
 
     {patternOptions.length > 0 && (
-      <div className="flex items-center gap-1.5 flex-wrap mb-1.5">
+      <div className="flex items-center gap-1.5 flex-wrap mb-4">
         <span className="font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/30 mr-1">
           Pattern
         </span>
@@ -689,39 +728,6 @@ const handleRejectSuggestion = (questionId: string) => {
             }`}
           >
             {p}
-          </button>
-        ))}
-      </div>
-    )}
-
-    {statusOptions.length > 0 && (
-      <div className="flex items-center gap-1.5 flex-wrap mb-4">
-        <span className="font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/30 mr-1">
-          Status
-        </span>
-        <button
-          type="button"
-          onClick={() => setStatusFilter("all")}
-          className={`font-jetbrains text-[10px] tracking-wider px-3 py-1.25 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
-            statusFilter === "all"
-              ? "bg-system-red/15 border-system-red text-system-red"
-              : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
-          }`}
-        >
-          All
-        </button>
-        {statusOptions.map((s) => (
-          <button
-            type="button"
-            key={s}
-            onClick={() => setStatusFilter(s)}
-            className={`font-jetbrains text-[10px] tracking-wider px-3 py-1.25 rounded-[5px] cursor-pointer border transition-all duration-150 uppercase ${
-              statusFilter === s
-                ? "bg-system-red/15 border-system-red text-system-red"
-                : "bg-background border-default-border text-default-text hover:bg-tertiary-surface"
-            }`}
-          >
-            {s}
           </button>
         ))}
       </div>
@@ -969,6 +975,14 @@ const handleRejectSuggestion = (questionId: string) => {
             </div>
           </div>
         </div>
+        {activeQuestion && (
+          <QuestionContentModal
+            title={getQuestionTitle(activeQuestion)}
+            pattern={activeQuestion.pattern_used}
+            content={activeQuestion.content}
+            onClose={handleCloseQuestion}
+          />
+        )}
       </div>
     
   );

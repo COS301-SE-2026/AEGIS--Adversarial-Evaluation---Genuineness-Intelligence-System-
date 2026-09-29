@@ -36,6 +36,9 @@ class AdversarialQuestionResponse(BaseModel):
     source_question_id: int = Field(
         ..., description="ID of the source question"
     )
+    source_question_title: Optional[str] = Field(
+        None, description="Title of the source question"
+    )
     content: str = Field(
         ..., description="LLM-rewritten adversarial content"
     )
