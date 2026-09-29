@@ -20,12 +20,22 @@ from app.services.cohort_metrics import (
 )
 
 WEIGHTS: dict[QuestionType, dict[str, float]] = {
-    QuestionType.MULTIPLE_CHOICE: {"focus": 9, "copy": 3, "speed": 2},
+    QuestionType.MULTIPLE_CHOICE: {
+        "focus": 0.35,
+        "copy": 0.45,
+        "speed": 0.20,
+    },
     QuestionType.FILL_IN_THE_BLANK: {
-        "focus": 9, "paste": 5, "copy": 3.5, "speed": 2,
+        "focus": 0.20,
+        "paste": 0.50,
+        "copy": 0.20,
+        "speed": 0.10,
     },
     QuestionType.CODING: {
-        "focus": 9, "paste": 4.5, "copy": 2.5, "speed": 2,
+        "focus": 0.15,
+        "paste": 0.40,
+        "copy": 0.10,
+        "speed": 0.35,
     },
 }
 
@@ -58,7 +68,9 @@ def _clamp(value: float) -> float:
 
 
 def focus_signal(active_time_ms: int, focus_loss_time_ms: int) -> float:
-    return _clamp(focus_loss_time_ms / max(active_time_ms, 1))
+    return _clamp(
+        focus_loss_time_ms / max(active_time_ms * 0.5, 1)
+    )
 
 
 def paste_signal(
@@ -70,11 +82,11 @@ def paste_signal(
     if question_type == QuestionType.MULTIPLE_CHOICE:
         return None
     total_chars = chars_alnum + chars_special
-    return _clamp(paste_char_count / max(total_chars, 1))
+    return _clamp(paste_char_count / max(total_chars * 0.5, 1))
 
 
 def copy_signal(copy_char_count: int, copy_event_count: int) -> float:
-    return _clamp(max(copy_char_count / 50, copy_event_count * 0.3))
+    return _clamp(max(copy_char_count / 25, copy_event_count / 2))
 
 
 def speed_signal(
@@ -162,7 +174,17 @@ def _score_and_factor_entries(
     if weight_total == 0:
         return 0.0, entries
 
-    return 100 * weighted_sum / weight_total, entries
+    score = 100 * weighted_sum / weight_total
+    strong_signal_count = sum(
+        value is not None and value >= 0.6
+        for value in candidate_signals.values()
+    )
+    if strong_signal_count >= 2:
+        score += 15
+    if strong_signal_count >= 3:
+        score += 10
+
+    return min(score, 100.0), entries
 
 
 def get_question_review_score(
@@ -180,6 +202,28 @@ def band_for_score(score: int) -> str:
     if score < 60:
         return "medium"
     return "high"
+
+
+def _aggregate_question_scores(
+    question_scores: list[float],
+    question_weights: list[Optional[float]],
+) -> float:
+    if not question_scores:
+        return 0.0
+
+    has_complete_approved_weights = (
+        len(question_scores) == len(question_weights)
+        and all(weight is not None and weight >= 0 for weight in question_weights)
+    )
+    if has_complete_approved_weights:
+        total_weight = sum(question_weights)
+        if total_weight and total_weight > 0:
+            return sum(
+                score * weight
+                for score, weight in zip(question_scores, question_weights)
+            ) / total_weight
+
+    return sum(question_scores) / len(question_scores)
 
 
 def _fetch_question_rows(db: Session, candidate_assessment_id: int):
@@ -253,6 +297,7 @@ def get_review_priority(
     enough_cohort_data = other_completed_count >= MIN_COHORT_CANDIDATES
 
     question_scores: list[float] = []
+    question_weights: list[Optional[float]] = []
     contributing_factors: list[str] = []
     per_question: list[tuple[int, float, Optional[str]]] = []
 
@@ -280,6 +325,7 @@ def get_review_priority(
             question_info, question_metrics, cohort_avg_active_time_ms,
         )
         question_scores.append(score)
+        question_weights.append(aq.approved_weight)
         contributing_factors.extend(sentence for _, sentence in entries)
 
         top_factor = (
@@ -287,7 +333,9 @@ def get_review_priority(
         )
         per_question.append((position, score, top_factor))
 
-    overall_score = round(sum(question_scores) / len(question_scores))
+    overall_score = round(
+        _aggregate_question_scores(question_scores, question_weights)
+    )
 
     notable_question = None
     if per_question:
