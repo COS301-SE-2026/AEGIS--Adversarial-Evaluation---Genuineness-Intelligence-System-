@@ -110,11 +110,14 @@ export function ReviewPriorityBadge() {
         <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8">
           
           <div className="flex flex-col items-center justify-center gap-2">
+            <span className="text-sm font-semibold tracking-widest text-default-border">
+              Integrity Risk Score
+            </span>
             <span className="text-6xl font-bold text-default-text">
               {overallPriority.score}
             </span>
             <div 
-              className="mt-6 inline-flex rounded-full px-6 py-2 text-md font-bold border" 
+              className="mt-4 inline-flex rounded-full px-6 py-2 text-md font-bold border" 
               style={{ 
                 backgroundColor: `${bandMeta.color}15`, 
                 color: bandMeta.color,
