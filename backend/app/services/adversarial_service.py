@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
-from app.core.gemini import call_llm
+from app.core.gemini import LLMProviderError, call_llm
 from app.core.piston import PistonClient, PistonError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
@@ -67,8 +67,26 @@ def _load_system_prompt_v2() -> str:
 _GENERATOR_MODEL = "gemini-3.1-flash-lite"
 _VALIDATOR_MODEL = "gemini-3.1-flash-lite"
 _ADVERSARIAL_QUESTION_NOT_FOUND = "Adversarial question not found"
+_LLM_UNAVAILABLE_DETAIL = (
+    "AI question generation is temporarily unavailable — please try "
+    "again in a few minutes."
+)
 
 _logger = logging.getLogger(__name__)
+
+
+def _call_llm_or_503(
+    system_instruction: str, contents: str, model: str
+) -> tuple[str, str]:
+    try:
+        return call_llm(system_instruction, contents, model)
+    except LLMProviderError as exc:
+        _logger.error("LLM provider failure: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=_LLM_UNAVAILABLE_DETAIL,
+        ) from exc
+
 
 _VALIDATION_SYSTEM_PROMPT = (
     "You are a technical assessment candidate answering "
@@ -275,7 +293,7 @@ def _call_gemini_and_parse(
         examples_block,
     )
 
-    raw_text, served_by = call_llm(
+    raw_text, served_by = _call_llm_or_503(
         system_prompt, user_message, _GENERATOR_MODEL
     )
 
@@ -305,7 +323,7 @@ def _build_verification_user_message(parsed: dict) -> str:
 
 
 def _verify_via_gemini(parsed: dict) -> None:
-    raw_text, _ = call_llm(
+    raw_text, _ = _call_llm_or_503(
         _VERIFICATION_SYSTEM_PROMPT,
         _build_verification_user_message(parsed),
         _GENERATOR_MODEL,
@@ -608,7 +626,7 @@ def validate_adversarial_question(
             detail="Source question not found",
         )
 
-    raw_response, _ = call_llm(
+    raw_response, _ = _call_llm_or_503(
         _VALIDATION_SYSTEM_PROMPT,
         adversarial_question.content,
         _VALIDATOR_MODEL,

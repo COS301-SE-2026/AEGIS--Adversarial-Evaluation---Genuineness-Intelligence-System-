@@ -13,8 +13,11 @@ _MAX_TOKENS = 1024
 
 _JSON_ONLY_INSTRUCTION = (
     "\n\nRespond with JSON only, matching the exact schema requested "
-    "above. Do not include any text before or after the JSON object, "
-    "and do not wrap it in markdown code fences."
+    "above. Output ONLY the raw JSON object: no reasoning, no "
+    "explanation, no preamble, no chain-of-thought, and no text "
+    "before or after the JSON object. Do not wrap it in markdown "
+    "code fences. The first character of your response must be `{` "
+    "and the last character must be `}`."
 )
 
 
@@ -72,6 +75,10 @@ def call_openrouter(
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
 
+    error_body = data.get("error")
+    if error_body:
+        raise OpenRouterError(_extract_error_from_body(error_body))
+
     try:
         content = data["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as exc:
@@ -86,6 +93,17 @@ def call_openrouter(
             "determine which model served this request"
         )
     return content, served_by
+
+
+def _extract_error_from_body(error_body: object) -> str:
+    if not isinstance(error_body, dict):
+        return str(error_body)
+    message = (
+        error_body.get("message") or error_body.get("detail")
+        or str(error_body)
+    )
+    code = error_body.get("code")
+    return f"{message} (code {code})" if code is not None else str(message)
 
 
 def extract_error_message(response: httpx.Response) -> str:
