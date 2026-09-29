@@ -392,6 +392,31 @@ const handleRejectSuggestion = (questionId: string) => {
   setWeightDecisions((prev) => ({ ...prev, [questionId]: "reject" }));
 };
 
+  const handleContinue = () => {
+    if (step === 2) {
+      const weights = selectedIds.map(
+        (questionId) => approvedWeights[String(questionId)],
+      );
+      const totalWeight = weights.reduce(
+        (total, weight) => total + (weight ?? 0),
+        0,
+      );
+      const hasInvalidWeight = weights.some(
+        (weight) => weight === undefined || !Number.isFinite(weight) || weight < 0 || weight > 1,
+      );
+
+      if (hasInvalidWeight || Math.abs(totalWeight - 1) > 0.000001) {
+        setCreateError(
+          `Approved weights must add up to 1. Current total: ${totalWeight.toFixed(2)}.`,
+        );
+        return;
+      }
+    }
+
+    setCreateError(null);
+    setStep((currentStep) => currentStep + 1);
+  };
+
   const createIt = async () => {
     setCreateError(null);
     setIsCreating(true);
@@ -965,7 +990,7 @@ const handleRejectSuggestion = (questionId: string) => {
                 {step < 3 ? (
                   <button
                     type="button"
-                    onClick={() => setStep((s) => s + 1)}
+                    onClick={handleContinue}
                     className="px-8 py-2 bg-default-text text-background font-staatliches rounded-[5px] hover:bg-white"
                   >
                     CONTINUE
