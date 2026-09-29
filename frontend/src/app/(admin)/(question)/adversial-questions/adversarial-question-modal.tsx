@@ -158,6 +158,7 @@ export default function AdversarialQuestionModal({
   );
 
   useEffect(() => {
+    if (!isOpen) return;
     let isMounted = true;
     const loadStrategies = async () => {
       setStrategiesLoading(true);
@@ -182,10 +183,11 @@ export default function AdversarialQuestionModal({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isOpen]);
 
+  // Independent of the strategies request so a slow one cannot delay the other.
   useEffect(() => {
-  if (strategies.length === 0) return;
+  if (!isOpen) return;
   let isMounted = true;
   const loadTrapInsights = async () => {
     setTrapLoading(true);
@@ -223,7 +225,7 @@ export default function AdversarialQuestionModal({
   return () => {
     isMounted = false;
   };
-}, [strategies]);
+}, [isOpen]);
 
   const resetGenerationState = () => {
     setGenerated(null);

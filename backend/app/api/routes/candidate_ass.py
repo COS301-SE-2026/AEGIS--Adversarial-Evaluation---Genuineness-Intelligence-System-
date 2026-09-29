@@ -33,7 +33,7 @@ metrics_router = APIRouter(
     "/assessments/{candidate_assessment_id}",
     response_model=CandidateAssessmentResponse
 )
-async def get_candidate_assessment(
+def get_candidate_assessment(
     candidate_assessment_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)]
@@ -59,7 +59,7 @@ async def get_candidate_assessment(
     "/responses/{response_id}",
     response_model=CandidateResponseResponse
 )
-async def update_cand_response(
+def update_cand_response(
     response_id: int,
     payload: ResponseUpdate,
     db: Annotated[Session, Depends(get_db)],
@@ -87,7 +87,7 @@ async def update_cand_response(
     "/{candidate_response_id}/metrics/flush",
     response_model=MetricsFlushResponse
 )
-async def flush_metrics(
+def flush_metrics(
     candidate_response_id: int,
     payload: MetricsFlushRequest,
     db: Annotated[Session, Depends(get_db)],
@@ -111,7 +111,7 @@ async def flush_metrics(
     "/assessments/{candidate_assessment_id}/question-results",
     response_model=CandidateQuestionResultsResponse,
 )
-async def get_my_question_results_route(
+def get_my_question_results_route(
     candidate_assessment_id: int,
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[dict, Depends(get_current_user)],

@@ -1804,3 +1804,53 @@ def test_load_few_shot_examples_v1_missing_file_reraises_plainly(
             _load_few_shot_examples("SYMBOL_REDEFINITION", "v1")
 
     assert "v2 seed library file not found" not in str(exc_info.value)
+
+
+def test_validate_adversarial_question_503_on_llm_provider_error():
+    mock_db = _mock_db_for_validate(
+        adv_question_result=_mock_adv_question_full(),
+        question_result=_mock_source_question(
+            QuestionType.MULTIPLE_CHOICE
+        ),
+    )
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        side_effect=LLMProviderError("gemini=timeout; openrouter=timeout"),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            validate_adversarial_question(mock_db, 5)
+
+    assert exc_info.value.status_code == 503
+    assert "temporarily unavailable" in exc_info.value.detail
+
+
+def test_adversarial_llm_calls_disable_openrouter_fallback():
+    from app.services.adversarial_service import _call_llm_or_503
+
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        return_value=("{}", "gemini-x"),
+    ) as mock_call_llm:
+        _call_llm_or_503("sys", "user", "gemini-x")
+
+    assert mock_call_llm.call_args.kwargs["allow_fallback"] is False
+
+
+def test_llm_call_releases_db_connection_first():
+    from app.services.adversarial_service import _call_llm_or_503
+
+    mock_db = MagicMock()
+    order = []
+    mock_db.rollback.side_effect = lambda: order.append("release")
+
+    def fake_call_llm(*args, **kwargs):
+        order.append("llm")
+        return "{}", "gemini-x"
+
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        side_effect=fake_call_llm,
+    ):
+        _call_llm_or_503("sys", "user", "gemini-x", db=mock_db)
+
+    assert order == ["release", "llm"]

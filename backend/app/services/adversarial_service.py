@@ -75,11 +75,24 @@ _LLM_UNAVAILABLE_DETAIL = (
 _logger = logging.getLogger(__name__)
 
 
+def _release_db_connection(db: Session | None) -> None:
+    # End the read transaction so the pooled connection is not held while
+    # we wait on a slow LLM call.
+    if db is not None:
+        db.rollback()
+
+
 def _call_llm_or_503(
-    system_instruction: str, contents: str, model: str
+    system_instruction: str,
+    contents: str,
+    model: str,
+    db: Session | None = None,
 ) -> tuple[str, str]:
+    _release_db_connection(db)
     try:
-        return call_llm(system_instruction, contents, model)
+        return call_llm(
+            system_instruction, contents, model, allow_fallback=False
+        )
     except LLMProviderError as exc:
         _logger.error("LLM provider failure: %s", exc)
         raise HTTPException(
@@ -306,6 +319,7 @@ def _select_system_prompt(prompt_version: str) -> str:
 def _call_gemini_and_parse(
     strategy: AdversarialStrategy,
     source_question: QuestionBank,
+    db: Session | None = None,
     use_few_shot: bool = False,
     prompt_version: PromptVersion = PromptVersion.v1,
 ) -> tuple[dict, str]:
@@ -323,7 +337,7 @@ def _call_gemini_and_parse(
     )
 
     raw_text, served_by = _call_llm_or_503(
-        system_prompt, user_message, _GENERATOR_MODEL
+        system_prompt, user_message, _GENERATOR_MODEL, db=db
     )
 
     return _parse_gemini_response(raw_text), served_by
@@ -351,11 +365,12 @@ def _build_verification_user_message(parsed: dict) -> str:
     )
 
 
-def _verify_via_gemini(parsed: dict) -> None:
+def _verify_via_gemini(parsed: dict, db: Session | None = None) -> None:
     raw_text, _ = _call_llm_or_503(
         _VERIFICATION_SYSTEM_PROMPT,
         _build_verification_user_message(parsed),
         _GENERATOR_MODEL,
+        db=db,
     )
     raw_text = raw_text or ""
 
@@ -439,7 +454,7 @@ def _verify_generated_item(
                     "Gemini verification: %s",
                     exc,
                 )
-    _verify_via_gemini(parsed)
+    _verify_via_gemini(parsed, db)
 
 
 def generate_adversarial_question(
@@ -472,7 +487,7 @@ def generate_adversarial_question(
         )
 
     parsed, served_by = _call_gemini_and_parse(
-        strategy, source_question, prompt_version=prompt_version
+        strategy, source_question, db=db, prompt_version=prompt_version
     )
     if verify:
         _verify_generated_item(parsed, source_question, db)
@@ -549,7 +564,7 @@ def regenerate_adversarial_question(
         )
 
     parsed, served_by = _call_gemini_and_parse(
-        strategy, source_question, prompt_version=prompt_version
+        strategy, source_question, db=db, prompt_version=prompt_version
     )
     if verify:
         _verify_generated_item(parsed, source_question, db)
@@ -665,6 +680,7 @@ def validate_adversarial_question(
         _VALIDATION_SYSTEM_PROMPT,
         adversarial_question.content,
         _VALIDATOR_MODEL,
+        db=db,
     )
     raw_response = raw_response or ""
 
