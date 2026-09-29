@@ -103,7 +103,7 @@ class AssessmentDetailResponse(BaseModel):
 
 
 @router.get("/", response_model=List[AssessmentListItem])
-async def list_assessments(
+def list_assessments(
     search: Optional[str] = None,
     status: Optional[str] = None,
     limit: Optional[int] = None,
@@ -118,7 +118,7 @@ async def list_assessments(
     response_model=AssessmentCreatedResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_new_assessment(
+def create_new_assessment(
     payload: AssessmentCreate,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -142,7 +142,7 @@ async def create_new_assessment(
     "/my-assessments",
     status_code=status.HTTP_200_OK,
 )
-async def list_my_assessments(
+def list_my_assessments(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -174,7 +174,7 @@ async def list_my_assessments(
     "/{assessment_id}",
     response_model=AssessmentDetailResponse,
 )
-async def get_assessment(
+def get_assessment(
     assessment_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -227,7 +227,7 @@ async def get_assessment(
     "/{assessment_id}",
     response_model=AssessmentCreatedResponse,
 )
-async def update_assessment_route(
+def update_assessment_route(
     assessment_id: int,
     payload: AssessmentUpdate,
     db: Session = Depends(get_db),
@@ -251,7 +251,7 @@ async def update_assessment_route(
     "/{assessment_id}/activate",
     response_model=AssessmentCreatedResponse,
 )
-async def activate_assessment_route(
+def activate_assessment_route(
     assessment_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -269,7 +269,7 @@ async def activate_assessment_route(
     response_model=AssessmentQuestionCreatedResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_question_to_assessment_route(
+def add_question_to_assessment_route(
     assessment_id: int,
     payload: AssessmentQuestionCreate,
     db: Annotated[Session, Depends(get_db)],
@@ -295,7 +295,7 @@ async def add_question_to_assessment_route(
     "/{assessment_id}/questions/{adv_question_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def remove_question_from_assessment_route(
+def remove_question_from_assessment_route(
     assessment_id: int,
     adv_question_id: int,
     db: Annotated[Session, Depends(get_db)],
@@ -313,7 +313,7 @@ async def remove_question_from_assessment_route(
     "/{candidate_assessment_id}/responses",
     response_model=CandidateResponseResponse,
 )
-async def save_response(
+def save_response(
     candidate_assessment_id: int,
     response_in: ResponseCreate,
     db: Session = Depends(get_db),
@@ -333,7 +333,7 @@ async def save_response(
     "/{candidate_assessment_id}/responses",
     response_model=List[CandidateResponseResponse],
 )
-async def list_responses(
+def list_responses(
     candidate_assessment_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -351,7 +351,7 @@ async def list_responses(
     "/{candidate_assessment_id}/submit",
     response_model=CandidateAssessmentResponse,
 )
-async def submit_assessment(
+def submit_assessment(
     candidate_assessment_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -369,7 +369,7 @@ async def submit_assessment(
     "/take/{access_token}/start",
     status_code=status.HTTP_200_OK,
 )
-async def start_assessment(
+def start_assessment(
     access_token: str,
     db: Session = Depends(get_db),
 ):
@@ -389,7 +389,7 @@ async def start_assessment(
     "/{assessment_id}/invite",
     status_code=status.HTTP_201_CREATED,
 )
-async def invite_candidate(
+def invite_candidate(
     assessment_id: int,
     body: InviteCreate,
     db: Session = Depends(get_db),
@@ -424,7 +424,7 @@ async def invite_candidate(
     "/candidate/{candidate_assess_id}/questions",
     status_code=status.HTTP_200_OK,
 )
-async def get_candidate_assessment_questions(
+def get_candidate_assessment_questions(
     candidate_assess_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -521,7 +521,7 @@ def read_metrics_radar(
     "/recommendations",
     response_model=PreAssessmentIntegrityWeightResponse,
 )
-async def request_pre_assessment_integrity_recommendations_route(
+def request_pre_assessment_integrity_recommendations_route(
     payload: PreAssessmentIntegrityWeightRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -545,7 +545,7 @@ async def request_pre_assessment_integrity_recommendations_route(
     "/decisions",
     response_model=PreAssessmentWeightDecisionsResponse,
 )
-async def apply_pre_assessment_weight_decisions_route(
+def apply_pre_assessment_weight_decisions_route(
     payload: PreAssessmentWeightDecisionsRequest,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),

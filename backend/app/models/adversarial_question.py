@@ -20,6 +20,7 @@ class AdversarialQuestion(Base):
     predicted_wrong_answer = Column(Text, nullable=True)
     trap_mechanism = Column(Text, nullable=True)
     pattern_used = Column(Text, nullable=True)
+    reference_approach = Column(Text, nullable=True)
     validation_status = Column(
         Text, nullable=False, server_default="draft"
     )

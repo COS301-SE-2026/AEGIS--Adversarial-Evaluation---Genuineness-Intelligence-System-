@@ -29,6 +29,9 @@ from app.services.trap_effectiveness import (
     get_trap_recommendations,
 )
 
+# The generate/regenerate/validate handlers below are plain ``def`` on
+# purpose: they make blocking LLM calls, so FastAPI must run them in its
+# threadpool rather than on the event loop.
 router = APIRouter(
     prefix="/adversarial-strategies", tags=["adversarial"]
 )
@@ -47,7 +50,7 @@ adversarial_questions_router = APIRouter(tags=["adversarial"])
     status_code=status.HTTP_200_OK,
     summary="Get all adversarial strategies",
 )
-async def list_strategies(db: Session = Depends(get_db)):
+def list_strategies(db: Session = Depends(get_db)):
     return get_all_strategies(db)
 
 
@@ -57,7 +60,7 @@ async def list_strategies(db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
     summary="Generate an adversarial question preview",
 )
-async def generate_adversarial_question_route(
+def generate_adversarial_question_route(
     source_question_id: int,
     payload: GenerateAdversarialRequest,
     db: Session = Depends(get_db),
@@ -81,7 +84,7 @@ async def generate_adversarial_question_route(
     status_code=status.HTTP_200_OK,
     summary="Get adversarial questions for an assessment",
 )
-async def get_adversarial_questions_route(
+def get_adversarial_questions_route(
     assessment_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -102,7 +105,7 @@ async def get_adversarial_questions_route(
     status_code=status.HTTP_200_OK,
     summary="Get all adversarial questions",
 )
-async def get_all_adversarial_questions_route(
+def get_all_adversarial_questions_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -120,7 +123,7 @@ async def get_all_adversarial_questions_route(
     status_code=status.HTTP_200_OK,
     summary="Get every adversarial question, regardless of status",
 )
-async def get_every_adversarial_question_route(
+def get_every_adversarial_question_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -138,7 +141,7 @@ async def get_every_adversarial_question_route(
     status_code=status.HTTP_200_OK,
     summary="Get trap effectiveness analysis grouped by adversarial strategy",
 )
-async def get_trap_effectiveness_route(
+def get_trap_effectiveness_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -161,7 +164,7 @@ async def get_trap_effectiveness_route(
         "Get trap recommendation analysis grouped by adversarial strategy"
     ),
 )
-async def get_trap_recommendations_route(
+def get_trap_recommendations_route(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -182,7 +185,7 @@ async def get_trap_recommendations_route(
     status_code=status.HTTP_200_OK,
     summary="Regenerate a draft adversarial question",
 )
-async def regenerate_adversarial_question_route(
+def regenerate_adversarial_question_route(
     adv_question_id: int,
     payload: GenerateAdversarialRequest,
     db: Session = Depends(get_db),
@@ -206,7 +209,7 @@ async def regenerate_adversarial_question_route(
     status_code=status.HTTP_200_OK,
     summary="Validate a draft adversarial question against Gemini",
 )
-async def validate_adversarial_question_route(
+def validate_adversarial_question_route(
     adv_question_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -228,7 +231,7 @@ async def validate_adversarial_question_route(
     status_code=status.HTTP_200_OK,
     summary="Mark a draft adversarial question as validated",
 )
-async def save_adversarial_question_route(
+def save_adversarial_question_route(
     adv_question_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -249,7 +252,7 @@ async def save_adversarial_question_route(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete an adversarial question",
 )
-async def delete_adversarial_question_route(
+def delete_adversarial_question_route(
     adv_question_id: int,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),

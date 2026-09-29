@@ -57,7 +57,7 @@ def build_question_response(question):
     response_model=QuestionResponse,
     status_code=status.HTTP_201_CREATED,
 )
-async def add_source_question(
+def add_source_question(
     payload: QuestionCreation,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
@@ -77,7 +77,7 @@ async def add_source_question(
 
 
 @router.get("/", status_code=status.HTTP_200_OK)
-async def list_questions(
+def list_questions(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -91,7 +91,7 @@ async def list_questions(
 
 
 @router.get("/filter", status_code=status.HTTP_200_OK)
-async def filter_questions(
+def filter_questions(
     tags: Optional[str] = Query(None, description="Comma-separated tags"),
     difficulty: Optional[str] = Query(None),
     category_id: Optional[int] = Query(None),
@@ -130,7 +130,7 @@ async def filter_questions(
     response_model=CodingReferenceExecutionResponse,
     status_code=status.HTTP_200_OK,
 )
-async def execute_source_question_reference(
+def execute_source_question_reference(
     payload: CodingReferenceExecutionRequest,
     current_user: dict = Depends(get_current_user),
 ):
@@ -153,7 +153,7 @@ async def execute_source_question_reference(
     response_model=QuestionResponse,
     status_code=status.HTTP_200_OK,
 )
-async def edit_source_question(
+def edit_source_question(
     question_bank_id: int,
     payload: QuestionUpdate,
     db: Session = Depends(get_db),

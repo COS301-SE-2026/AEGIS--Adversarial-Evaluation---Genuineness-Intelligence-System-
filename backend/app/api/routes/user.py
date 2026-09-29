@@ -89,7 +89,7 @@ def update_user_role(
     "/candidates",
     status_code=status.HTTP_200_OK,
 )
-async def list_candidates(
+def list_candidates(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):

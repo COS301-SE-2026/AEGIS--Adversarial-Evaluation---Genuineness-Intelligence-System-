@@ -53,7 +53,9 @@ def recruiter_client(mock_db):
     app.dependency_overrides.clear()
 
 def _setup_list(mock_db, assessments):
-    mock_db.query.return_value.all.return_value = assessments
+    chain = mock_db.query.return_value
+    chain.options.return_value = chain
+    chain.all.return_value = assessments
 
 
 def _setup_by_id(mock_db, assessment):

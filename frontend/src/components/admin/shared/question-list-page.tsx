@@ -96,12 +96,20 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
     table: QuestionBank[];
   }> => {
     if (config.mode === "adversarial") {
-      const [sourceResult, adversarialResult] = await Promise.all([
+      // Independent requests: the table renders from the adversarial list
+      // even if the source-question lookup is slow or fails.
+      const [sourceSettled, adversarialSettled] = await Promise.allSettled([
         loadSourceQuestions(),
         apiGet<AdversarialQuestionResponse[]>("/api/v1/adversarial-questions/", {
           headers: getAuthHeaders(),
         }),
       ]);
+      if (adversarialSettled.status === "rejected") {
+        throw adversarialSettled.reason;
+      }
+      const sourceResult =
+        sourceSettled.status === "fulfilled" ? sourceSettled.value : [];
+      const adversarialResult = adversarialSettled.value;
 
       const table = adversarialResult.map((adversarialQuestion) => {
         const sourceQuestion = sourceResult.find(
