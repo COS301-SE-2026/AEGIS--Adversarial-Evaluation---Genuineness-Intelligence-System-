@@ -71,8 +71,8 @@ const SessionTimeline = ({ timeline }: Readonly<SessionTimelineProps>) => {
                     Session Timeline
                 </h3>
                 <p className="mt-1 text-xs text-default-text/60">
-                    Questions, in assessment order — not necessarily the
-                    order the candidate answered them in.
+                    Questions, in the order the candidate first visited
+                    them. Unvisited questions are shown last.
                 </p>
             </div>
 

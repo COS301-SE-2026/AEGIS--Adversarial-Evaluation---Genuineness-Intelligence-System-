@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
+from app.core.gemini import LLMProviderError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
@@ -12,9 +13,11 @@ from app.models.coding_test_cases import CodingTestCase
 from app.models.question_bank import QuestionBank, QuestionType
 from app.schema.adversarial import TestCaseResult
 from app.services.adversarial_service import (
+    _GENERATOR_MODEL,
     _SYSTEM_PROMPT_V1,
     _SYSTEM_PROMPT_V2_PATH,
     _VALIDATION_SYSTEM_PROMPT,
+    _VALIDATOR_MODEL,
     _build_user_message,
     _build_verification_user_message,
     _call_gemini_and_parse,
@@ -278,40 +281,30 @@ def test_build_verification_user_message_includes_untrusted_disclaimer():
 def test_call_gemini_and_parse_default_uses_v1_prompt():
     strategy = _mock_strategy()
     source_question = _mock_question()
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(strategy, source_question)
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _SYSTEM_PROMPT_V1
+    assert mock_call_llm.call_args.args[0] == _SYSTEM_PROMPT_V1
 
 
 @requires_local_v2_file
 def test_call_gemini_and_parse_v2_selects_v2_prompt():
     strategy = _mock_strategy()
     source_question = _mock_question()
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(
             strategy, source_question, prompt_version="v2"
         )
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _load_system_prompt_v2()
+    assert mock_call_llm.call_args.args[0] == _load_system_prompt_v2()
 
 
 def test_call_gemini_and_parse_invalid_prompt_version_raises():
@@ -366,15 +359,11 @@ def test_call_gemini_and_parse_v2_uses_v2_few_shot_examples():
     strategy = _mock_strategy()
     strategy.strategy_name = "NEGATION_INJECTION"
     source_question = _mock_question()
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(
             strategy,
             source_question,
@@ -382,8 +371,7 @@ def test_call_gemini_and_parse_v2_uses_v2_few_shot_examples():
             prompt_version="v2",
         )
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    user_message = call_kwargs["contents"]
+    user_message = mock_call_llm.call_args.args[1]
     assert "readings" in user_message
     assert "Global Interpreter Lock" not in user_message
 
@@ -392,21 +380,16 @@ def test_call_gemini_and_parse_v1_few_shot_examples_unaffected():
     strategy = _mock_strategy()
     strategy.strategy_name = "NEGATION_INJECTION"
     source_question = _mock_question()
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         _call_gemini_and_parse(
             strategy, source_question, use_few_shot=True
         )
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    user_message = call_kwargs["contents"]
+    user_message = mock_call_llm.call_args.args[1]
     assert "Global Interpreter Lock" in user_message
     assert "readings" not in user_message
 
@@ -417,15 +400,11 @@ def test_generate_adversarial_question_forwards_prompt_version():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         generate_adversarial_question(
             mock_db,
             source_question_id=1,
@@ -434,8 +413,7 @@ def test_generate_adversarial_question_forwards_prompt_version():
             prompt_version="v2",
         )
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _load_system_prompt_v2()
+    assert mock_call_llm.call_args.args[0] == _load_system_prompt_v2()
 
 
 @requires_local_v2_file
@@ -446,15 +424,11 @@ def test_regenerate_adversarial_question_forwards_prompt_version():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         regenerate_adversarial_question(
             mock_db,
             adv_question_id=5,
@@ -463,8 +437,7 @@ def test_regenerate_adversarial_question_forwards_prompt_version():
             prompt_version="v2",
         )
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _load_system_prompt_v2()
+    assert mock_call_llm.call_args.args[0] == _load_system_prompt_v2()
 
 
 def test_generate_adversarial_question_404_when_source_missing():
@@ -503,14 +476,9 @@ def test_generate_adversarial_question_422_on_invalid_json():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text="not valid json",
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=("not valid json", _GENERATOR_MODEL),
     ):
         with pytest.raises(HTTPException) as exc_info:
             generate_adversarial_question(
@@ -531,14 +499,9 @@ def test_generate_adversarial_question_422_on_missing_fields():
         "weaponised_question": "What does f(6) return?",
         "correct_answer": "8",
     }
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(incomplete),
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(incomplete), _GENERATOR_MODEL),
     ):
         with pytest.raises(HTTPException) as exc_info:
             generate_adversarial_question(
@@ -550,27 +513,47 @@ def test_generate_adversarial_question_422_on_missing_fields():
     assert exc_info.value.status_code == 422
 
 
+def test_generate_adversarial_question_503_on_llm_provider_error():
+    mock_db = _mock_db(
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+    with patch(
+        "app.services.adversarial_service.call_llm",
+        side_effect=LLMProviderError(
+            "Both providers failed to respond: gemini=boom; "
+            "openrouter=boom"
+        ),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            generate_adversarial_question(
+                mock_db,
+                source_question_id=1,
+                strategy_id=2,
+            )
+
+    assert exc_info.value.status_code == 503
+    assert "temporarily unavailable" in exc_info.value.detail
+    assert "boom" not in exc_info.value.detail
+
+
 def test_generate_adversarial_question_success():
     mock_db = _mock_db(
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ) as mock_get_client:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = generate_adversarial_question(
             mock_db,
             source_question_id=1,
             strategy_id=2,
         )
 
-    assert mock_get_client.call_count == 2
+    assert mock_call_llm.call_count == 2
     assert result.source_question_id == 1
     assert result.strategy_id == 2
     assert result.llm == "gemini-3.1-flash-lite"
@@ -593,22 +576,20 @@ def test_verify_generated_item_false_raises_422():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.side_effect = [
-        MagicMock(text=json.dumps(VALID_RESPONSE)),
-        MagicMock(
-            text=json.dumps(
-                {
-                    "correct_answer_is_valid": False,
-                    "reason": "8 is not the correct sum.",
-                }
-            )
-        ),
-    ]
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        side_effect=[
+            (json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+            (
+                json.dumps(
+                    {
+                        "correct_answer_is_valid": False,
+                        "reason": "8 is not the correct sum.",
+                    }
+                ),
+                _GENERATOR_MODEL,
+            ),
+        ],
     ):
         with pytest.raises(HTTPException) as exc_info:
             generate_adversarial_question(
@@ -631,19 +612,17 @@ def test_verify_generated_item_true_generation_proceeds():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.side_effect = [
-        MagicMock(text=json.dumps(VALID_RESPONSE)),
-        MagicMock(
-            text=json.dumps(
-                {"correct_answer_is_valid": True, "reason": "ok"}
-            )
-        ),
-    ]
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        side_effect=[
+            (json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+            (
+                json.dumps(
+                    {"correct_answer_is_valid": True, "reason": "ok"}
+                ),
+                _GENERATOR_MODEL,
+            ),
+        ],
     ):
         result = generate_adversarial_question(
             mock_db,
@@ -657,14 +636,9 @@ def test_verify_generated_item_true_generation_proceeds():
 
 
 def test_verify_via_gemini_invalid_json_response_returns_none():
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text="not valid json",
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=("not valid json", _GENERATOR_MODEL),
     ):
         result = _verify_via_gemini(VALID_RESPONSE)
 
@@ -695,12 +669,12 @@ def test_verify_generated_item_coding_piston_success_skips_gemini():
         "app.services.adversarial_service.PistonClient",
         return_value=mock_piston_instance,
     ), patch(
-        "app.services.adversarial_service.get_gemini_client",
-    ) as mock_get_client:
+        "app.services.adversarial_service.call_llm",
+    ) as mock_call_llm:
         result = _verify_generated_item(parsed, source_question, mock_db)
 
     assert result is None
-    mock_get_client.assert_not_called()
+    mock_call_llm.assert_not_called()
 
 
 def test_verify_generated_item_coding_piston_failure_raises_422():
@@ -738,15 +712,11 @@ def test_generate_adversarial_question_verify_false_skips():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = generate_adversarial_question(
             mock_db,
             source_question_id=1,
@@ -754,7 +724,7 @@ def test_generate_adversarial_question_verify_false_skips():
             verify=False,
         )
 
-    assert mock_client.models.generate_content.call_count == 1
+    assert mock_call_llm.call_count == 1
     assert result.content == VALID_RESPONSE["weaponised_question"]
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
@@ -871,22 +841,18 @@ def test_regenerate_adversarial_question_success():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ) as mock_get_client:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = regenerate_adversarial_question(
             mock_db,
             adv_question_id=5,
             strategy_id=2,
         )
 
-    assert mock_get_client.call_count == 2
+    assert mock_call_llm.call_count == 2
     assert result is adv_question
     assert result.content == VALID_RESPONSE["weaponised_question"]
     assert result.correct_answer == VALID_RESPONSE["correct_answer"]
@@ -910,15 +876,11 @@ def test_regenerate_adversarial_question_verify_false_skips():
         question_result=_mock_question(),
         strategy_result=_mock_strategy(),
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ) as mock_get_client:
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
         result = regenerate_adversarial_question(
             mock_db,
             adv_question_id=5,
@@ -926,7 +888,7 @@ def test_regenerate_adversarial_question_verify_false_skips():
             verify=False,
         )
 
-    assert mock_get_client.call_count == 1
+    assert mock_call_llm.call_count == 1
     assert result.content == VALID_RESPONSE["weaponised_question"]
     mock_db.commit.assert_called_once()
 
@@ -948,7 +910,7 @@ def test_get_all_adversarial_questions_returns_list():
         MagicMock(validation_status="validated"),
     ]
     mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.all.return_value = (
+    mock_db.query.return_value.options.return_value.filter.return_value.all.return_value = (
         questions
     )
 
@@ -1260,16 +1222,14 @@ def test_validate_adversarial_question_source_answer_is_not_adversarial_answer()
         adv_question_result=adv_question,
         question_result=source_question,
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(
-            {"final_answer": "D", "reasoning": "D is correct."}
-        ),
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "D", "reasoning": "D is correct."}
+            ),
+            _VALIDATOR_MODEL,
+        ),
     ):
         result = validate_adversarial_question(
             mock_db, adv_question_id=5
@@ -1316,16 +1276,14 @@ def test_validate_adversarial_question_success_mcq():
         adv_question_result=adv_question,
         question_result=source_question,
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(
-            {"final_answer": "8", "reasoning": "8 is correct."}
-        ),
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "8", "reasoning": "8 is correct."}
+            ),
+            _VALIDATOR_MODEL,
+        ),
     ):
         result = validate_adversarial_question(
             mock_db, adv_question_id=5
@@ -1353,16 +1311,14 @@ def test_validate_adversarial_question_gemini_took_bait_true():
         adv_question_result=adv_question,
         question_result=source_question,
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(
-            {"final_answer": " 13 ", "reasoning": "It is 13."}
-        ),
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": " 13 ", "reasoning": "It is 13."}
+            ),
+            _VALIDATOR_MODEL,
+        ),
     ):
         result = validate_adversarial_question(
             mock_db, adv_question_id=5
@@ -1381,16 +1337,14 @@ def test_validate_adversarial_question_gemini_took_bait_false():
         adv_question_result=adv_question,
         question_result=source_question,
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(
-            {"final_answer": "8", "reasoning": "It is 8."}
-        ),
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "8", "reasoning": "It is 8."}
+            ),
+            _VALIDATOR_MODEL,
+        ),
     ):
         result = validate_adversarial_question(
             mock_db, adv_question_id=5
@@ -1410,16 +1364,14 @@ def test_validate_adversarial_question_gemini_took_bait_normalised():
         adv_question_result=adv_question,
         question_result=source_question,
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(
-            {"final_answer": " true ", "reasoning": "It is true."}
-        ),
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": " true ", "reasoning": "It is true."}
+            ),
+            _VALIDATOR_MODEL,
+        ),
     ):
         result = validate_adversarial_question(
             mock_db, adv_question_id=5
@@ -1437,14 +1389,9 @@ def test_validate_adversarial_question_invalid_json_response():
         adv_question_result=adv_question,
         question_result=source_question,
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text="I think the answer is 8",
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=("I think the answer is 8", _VALIDATOR_MODEL),
     ):
         result = validate_adversarial_question(
             mock_db, adv_question_id=5
@@ -1464,16 +1411,14 @@ def test_validate_adversarial_question_coding_no_piston():
         adv_question_result=adv_question,
         question_result=source_question,
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(
-            {"final_answer": "print(8)", "reasoning": "ok"}
-        ),
-    )
-
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "print(8)", "reasoning": "ok"}
+            ),
+            _VALIDATOR_MODEL,
+        ),
     ), patch(
         "app.services.adversarial_service.settings.piston_enabled",
         False,
@@ -1503,21 +1448,19 @@ def test_validate_adversarial_question_coding_with_piston():
         question_result=source_question,
         test_cases_result=[test_case],
     )
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(
-            {"final_answer": "print(8)", "reasoning": "ok"}
-        ),
-    )
-
     mock_piston_instance = MagicMock()
     mock_piston_instance.execute.return_value = {
         "run": {"stdout": "8\n"},
     }
 
     with patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(
+            json.dumps(
+                {"final_answer": "print(8)", "reasoning": "ok"}
+            ),
+            _VALIDATOR_MODEL,
+        ),
     ), patch(
         "app.services.adversarial_service.settings.piston_enabled",
         True,
@@ -1605,23 +1548,21 @@ def test_v1_prompt_works_when_v2_file_missing(tmp_path):
     missing_path = tmp_path / "does_not_exist.md"
     strategy = _mock_strategy()
     source_question = _mock_question()
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
 
     with patch(
         "app.services.adversarial_service._SYSTEM_PROMPT_V2_PATH",
         missing_path,
     ), patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
-    ):
-        result = _call_gemini_and_parse(strategy, source_question)
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
+    ) as mock_call_llm:
+        result, served_by = _call_gemini_and_parse(
+            strategy, source_question
+        )
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["config"].system_instruction == _SYSTEM_PROMPT_V1
+    assert mock_call_llm.call_args.args[0] == _SYSTEM_PROMPT_V1
     assert result == VALID_RESPONSE
+    assert served_by == _GENERATOR_MODEL
 
 
 def test_v2_prompt_missing_file_raises_clear_error(tmp_path):
@@ -1665,17 +1606,12 @@ def test_v2_few_shot_examples_missing_file_raises_clear_error(
     strategy = _mock_strategy()
     strategy.strategy_name = "NEGATION_INJECTION"
     source_question = _mock_question()
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text=json.dumps(VALID_RESPONSE),
-    )
-
     with patch.dict(
         "app.services.adversarial_service._SEED_LIBRARIES",
         {"v2": missing_path},
     ), patch(
-        "app.services.adversarial_service.get_gemini_client",
-        return_value=mock_client,
+        "app.services.adversarial_service.call_llm",
+        return_value=(json.dumps(VALID_RESPONSE), _GENERATOR_MODEL),
     ):
         with pytest.raises(FileNotFoundError) as exc_info:
             _call_gemini_and_parse(

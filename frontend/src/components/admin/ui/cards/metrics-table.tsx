@@ -13,9 +13,12 @@ function formatDuration(ms: number): string {
 }
 
 function isPasteHeavy(metric: CandidateMetrics): boolean {
-  const totalChars = metric.chars_alnum + metric.paste_char_count;
+  const alnum = metric.chars_alnum ?? 0;
+  const pasted = metric.paste_char_count ?? 0;
+  const totalChars = alnum + pasted;
+
   if (totalChars == 0) return false;
-  return metric.paste_char_count / totalChars > 0.5;
+  return pasted / totalChars > 0.5;
 }
 
 function isFrequentTabSwitching(metric: CandidateMetrics): boolean {
@@ -66,6 +69,9 @@ const MetricsTable = ({
                 Copy Count
               </th>
               <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-default-text font-semibold text-xs sm:text-sm">
+                Copy Chars
+              </th>
+              <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-default-text font-semibold text-xs sm:text-sm">
                 Paste Count
               </th>
               <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-default-text font-semibold text-xs sm:text-sm">
@@ -108,6 +114,9 @@ const MetricsTable = ({
                 </td>
                 <td className="px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm">
                   {metric.copy_event_count}
+                </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm">
+                  {metric.copy_char_count}
                 </td>
                 <td className="px-4 sm:px-6 py-3 sm:py-4 text-default-text text-xs sm:text-sm">
                   {metric.paste_event_count}

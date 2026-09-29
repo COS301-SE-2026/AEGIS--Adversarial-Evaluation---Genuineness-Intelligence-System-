@@ -12,11 +12,16 @@ from app.schema.candidate_response_metrics import (
     MetricsFlushRequest,
     MetricsFlushResponse,
 )
+from app.schema.candidate_question_results import (
+    CandidateQuestionResultsResponse,
+)
 from app.services.candidate import (
     flush_response_metrics,
     get_candidate_assessment_session,
     update_response
 )
+from app.services.question_analytics import get_my_question_results
+
 
 router = APIRouter(prefix="/candidate", tags=["candidate"])
 metrics_router = APIRouter(
@@ -99,4 +104,20 @@ async def flush_metrics(
     return MetricsFlushResponse(
         candidate_response_id=metrics.candidate_response_id,
         updated_at=metrics.updated_at,
+    )
+
+
+@router.get(
+    "/assessments/{candidate_assessment_id}/question-results",
+    response_model=CandidateQuestionResultsResponse,
+)
+async def get_my_question_results_route(
+    candidate_assessment_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[dict, Depends(get_current_user)],
+):
+    return get_my_question_results(
+        db,
+        int(current_user["user_id"]),
+        candidate_assessment_id,
     )

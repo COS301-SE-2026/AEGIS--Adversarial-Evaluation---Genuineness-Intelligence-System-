@@ -64,7 +64,7 @@ export default function ReportsPage() {
 
         <InfoCard
           type="metric"
-          title="Average Integrity Score"
+          title="Average Integrity Risk Score"
           value={
             integrityScoreAverage?.average_integrity_score ?? "—"
           }

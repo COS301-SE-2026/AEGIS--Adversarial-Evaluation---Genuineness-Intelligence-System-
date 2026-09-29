@@ -9,6 +9,7 @@ from app.api.routes.adversarial import (
 )
 from app.api.routes.assessment import (
     candidate_response_router,
+    integrity_weights_router,
     router as assessment_router,
 )
 from app.api.routes.auth import router as auth_router
@@ -48,6 +49,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix=API_V1_PREFIX)
 app.include_router(assessment_router, prefix=API_V1_PREFIX)
+app.include_router(integrity_weights_router, prefix=API_V1_PREFIX)
 app.include_router(candidate_response_router, prefix=API_V1_PREFIX)
 app.include_router(user_router, prefix=API_V1_PREFIX)
 app.include_router(question_router2, prefix=API_V1_PREFIX)

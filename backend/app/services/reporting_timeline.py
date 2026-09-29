@@ -1,5 +1,6 @@
 from typing import Optional
 from fastapi import HTTPException, status
+from sqlalchemy import nullslast
 from sqlalchemy.orm import Session
 
 from app.models.candidate_assessment import CandidateAssessment, SessionStatus
@@ -201,6 +202,7 @@ def get_metrics_timeline(
             == candidate_assessment_id
         )
         .order_by(
+            nullslast(CandidateResponseMetrics.created_at),
             AssessmentQuestion.display_order,
             AssessmentQuestion.assessment_q_id,
         )

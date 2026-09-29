@@ -63,7 +63,7 @@ export const candidateColumns: AnalyticsTableColumn<AssessmentCandidateResult>[]
     },
     {
         key: "integrity",
-        header: "Integrity Flag Score",
+        header: "Integrity Risk Score",
         render: renderIntegrity,
     },
     {
@@ -71,7 +71,7 @@ export const candidateColumns: AnalyticsTableColumn<AssessmentCandidateResult>[]
         header: "View Answers",
         render: (candidate) => (
             <Link
-              href={`/grade-assessment/${candidate.candidate_assess_id}/metrics`}
+              href={`/reports/${candidate.candidate_assess_id}/metrics`}
             >
                 <ReportViewButton/>
             </Link>

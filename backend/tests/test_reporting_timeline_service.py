@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pytest
@@ -191,7 +192,7 @@ def test_get_metrics_timeline_handles_missing_metrics_row():
     assert result.questions[0].events == []
 
 
-def test_get_metrics_timeline_orders_questions_by_display_order():
+def test_get_metrics_timeline_orders_by_display_order_when_no_created_at():
     session = make_session()
     aq1 = make_assessment_question(assessment_q_id=1, display_order=2)
     aq2 = make_assessment_question(assessment_q_id=2, display_order=1)
@@ -200,7 +201,8 @@ def test_get_metrics_timeline_orders_questions_by_display_order():
     metrics1 = make_metrics(candidate_response_id=1)
     metrics2 = make_metrics(candidate_response_id=2)
     # rows are returned in the order the (mocked) DB query already sorted
-    # them by display_order -- aq2 (display_order=1) comes first
+    # them -- neither metrics row has created_at set, so the query falls
+    # back to display_order -- aq2 (display_order=1) comes first
     rows = [
         (MagicMock(), aq2, adv2, metrics2),
         (MagicMock(), aq1, adv1, metrics1),
@@ -213,6 +215,108 @@ def test_get_metrics_timeline_orders_questions_by_display_order():
 
     assert [q.question_id for q in result.questions] == [20, 10]
     assert [q.question_order for q in result.questions] == [1, 2]
+
+
+def test_get_metrics_timeline_orders_by_first_visit_time_not_display_order():
+    session = make_session()
+    aq1 = make_assessment_question(assessment_q_id=1, display_order=1)
+    aq2 = make_assessment_question(assessment_q_id=2, display_order=2)
+    adv1 = make_adversarial_question(adv_question_id=1, source_question_id=10)
+    adv2 = make_adversarial_question(adv_question_id=2, source_question_id=20)
+    # candidate visited question 2 (display_order=2) first, then question 1
+    metrics1 = make_metrics(
+        candidate_response_id=1,
+        created_at=datetime(2026, 1, 1, 12, 5, 0),
+    )
+    metrics2 = make_metrics(
+        candidate_response_id=2,
+        created_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    # rows are returned in the order the (mocked) DB query already sorted
+    # them -- by created_at ascending, so aq2 (visited first) comes first
+    rows = [
+        (MagicMock(), aq2, adv2, metrics2),
+        (MagicMock(), aq1, adv1, metrics1),
+    ]
+
+    db = MagicMock()
+    _stub_timeline_queries(db, session, rows, other_completed_count=0)
+
+    result = timeline_service.get_metrics_timeline(db, 12)
+
+    assert [q.question_id for q in result.questions] == [20, 10]
+    assert [q.question_order for q in result.questions] == [1, 2]
+
+
+def test_get_metrics_timeline_backtracking_keeps_first_visit_order():
+    session = make_session()
+    aq1 = make_assessment_question(assessment_q_id=1, display_order=1)
+    aq2 = make_assessment_question(assessment_q_id=2, display_order=2)
+    aq3 = make_assessment_question(assessment_q_id=3, display_order=3)
+    adv1 = make_adversarial_question(adv_question_id=1, source_question_id=10)
+    adv2 = make_adversarial_question(adv_question_id=2, source_question_id=20)
+    adv3 = make_adversarial_question(adv_question_id=3, source_question_id=30)
+    # candidate visited 1 -> 2 -> 3 -> back to 1. The revisit to question 1
+    # bumps its updated_at but must not change its created_at, so the
+    # timeline should still reflect the original 1, 2, 3 visit order.
+    metrics1 = make_metrics(
+        candidate_response_id=1,
+        created_at=datetime(2026, 1, 1, 12, 0, 0),
+        updated_at=datetime(2026, 1, 1, 12, 10, 0),
+    )
+    metrics2 = make_metrics(
+        candidate_response_id=2,
+        created_at=datetime(2026, 1, 1, 12, 1, 0),
+    )
+    metrics3 = make_metrics(
+        candidate_response_id=3,
+        created_at=datetime(2026, 1, 1, 12, 2, 0),
+    )
+    rows = [
+        (MagicMock(), aq1, adv1, metrics1),
+        (MagicMock(), aq2, adv2, metrics2),
+        (MagicMock(), aq3, adv3, metrics3),
+    ]
+
+    db = MagicMock()
+    _stub_timeline_queries(db, session, rows, other_completed_count=0)
+
+    result = timeline_service.get_metrics_timeline(db, 12)
+
+    assert [q.question_id for q in result.questions] == [10, 20, 30]
+    assert [q.question_order for q in result.questions] == [1, 2, 3]
+
+
+def test_get_metrics_timeline_never_visited_questions_sort_last():
+    session = make_session()
+    aq1 = make_assessment_question(assessment_q_id=1, display_order=1)
+    aq2 = make_assessment_question(assessment_q_id=2, display_order=2)
+    aq3 = make_assessment_question(assessment_q_id=3, display_order=3)
+    adv1 = make_adversarial_question(adv_question_id=1, source_question_id=10)
+    adv2 = make_adversarial_question(adv_question_id=2, source_question_id=20)
+    adv3 = make_adversarial_question(adv_question_id=3, source_question_id=30)
+    # question 2 was visited; questions 1 and 3 were never visited (no
+    # metrics row) and sort after it, ordered by display_order among
+    # themselves
+    metrics2 = make_metrics(
+        candidate_response_id=2,
+        created_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    rows = [
+        (MagicMock(), aq2, adv2, metrics2),
+        (MagicMock(), aq1, adv1, None),
+        (MagicMock(), aq3, adv3, None),
+    ]
+
+    db = MagicMock()
+    _stub_timeline_queries(db, session, rows, other_completed_count=0)
+
+    result = timeline_service.get_metrics_timeline(db, 12)
+
+    assert [q.question_id for q in result.questions] == [20, 10, 30]
+    assert [q.question_order for q in result.questions] == [1, 2, 3]
+    assert result.questions[1].active_time_ms == 0
+    assert result.questions[2].active_time_ms == 0
 
 
 def test_get_metrics_timeline_emits_typing_burst_above_threshold():
