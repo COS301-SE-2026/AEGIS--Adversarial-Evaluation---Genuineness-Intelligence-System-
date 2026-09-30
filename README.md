@@ -58,7 +58,7 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 ---
 
 ## User Manual Documentation
-- [User Manual PDF](docs/Demo2/pdfs/User%20Manual.pdf)
+- [User Manual PDF](docs/AEGIS-User%20Manual.pdf)
 
 ---
 
