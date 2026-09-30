@@ -303,6 +303,23 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
         }
       );
 
+      if (newQuestion.type === "CODING" && Array.isArray(newQuestion.testCases) && newQuestion.testCases.length > 0) {
+        for (const testCase of newQuestion.testCases) {
+          await apiPost(
+            `/api/v1/questions/source/${createdQuestion.question_bank_id}/test-cases`,
+            {
+              description: null,
+              input_data: testCase.input,
+              expected_output: testCase.expectedOutput,
+              is_hidden: testCase.hidden,
+            },
+            {
+              headers: getAuthHeaders(),
+            }
+          );
+        }
+      }
+
       setQuestions((previousQuestions) => [
         {
           ...createdQuestion,
