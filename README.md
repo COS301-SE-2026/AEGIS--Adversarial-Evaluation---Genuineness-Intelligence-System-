@@ -77,7 +77,7 @@ To build an adversarial AI platform that weaponises prompt engineering to delibe
 
 ## Kutlwano Tau
 
-<img src="docs/images/IMG_6722.jpeg" alt="KutlwanoTau" width="200">
+<img src="docs/images/IMG_6722.jpeg" alt="KutlwanoTau" width="250">
 
 **Role:** Team Lead & Backend Developer 
 
@@ -86,7 +86,9 @@ Final-year Computer Science student at University of Pretoria with a strong foun
 I enjoy solving problems, learning new technologies, and applying computer science concepts to real-world projects.
 
 **LinkedIn:** (https://www.linkedin.com/in/kutlwano-tau-b25983244)
+
 **CV:** [Download CV](docs/ProjectDay/KutlwanoTau-CV.pdf)
+
 **Email:** (kayteetau@icloud.com)
 
 
