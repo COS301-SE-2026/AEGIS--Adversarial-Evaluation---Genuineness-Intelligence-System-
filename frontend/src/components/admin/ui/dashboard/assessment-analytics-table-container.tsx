@@ -1,8 +1,10 @@
 "use client"
 
+import { useState, useMemo} from "react";
 import { AssessmentAnalyticsTable } from "./assessment-analytics-table";
 import { useDashboardTable } from "@/hooks/dashboard-table-hook";
 import { assessmentColumns } from "./assessment-analytics-table-columns";
+import { Pagination } from "../buttons/pagination";
 
 interface AssessmentAnalyticsTableProps{
     recruiterId: number | null;
@@ -12,6 +14,17 @@ export function AssessmentAnalyticsTableContainer({
     recruiterId,
 }: AssessmentAnalyticsTableProps) {
   const { data, isLoading, isError, error } = useDashboardTable(recruiterId);
+
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(8);
+    
+    const paginatedItems = useMemo(() => {
+        if (!data) return [];
+
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        return data.items.slice(startIndex, endIndex);
+    }, [data, currentPage, itemsPerPage]);
 
     if (isLoading) {
         return (
@@ -45,10 +58,20 @@ export function AssessmentAnalyticsTableContainer({
                 </h2>
             </div>
             <AssessmentAnalyticsTable 
-                items={data.items}
+                items={paginatedItems}
                 columns={assessmentColumns}
                 emptyMessage="No assessment analytics available"
             />
+
+            <Pagination
+                currentPage={currentPage}
+                totalItems={data.items.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+                onItemsPerPagechange={setItemsPerPage}
+            />
         </div>
+
+        
     )
 }
