@@ -96,12 +96,15 @@ I enjoy solving problems, learning new technologies, and applying computer scien
 
 ## Sambulo Zikhali
 
-**Role:** Data Engineer  
-
+**Role:** Backend Developer, Frontend Developer, Data Engineer
 **Profile description:**
 I am a passionate Full Stack Developer experienced in building end to end web applications using modern technologies like Next.js, React, and TypeScript. I enjoy bridging the gap between robust, scalable backend architectures and intuitive, user centric frontends. Whether it's implementing real time, dynamic UI development or designing secure APIs, I am driven by the challenge of creating seamless digital experiences. I pride myself on writing clean, maintainable code and continuously exploring new ways to refine my craft across the entire stack.
 
 **LinkedIn:** (https://www.linkedin.com/in/sambulo-zikhali-468669261)
+
+**CV:** [View CV](docs/ProjectDay/Sambulo%20Zikhali%20CV.pdf)
+
+**Email:** (sambulozikhali2204@gmail.com)
 
 ---
 
