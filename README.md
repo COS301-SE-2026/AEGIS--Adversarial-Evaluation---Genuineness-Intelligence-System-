@@ -104,7 +104,7 @@ I am a passionate Full Stack Developer experienced in building end to end web ap
 
 **LinkedIn:** (https://www.linkedin.com/in/sambulo-zikhali-468669261)
 
-**CV:** [View CV](docs/ProjectDay/Sambulo%20Zikhali%20CV.pdf)
+**CV:** [View CV](docs/ProjectDay/Sambulo%20ZIkhali%20CV.pdf)
 
 **Email:** (sambulozikhali2204@gmail.com)
 
