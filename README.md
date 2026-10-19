@@ -87,7 +87,7 @@ I enjoy solving problems, learning new technologies, and applying computer scien
 
 **LinkedIn:** (https://www.linkedin.com/in/kutlwano-tau-b25983244)
 
-**CV:** [Download CV](docs/ProjectDay/KutlwanoTau-CV.pdf)
+**CV:** [View CV](docs/ProjectDay/KutlwanoTau-CV.pdf)
 
 **Email:** (kayteetau@icloud.com)
 
