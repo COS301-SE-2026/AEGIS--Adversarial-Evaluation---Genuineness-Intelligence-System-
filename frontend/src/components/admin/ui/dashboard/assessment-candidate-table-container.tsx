@@ -57,7 +57,7 @@ export function AssessmentCandidateTableContainer({ assessmentId }: Readonly<Ass
             </div>
 
             <AssessmentAnalyticsTable
-                items={data.items}
+                items={paginatedItems}
                 columns={candidateColumns}
                 emptyMessage="No candidates have completed this assessment"
             />
