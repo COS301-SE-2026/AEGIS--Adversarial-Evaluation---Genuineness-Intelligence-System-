@@ -113,7 +113,9 @@ I am a passionate Full Stack Developer experienced in building end to end web ap
 
 ## Luyanda Ndlovu
 
-**Role:** Frontend Developer
+<img src="docs/images/Selfie.jpeg" alt="Luyanda Ndlovu" width="250">
+
+**Role:** Frontend & DevOps
 
 **Profile description:**
 I'm a student in the BSc Information & Knowledge Systems program studying software engineering, and I'm interested in web design and front-end programming.
