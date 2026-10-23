@@ -124,6 +124,10 @@ I like to create cutting-edge, useful applications by fusing the logical side of
 
 **LinkedIn:** (https://www.linkedin.com/in/luyanda-ndlovu-02a281375)
 
+**CV:** [View CV](docs/ProjectDay/CV%20-%20Luyanda%20Ndlovu.pdf)
+
+**Email:** (luyanda.ndlovu@icloud.com)
+
 ---
 
 ## Myron Wheeler
