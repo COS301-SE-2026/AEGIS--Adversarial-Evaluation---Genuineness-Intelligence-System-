@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QueryProvider } from "@/providers/query-provider";
 import { AccessGate } from "@/components/auth/auth-access-gate";
 import AdminSidebar from "@/components/admin/layouts/sidebar";
@@ -10,6 +10,15 @@ import MobileSidebar from "@/components/admin/layouts/mobile-sidebar";
 export default function AdminLayout({ children }: { children: React.ReactNode } ) {
     const [mobileSidebarOpen, setMobileSideBarOpen] = useState(false);
 
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        return null;
+    }
 
     return (
         <QueryProvider>
