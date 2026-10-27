@@ -48,7 +48,6 @@ def _get_top_performers(
             CandidateAssessment.candidate_id == User.user_id,
         )
         .filter(
-            Assessment.creator_id == recruiter_id,
             CandidateAssessment.status == SessionStatus.COMPLETED,
             CandidateAssessment.total_score.isnot(None),
             CandidateAssessment.total_score > 0,
@@ -70,11 +69,7 @@ def _get_total_assessments(
         db: Session,
         recruiter_id: int
 ) -> int:
-    return (
-        db.query(Assessment)
-        .filter(Assessment.creator_id == recruiter_id)
-        .count()
-    )
+    return db.query(Assessment).count()
 
 
 def _get_ai_usage_rate(
@@ -86,7 +81,6 @@ def _get_ai_usage_rate(
         .join(Assessment, CandidateAssessment.assessment_id
               == Assessment.assessment_id)
         .filter(
-            Assessment.creator_id == recruiter_id,
             CandidateAssessment.status == SessionStatus.COMPLETED
         ).count()
     )
@@ -109,7 +103,6 @@ def _get_ai_usage_rate(
             AIAnalysis.response_id == CandidateResponse.response_id
         )
         .filter(
-            Assessment.creator_id == recruiter_id,
             CandidateAssessment.status == SessionStatus.COMPLETED,
         )
         .scalar()
@@ -148,7 +141,6 @@ def _get_average_score_per_assessment(
             CandidateAssessment.assessment_id == Assessment.assessment_id,
         )
         .filter(
-            Assessment.creator_id == recruiter_id,
             CandidateAssessment.status == SessionStatus.COMPLETED,
             CandidateAssessment.total_score.isnot(None),
             CandidateAssessment.total_score > 0,
@@ -208,7 +200,6 @@ def _get_table_items(
             CandidateAssessment.assessment_id == Assessment.assessment_id,
         )
         .filter(
-            Assessment.creator_id == recruiter_id,
             CandidateAssessment.status == SessionStatus.COMPLETED,
             CandidateAssessment.total_score.isnot(None),
             CandidateAssessment.total_score > 0,

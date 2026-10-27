@@ -16,7 +16,6 @@ def get_integrity_score_average(
             Assessment.assessment_id == CandidateAssessment.assessment_id,
         )
         .filter(
-            Assessment.creator_id == recruiter_id,
             CandidateAssessment.integrity_score.isnot(None),
         )
         .scalar()
@@ -30,7 +29,6 @@ def get_integrity_score_average(
             Assessment.assessment_id == CandidateAssessment.assessment_id,
         )
         .filter(
-            Assessment.creator_id == recruiter_id,
             CandidateAssessment.integrity_score.isnot(None),
         )
         .scalar()

@@ -50,7 +50,7 @@ def test_get_top_performers_returns_ranked_results():
 
 def test_get_total_assessments_returns_count():
     mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.count.return_value = 4
+    mock_db.query.return_value.count.return_value = 4
 
     result = dashboard_service._get_total_assessments(mock_db, 7)
 
