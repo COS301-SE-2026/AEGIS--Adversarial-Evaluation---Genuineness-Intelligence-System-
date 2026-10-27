@@ -18,14 +18,11 @@
 [![GitHub Issues](https://img.shields.io/github/issues/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-)](https://github.com/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/issues)
 [![codecov](https://codecov.io/gh/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-/graph/badge.svg?token=iTzEdic5tV)](https://codecov.io/gh/COS301-SE-2026/AEGIS--Adversarial-Evaluation---Genuineness-Intelligence-System-)
 
-AEGIS is an adversarial AI-powered technical assessment platform focused on investigating how modern Large Language Models (LLMs) reason, fail, hallucinate, and can be manipulated through carefully engineered adversarial prompting techniques.
-
 ---
 
 ## Project Aim
 
-To build an adversarial AI platform that weaponises prompt engineering to deliberately confuse, trick, and outsmart language models, creating assessment questions that humans can solve but make the AI hallucinate, while investigating how different AI models reason, fail and can be manipulated through carefully crafted adversarial techniques.
-
+AEGIS is a recruitment technical assessment integrity platform designed to help recruiters evaluate whether assessment performance genuinely represents a candidate's own skills. We combine adversarial question generation with behavioural telemetry, analytics, and reporting to identify patterns that may require further human review. Our system doesn't automatically accuse candidates of misconduct; instead, it provides recruiters with explainable review-priority signals and evidence that they can investigate.
 ---
 
 # Documentation
