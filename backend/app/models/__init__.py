@@ -4,6 +4,7 @@ from app.models.base import Base
 from app.models.role import Role
 from app.models.user import User
 from app.models.oauth import OAuth
+from app.models.revoked_token import RevokedToken
 from app.models.question_bank import QuestionBank, QuestionType
 from app.models.question_category import QuestionCategory
 from app.models.assessment import Assessment
@@ -26,6 +27,7 @@ __all__ = [
     "Role",
     "User",
     "OAuth",
+    "RevokedToken",
     "QuestionBank",
     "QuestionType",
     "QuestionCategory",
