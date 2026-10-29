@@ -138,6 +138,7 @@ export function useAssessmentTelemetry(
   const focusLossStartedAtMsRef = useRef<number | null>(null);
   const questionContextRef = useRef<string | null>(null);
   const hasFlushedFinalStateRef = useRef<boolean>(false);
+  const flushIntervalIdRef = useRef<number | null>(null);
 
   const clearDeltaState = useCallback(() => {
     accumulatorRef.current = createEmptyDeltaAccumulator();
@@ -238,6 +239,7 @@ export function useAssessmentTelemetry(
       return;
     }
 
+    const flushQuestionContext = questionContextRef.current;
     const snapshot = buildTelemetrySnapshot(
       accumulatorRef.current,
       activeStartedAtMsRef.current,
@@ -248,6 +250,12 @@ export function useAssessmentTelemetry(
     const payload = createTelemetryFlushPayload(candidateAssessmentId, snapshot);
     const authToken = getToken() ?? undefined;
 
+    clearDeltaState();
+
+    if (activityStateRef.current === "active") {
+      activeStartedAtMsRef.current = Date.now();
+    }
+
     try {
       await apiPost<{
         candidate_response_id: number;
@@ -257,16 +265,39 @@ export function useAssessmentTelemetry(
         payload,
         authToken ? { authToken } : {},
       );
-
-      clearDeltaState();
-
-      if (activityStateRef.current === "active") {
-        activeStartedAtMsRef.current = Date.now();
-      }
     } catch (error) {
       console.error("Failed to flush telemetry", error);
+
+      if (questionContextRef.current === flushQuestionContext) {
+        const accumulator = accumulatorRef.current;
+        accumulator.active_time_ms += snapshot.active_time_ms;
+        accumulator.chars_alnum += snapshot.chars_alnum;
+        accumulator.chars_special += snapshot.chars_special;
+        accumulator.backspace_count += snapshot.backspace_count;
+        accumulator.copy_event_count += snapshot.copy_event_count;
+        accumulator.copy_char_count += snapshot.copy_char_count;
+        accumulator.paste_event_count += snapshot.paste_event_count;
+        accumulator.paste_char_count += snapshot.paste_char_count;
+        accumulator.focus_loss_count += snapshot.focus_loss_count;
+        accumulator.focus_loss_time_ms += snapshot.focus_loss_time_ms;
+      }
     }
   }, [candidateAssessmentId, candidateResponseId, clearDeltaState]);
+
+  const startFlushTimer = useCallback(() => {
+    if (flushIntervalIdRef.current !== null) {
+      window.clearInterval(flushIntervalIdRef.current);
+    }
+
+    flushIntervalIdRef.current = window.setInterval(() => {
+      void flushTelemetry();
+    }, 5000);
+  }, [flushTelemetry]);
+
+  const flushTelemetryAndRestartTimer = useCallback(async () => {
+    startFlushTimer();
+    await flushTelemetry();
+  }, [flushTelemetry, startFlushTimer]);
 
   const flushTelemetryKeepAlive = useCallback(async () => {
     if (!candidateAssessmentId || candidateResponseId === null) {
@@ -423,13 +454,14 @@ export function useAssessmentTelemetry(
     window.addEventListener("focus", handleWindowFocus);
     window.addEventListener("blur", handleWindowBlur);
 
-    const intervalId = window.setInterval(() => {
-      void flushTelemetry();
-    }, 5000);
+    startFlushTimer();
 
     return () => {
       pauseActiveTimeTracking();
-      window.clearInterval(intervalId);
+      if (flushIntervalIdRef.current !== null) {
+        window.clearInterval(flushIntervalIdRef.current);
+        flushIntervalIdRef.current = null;
+      }
       document.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("beforeinput", handleBeforeInput);
       document.removeEventListener("copy", handleCopy);
@@ -445,9 +477,9 @@ export function useAssessmentTelemetry(
     candidateResponseId,
     clearQuestionState,
     flushTelemetryKeepAlive,
-    flushTelemetry,
     pauseActiveTimeTracking,
     reconcileActiveTimeState,
+    startFlushTimer,
     recordCopyEvent,
     recordDeleteEvent,
     recordPasteEvent,
@@ -455,6 +487,7 @@ export function useAssessmentTelemetry(
 
   return {
     flushTelemetry,
+    flushTelemetryAndRestartTimer,
     flushTelemetryKeepAlive,
     recordCopyEvent,
     recordDeleteEvent,
