@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useMemo, useEffect, useCallback, ComponentType } from "react";
 import { apiDelete, apiGet, apiPost, apiPatch } from "@/lib/apiClient";
 import { getAuthHeaders } from "@/lib/auth";
@@ -9,6 +10,7 @@ import { Plus, HelpCircle } from "lucide-react";
 import { QuestionBank, QuestionPayload, QuestionCategory } from "@/app/(admin)/types/questions";
 import { buildSourceQuestionPayload, updateSavedQuestionList } from "@/lib/question-payload";
 import PageHelpDrawer, { type PageHelpConfig } from "@/components/admin/ui/help/page-help-drawer";
+import { Pagination } from "../ui/buttons/pagination";
 
 
 export interface QuestionListModalProps {
@@ -338,7 +340,7 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
     }
   };
 
-  const totalNumberOfPages = Math.ceil(questionsFiltered.length / itemsPerPage);
+
   const sectionedQuestions = questionsFiltered.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
@@ -485,93 +487,13 @@ export default function QuestionListPage({ config }: Readonly<{ config:Readonly<
                 onDelete={handleDelete}
               />
             </div>
-
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 px-4 py-2 mt-10 border border-t border-default-border rounded-b-lg text-sm text-default-text">
-              <div className="text-default-text order-2 sm:order-1">
-                Page <span className="font-semibold">{currentPage}</span> of{" "}
-                <span className="font-semibold">{totalNumberOfPages}</span>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 sm:gap-3 order-3 sm:order-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors "
-                >
-                  «
-                </button>
-                <button
-                  type = "button"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors"
-                >
-                  ‹
-                </button>
-
-                {Array.from({ length: Math.min(3, totalNumberOfPages) }, (_, i) => {
-                  const pageNumber = currentPage < 2 || currentPage === 2 ? i + 1 : currentPage + i - 1;
-                  return pageNumber < totalNumberOfPages || pageNumber === totalNumberOfPages ? pageNumber : null;
-                })
-                  .filter((pageNumber): pageNumber is number => pageNumber !== null)
-                  .map((pageNumber) => (
-                    <button
-                      type="button"
-                      key={pageNumber}
-                      onClick={() => setCurrentPage(pageNumber)}
-                      className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transitions-colors
-                      ${
-                        currentPage === pageNumber
-                          ? "bg-default-text text-background"
-                          : "text-default-text hover:bg-tertiary-surface"
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  ))}
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(Math.min(totalNumberOfPages, currentPage + 1))}
-                  disabled={currentPage === totalNumberOfPages || totalNumberOfPages === 0}
-                  className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors"
-                >
-                  ›
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(totalNumberOfPages)}
-                  disabled={currentPage === totalNumberOfPages || totalNumberOfPages === 0}
-                  className="text-default-text text-xs sm:text-sm disabled:text-default-border px-2 py-1 rounded border border-default-border bg-tertiary-surface hover:bg-background disabled:opacity-40 disabled:hover:bg-tertiary-surface disabled:cursor-not-allowed transition-colors"
-                >
-                  »
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 order-1 sm:order-3">
-                <label 
-                  htmlFor="items-select" 
-                  className="text-default-text text-xs sm:text-sm whitespace-nowrap"
-                >
-                  Per page:
-                </label>
-                <select
-                  id="items-select"
-                  value={itemsPerPage}
-                  onChange={(event) => {
-                    setItemsPerPage(Number(event.target.value));
-                    setCurrentPage(1);
-                  }}
-                  className="px-2  bg-tertiary-surface border border-default-border rounded text-default-text text-xs sm:text-sm cursor-pointer"
-                >
-                  <option value={8}>8</option>
-                  <option value={12}>12</option>
-                  <option value={16}>16</option>
-                  <option value={25}>25</option>
-                </select>
-              </div>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalItems={questionsFiltered.length}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPagechange={setItemsPerPage}
+            />
          </>
         )}
         </main>

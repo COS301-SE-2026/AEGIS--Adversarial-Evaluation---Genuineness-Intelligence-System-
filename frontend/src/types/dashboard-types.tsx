@@ -74,6 +74,7 @@ export interface AnalyticsTableColumn<T> {
     header: string;
     render: (item: T) => ReactNode;
     className?: string;
+    sortable?: boolean;
 }
 
 export interface AnalyticsTableProps<T> {

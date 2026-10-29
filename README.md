@@ -129,6 +129,8 @@ I like to create cutting-edge, useful applications by fusing the logical side of
 
 ## Myron Wheeler
 
+<img src="frontend/public/mtt/myron-wheeler.jpg" alt="Myron Wheeler" width="250">
+
 **Role:** Backend Developer & AI research 
 
 **Profile description:**
@@ -137,9 +139,15 @@ What I enjoy most about software development is the rewarding process of solving
 
 **LinkedIn:** (https://www.linkedin.com/in/myron-wheeler-8b5847233)
 
+**CV:** [View CV](frontend/public/mtt/Myron_Wheeler_CV.pdf)
+
+**Email:** (myronwheeler@outlook.com)
+
 ---
 
 ## Lusanda Mtembu
+
+<img src="frontend/public/mtt/lusanda-mtembu.jpg" alt="Lusanda Mtembu" width="250">
 
 **Role:** Frontend Developer  
 
@@ -147,3 +155,7 @@ What I enjoy most about software development is the rewarding process of solving
 Final-year Computer Science student at the University of Pretoria with experience in backend & frontend development having built reliable, well-structured systems. I enjoy working on projects that have real-world impact and am currently exploring the intersection of AI and security through my capstone project. Always looking to learn, contribute, and grow through meaningful technical challenge
 
 **LinkedIn:** (https://www.linkedin.com/in/lusanda-mtembu-aa0938247/)
+
+**CV:** [View CV](frontend/public/mtt/Lusanda-Mtembu.pdf)
+
+**Email:** (lubandamte@gmail.com)

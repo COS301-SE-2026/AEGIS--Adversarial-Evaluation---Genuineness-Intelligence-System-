@@ -14,6 +14,7 @@ const Navbar = () => {
         <div className="hidden lg:flex items-center gap-6 xl:gap-8 2xl:gap-10">
           <Link href="/" className={linkClass}>Home</Link>
           <Link href="/help" className={linkClass}>About</Link>
+          <Link href="/meet-the-team" className={linkClass}>Meet the Team</Link>
           {/* <div className="relative group">
             <button className="flex items-center gap-1 text-xs lg:text-sm xl:text-base tracking-widest uppercase text-default-text hover:text-system-red transition-colors duration-200 cursor-pointer">
               Resources
