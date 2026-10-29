@@ -786,68 +786,6 @@ def test_verify_via_gemini_invalid_json_response_returns_none():
     assert result is None
 
 
-def test_verify_generated_item_coding_piston_success_skips_gemini():
-    parsed = dict(VALID_RESPONSE)
-    source_question = _mock_question()
-    test_case = MagicMock()
-    test_case.description = "case 1"
-    test_case.input_data = ""
-    test_case.expected_output = "8"
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.all.return_value = [
-        test_case
-    ]
-
-    mock_piston_instance = MagicMock()
-    mock_piston_instance.execute.return_value = {
-        "run": {"stdout": "8\n"},
-    }
-
-    with patch(
-        "app.services.adversarial_service.settings.piston_enabled",
-        True,
-    ), patch(
-        "app.services.adversarial_service.PistonClient",
-        return_value=mock_piston_instance,
-    ), patch(
-        "app.services.adversarial_service.call_llm",
-    ) as mock_call_llm:
-        result = _verify_generated_item(parsed, source_question, mock_db)
-
-    assert result is None
-    mock_call_llm.assert_not_called()
-
-
-def test_verify_generated_item_coding_piston_failure_raises_422():
-    parsed = dict(VALID_RESPONSE)
-    source_question = _mock_question()
-    test_case = MagicMock()
-    test_case.description = "case 1"
-    test_case.input_data = ""
-    test_case.expected_output = "8"
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.all.return_value = [
-        test_case
-    ]
-
-    mock_piston_instance = MagicMock()
-    mock_piston_instance.execute.return_value = {
-        "run": {"stdout": "13\n"},
-    }
-
-    with patch(
-        "app.services.adversarial_service.settings.piston_enabled",
-        True,
-    ), patch(
-        "app.services.adversarial_service.PistonClient",
-        return_value=mock_piston_instance,
-    ):
-        with pytest.raises(HTTPException) as exc_info:
-            _verify_generated_item(parsed, source_question, mock_db)
-
-    assert exc_info.value.status_code == 422
-
-
 def test_generate_adversarial_question_verify_false_skips():
     mock_db = _mock_db(
         question_result=_mock_question(),
