@@ -18,19 +18,8 @@ function renderIntegrity(candidate: AssessmentCandidateResult) {
     const meta = INTEGRITY_BAND_META[candidate.integrity_band];
 
     return (
-        <span className="inline-flex items-center gap-2">
-            <span>{candidate.integrity_score}</span>
-            {meta ? (
-                <span
-                    className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
-                    style={{
-                        backgroundColor: `${meta.color}22`,
-                        color: meta.color,
-                    }}
-                >
-                    {meta.label}
-                </span>
-            ) : null}
+        <span style={{color: meta.color}} className="font-medium">
+            {candidate.integrity_score}
         </span>
     );
 }
@@ -39,16 +28,20 @@ export const candidateColumns: AnalyticsTableColumn<AssessmentCandidateResult>[]
     {
         key: "candidate",
         header: "Candidate Name",
+        
         render: (candidate) => candidate.candidate_name,
     },
     {
         key: "total-score",
         header: "Total Score",
-        render: (candidate) => `${candidate.total_score_percent.toFixed(2)}%`,
+        className: "text-center",
+        render: (candidate) => `${candidate.total_score_percent.toFixed(0)}%`,
     },
     {
         key: "status",
         header: "Status",
+        sortable: true,
+        className: "text-center",
         render: (candidate) => (
             <span
                 className={
@@ -64,11 +57,15 @@ export const candidateColumns: AnalyticsTableColumn<AssessmentCandidateResult>[]
     {
         key: "integrity",
         header: "Integrity Risk Score",
+        sortable: true,
+        className: "text-center",
         render: renderIntegrity,
+       
     },
     {
         key: "answers",
         header: "View Answers",
+        className: "md:text-center",
         render: (candidate) => (
             <Link
               href={`/reports/${candidate.candidate_assess_id}/metrics`}
