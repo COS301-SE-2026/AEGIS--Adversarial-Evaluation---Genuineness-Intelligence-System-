@@ -90,9 +90,7 @@ def _call_llm_or_503(
 ) -> tuple[str, str]:
     _release_db_connection(db)
     try:
-        return call_llm(
-            system_instruction, contents, model, allow_fallback=False
-        )
+        return call_llm(system_instruction, contents, model)
     except LLMProviderError as exc:
         _logger.error("LLM provider failure: %s", exc)
         raise HTTPException(
@@ -394,66 +392,11 @@ def _verify_via_gemini(parsed: dict, db: Session | None = None) -> None:
         )
 
 
-def _verify_coding_via_piston(
-    parsed: dict,
-    test_cases: list[CodingTestCase],
-) -> bool:
-    code = parsed.get("correct_answer", "")
-    piston_client = PistonClient()
-    for test_case in test_cases:
-        execution = piston_client.execute(
-            "python",
-            code,
-            stdin=test_case.input_data,
-        )
-        stdout = execution.get("run", {}).get("stdout", "")
-        expected = test_case.expected_output.strip()
-        if stdout.strip() != expected:
-            _logger.warning(
-                "Correct answer failed test case %s: "
-                "expected %r, got %r",
-                test_case.description,
-                expected,
-                stdout.strip(),
-            )
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    "Correct answer failed test case "
-                    f"execution: {test_case.description}"
-                ),
-            )
-    return True
-
-
 def _verify_generated_item(
     parsed: dict,
     source_question: QuestionBank,
     db: Session,
 ) -> None:
-    if source_question.type.value == "CODING":
-        test_cases = (
-            db.query(CodingTestCase)
-            .filter(
-                CodingTestCase.question_id
-                == source_question.question_bank_id
-            )
-            .all()
-        )
-        if test_cases:
-            try:
-                if not settings.piston_enabled:
-                    raise PistonError("Piston is disabled")
-                _verify_coding_via_piston(parsed, test_cases)
-                return
-            except HTTPException:
-                raise
-            except PistonError as exc:
-                _logger.warning(
-                    "Piston unavailable, falling back to "
-                    "Gemini verification: %s",
-                    exc,
-                )
     _verify_via_gemini(parsed, db)
 
 

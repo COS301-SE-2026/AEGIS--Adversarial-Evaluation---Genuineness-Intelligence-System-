@@ -5,6 +5,7 @@ import { DEMO_2_NAV_ITEMS } from "../../../app/(admin)/types/mock-data";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import  logo from "../../../../public/illustrations/AEGIS-logo-candidate-nav.png"
+import { logout } from "@/lib/auth";
 
 interface AdminSidebarProps {
   mobile?: boolean;
@@ -12,6 +13,39 @@ interface AdminSidebarProps {
 
 export default function AdminSidebar({mobile}: Readonly<AdminSidebarProps>) {
   const pathname = usePathname();
+
+  function handleLogoLogout(): void {
+    void logout();
+  }
+
+  function renderNavItem(item: (typeof DEMO_2_NAV_ITEMS)[number]) {
+    const isActive = pathname === item.href || pathname?.startsWith(`${item.href}`);
+
+    return (
+      <Link
+        key={item.label}
+        href={item.href}
+        className={`
+          flex items-center gap-2.5 px-5 py-2.5
+          font-staatliches text-sm xl:text-base tracking-wider
+          border-l-2 transition-all duration-150
+          ${
+            isActive
+              ? "text-system-red border-system-red bg-system-red/10"
+              : "text-white-smoke/40 border-transparent hover:text-white-smoke hover:bg-system-red/8"
+          }
+        `}
+      >
+        <span
+          className={`w-1.5 h-1.5 rounded-full opacity-60 shrink-0 ${
+            isActive ? "bg-system-red" : "bg-current"
+          }`}
+        />
+        {item.label}
+      </Link>
+    );
+  }
+
   return (
     <aside className={`flex flex-col bg-secondary-surface border-r border-tertiary-surface
       ${mobile 
@@ -20,13 +54,18 @@ export default function AdminSidebar({mobile}: Readonly<AdminSidebarProps>) {
       }
     `}>
       <div className="flex items-center gap-2 px-5 mt-2 shrink-0">
-       <Link href="/">
+       <button
+          type="button"
+          aria-label="Log out"
+          onClick={handleLogoLogout}
+          className="cursor-pointer border-0 bg-transparent p-0"
+        >
           <Image 
             src={logo} 
             alt="Logo" 
             className="w-12 sm:w-14 lg:w-16 h-auto"
            />
-        </Link>
+        </button>
         <div>
           <div className="font-staatliches text-2xl tracking-widest leading-none text-white-smoke">
             AEGIS
@@ -40,33 +79,7 @@ export default function AdminSidebar({mobile}: Readonly<AdminSidebarProps>) {
 
       <nav className="flex-1 mt-4 py-4">
         
-        {DEMO_2_NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href || pathname?.startsWith(`${item.href}`);
-          
-          return(
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`
-                flex items-center gap-2.5 px-5 py-2.5
-                font-staatliches text-sm xl:text-base tracking-wider
-                border-l-2 transition-all duration-150
-                ${
-                  isActive
-                    ? "text-system-red border-system-red bg-system-red/10"
-                    : "text-white-smoke/40 border-transparent hover:text-white-smoke hover:bg-system-red/8"
-                }
-              `}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full opacity-60 shrink-0 ${
-                  isActive ? "bg-system-red" : "bg-current"
-                }`}
-              />
-              {item.label}
-            </Link>
-          );
-        })}
+        {DEMO_2_NAV_ITEMS.map(renderNavItem)}
       </nav>
     </aside>
   );

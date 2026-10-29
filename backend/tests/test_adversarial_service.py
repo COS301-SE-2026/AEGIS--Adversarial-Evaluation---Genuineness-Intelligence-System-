@@ -1,10 +1,12 @@
 import json
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 from fastapi import HTTPException
 
 from app.core.gemini import LLMProviderError
+from app.core.openrouter import OpenRouterError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.adversarial_strategies import AdversarialStrategy
 from app.models.assessment import Assessment
@@ -784,68 +786,6 @@ def test_verify_via_gemini_invalid_json_response_returns_none():
         result = _verify_via_gemini(VALID_RESPONSE)
 
     assert result is None
-
-
-def test_verify_generated_item_coding_piston_success_skips_gemini():
-    parsed = dict(VALID_RESPONSE)
-    source_question = _mock_question()
-    test_case = MagicMock()
-    test_case.description = "case 1"
-    test_case.input_data = ""
-    test_case.expected_output = "8"
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.all.return_value = [
-        test_case
-    ]
-
-    mock_piston_instance = MagicMock()
-    mock_piston_instance.execute.return_value = {
-        "run": {"stdout": "8\n"},
-    }
-
-    with patch(
-        "app.services.adversarial_service.settings.piston_enabled",
-        True,
-    ), patch(
-        "app.services.adversarial_service.PistonClient",
-        return_value=mock_piston_instance,
-    ), patch(
-        "app.services.adversarial_service.call_llm",
-    ) as mock_call_llm:
-        result = _verify_generated_item(parsed, source_question, mock_db)
-
-    assert result is None
-    mock_call_llm.assert_not_called()
-
-
-def test_verify_generated_item_coding_piston_failure_raises_422():
-    parsed = dict(VALID_RESPONSE)
-    source_question = _mock_question()
-    test_case = MagicMock()
-    test_case.description = "case 1"
-    test_case.input_data = ""
-    test_case.expected_output = "8"
-    mock_db = MagicMock()
-    mock_db.query.return_value.filter.return_value.all.return_value = [
-        test_case
-    ]
-
-    mock_piston_instance = MagicMock()
-    mock_piston_instance.execute.return_value = {
-        "run": {"stdout": "13\n"},
-    }
-
-    with patch(
-        "app.services.adversarial_service.settings.piston_enabled",
-        True,
-    ), patch(
-        "app.services.adversarial_service.PistonClient",
-        return_value=mock_piston_instance,
-    ):
-        with pytest.raises(HTTPException) as exc_info:
-            _verify_generated_item(parsed, source_question, mock_db)
-
-    assert exc_info.value.status_code == 422
 
 
 def test_generate_adversarial_question_verify_false_skips():
@@ -1824,7 +1764,7 @@ def test_validate_adversarial_question_503_on_llm_provider_error():
     assert "temporarily unavailable" in exc_info.value.detail
 
 
-def test_adversarial_llm_calls_disable_openrouter_fallback():
+def test_adversarial_llm_calls_allow_openrouter_fallback():
     from app.services.adversarial_service import _call_llm_or_503
 
     with patch(
@@ -1833,7 +1773,123 @@ def test_adversarial_llm_calls_disable_openrouter_fallback():
     ) as mock_call_llm:
         _call_llm_or_503("sys", "user", "gemini-x")
 
-    assert mock_call_llm.call_args.kwargs["allow_fallback"] is False
+    mock_call_llm.assert_called_once_with("sys", "user", "gemini-x")
+
+
+_FALLBACK_MODEL = "google/gemini-2.5-flash-lite"
+_VERIFICATION_OK = json.dumps({"correct_answer_is_valid": True})
+
+
+def _gemini_down():
+    return patch(
+        "app.core.gemini._call_gemini",
+        side_effect=httpx.ReadTimeout("gemini hung"),
+    )
+
+
+def test_generate_falls_back_to_openrouter_and_records_served_model():
+    mock_db = _mock_db(
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+
+    with _gemini_down(), patch(
+        "app.core.gemini.call_openrouter",
+        side_effect=[
+            (json.dumps(VALID_RESPONSE), _FALLBACK_MODEL),
+            (_VERIFICATION_OK, _FALLBACK_MODEL),
+        ],
+    ) as mock_openrouter:
+        result = generate_adversarial_question(
+            mock_db, source_question_id=1, strategy_id=2
+        )
+
+    assert mock_openrouter.call_count == 2
+    assert result.llm == _FALLBACK_MODEL
+    assert result.content == VALID_RESPONSE["weaponised_question"]
+
+
+def test_regenerate_falls_back_to_openrouter_and_records_served_model():
+    adv_question = _mock_adv_question()
+    mock_db = _mock_db_for_regenerate(
+        adv_question_result=adv_question,
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+
+    with _gemini_down(), patch(
+        "app.core.gemini.call_openrouter",
+        side_effect=[
+            (json.dumps(VALID_RESPONSE), _FALLBACK_MODEL),
+            (_VERIFICATION_OK, _FALLBACK_MODEL),
+        ],
+    ) as mock_openrouter:
+        result = regenerate_adversarial_question(
+            mock_db, adv_question_id=5, strategy_id=2
+        )
+
+    assert mock_openrouter.call_count == 2
+    assert result is adv_question
+    assert result.llm == _FALLBACK_MODEL
+
+
+def test_verify_via_gemini_falls_back_to_openrouter():
+    verdict = json.dumps(
+        {"correct_answer_is_valid": False, "reason": "wrong sum"}
+    )
+
+    with _gemini_down(), patch(
+        "app.core.gemini.call_openrouter",
+        return_value=(verdict, _FALLBACK_MODEL),
+    ) as mock_openrouter:
+        with pytest.raises(HTTPException) as exc_info:
+            _verify_via_gemini(VALID_RESPONSE)
+
+    mock_openrouter.assert_called_once()
+    assert exc_info.value.status_code == 422
+    assert "wrong sum" in exc_info.value.detail
+
+
+def test_validate_falls_back_to_openrouter():
+    mock_db = _mock_db_for_validate(
+        adv_question_result=_mock_adv_question_full(),
+        question_result=_mock_source_question(
+            QuestionType.MULTIPLE_CHOICE
+        ),
+    )
+
+    with _gemini_down(), patch(
+        "app.core.gemini.call_openrouter",
+        return_value=(
+            json.dumps({"final_answer": "13", "reasoning": "r"}),
+            _FALLBACK_MODEL,
+        ),
+    ) as mock_openrouter:
+        result = validate_adversarial_question(mock_db, 5)
+
+    mock_openrouter.assert_called_once()
+    assert result.gemini_response == "13"
+    assert result.gemini_took_bait is True
+
+
+def test_generate_503_when_both_providers_fail():
+    mock_db = _mock_db(
+        question_result=_mock_question(),
+        strategy_result=_mock_strategy(),
+    )
+
+    with _gemini_down(), patch(
+        "app.core.gemini.call_openrouter",
+        side_effect=OpenRouterError("openrouter down"),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            generate_adversarial_question(
+                mock_db, source_question_id=1, strategy_id=2
+            )
+
+    assert exc_info.value.status_code == 503
+    assert "temporarily unavailable" in exc_info.value.detail
+    mock_db.add.assert_not_called()
 
 
 def test_llm_call_releases_db_connection_first():

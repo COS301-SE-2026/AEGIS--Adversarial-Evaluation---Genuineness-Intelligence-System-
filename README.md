@@ -20,11 +20,19 @@
 
 ---
 
-## Project Aim
+# Project Aim
 
-AEGIS is a recruitment technical assessment integrity platform designed to help recruiters evaluate whether assessment performance genuinely represents a candidate's own skills. We combine adversarial question generation with behavioural telemetry, analytics, and reporting to identify patterns that may require further human review. Our system doesn't automatically accuse candidates of misconduct; instead, it provides recruiters with explainable review-priority signals and evidence that they can investigate.
+AEGIS is a recruitment technical assessment integrity platform designed to help recruiters evaluate whether assessment performance genuinely represents a candidate's own skills. We combine adversarial question generation with behavioural telemetry, analytics, and reporting to identify patterns that may require further human review. Our system doesn't automatically accuse candidates of misconduct, instead it provides recruiters with explainable review-priority signals and evidence that they can investigate.
+
 ---
 
+# Demo Video
+
+Watch the AEGIS demonstration video to see the system's key features and capabilities.
+
+[▶ Watch the AEGIS Demo Video](https://youtu.be/7QXNJ04_10w)
+
+---
 # Documentation
 
 ## Requirements Specifications

@@ -5,7 +5,11 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.security import create_access_token
+from app.core.security import (
+    create_access_token,
+    get_logout_user,
+    oauth2_scheme,
+)
 from app.database.database import get_db
 from app.services.auth import (
     exchange_code_for_user_info,
@@ -13,7 +17,9 @@ from app.services.auth import (
     get_or_create_user,
     register_user,
     login_user,
+    logout_user,
 )
+from app.schema.logout import LogoutResponse
 
 from app.schema.auth import (RegisterRequest,
                              RegisterResponse,
@@ -101,3 +107,13 @@ def login(
         access_token=access_token,
         role=user.role.role_name,
     )
+
+
+@router.post("/logout", response_model=LogoutResponse)
+def logout(
+    token: str = Depends(oauth2_scheme),
+    current_user: dict = Depends(get_logout_user),
+    db: Session = Depends(get_db),
+) -> LogoutResponse:
+    logout_user(db, token, current_user)
+    return LogoutResponse(message="Logged out successfully")

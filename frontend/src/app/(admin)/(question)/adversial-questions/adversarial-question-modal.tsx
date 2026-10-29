@@ -120,7 +120,7 @@ const EVIDENCE_STYLE: Record<EvidenceStatus, string> = {
 };
 
 const TRAP_GRID =
-  "grid grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_minmax(130px,1.3fr)_auto] gap-3 items-center";
+  "grid grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))_minmax(0,1.4fr)_minmax(130px,1.3fr)_88px] gap-3 items-center";
 
 export default function AdversarialQuestionModal({
   isOpen,
@@ -522,7 +522,7 @@ const availableRecs = trapRecs.filter(
           <div className="overflow-x-auto">
             <div className="min-w-200">
               <div
-                className={`${TRAP_GRID} px-3 pb-2 font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/40`}
+                className={`${TRAP_GRID} border border-transparent px-3 pb-2 font-jetbrains text-[9px] tracking-[0.06em] uppercase text-white-smoke/40`}
               >
                 <div>Trap</div>
                 <div>Questions</div>

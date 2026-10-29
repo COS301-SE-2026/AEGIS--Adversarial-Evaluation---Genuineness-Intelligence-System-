@@ -48,7 +48,7 @@ export function Pagination({
 
         {Array.from({ length: Math.min(3, totalPages) }, (_, i) => {
           const pageNumber = currentPage < 2 || currentPage === 2 ? i + 1 : currentPage + i - 1;
-          return pageNumber < totalPages ? pageNumber: null;
+          return pageNumber <= totalPages ? pageNumber: null;
         })
           .filter((pageNumber): pageNumber is number => pageNumber !== null)
           .map((pageNumber) => (

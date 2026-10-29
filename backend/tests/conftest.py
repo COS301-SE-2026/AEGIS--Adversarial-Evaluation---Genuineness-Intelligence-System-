@@ -21,6 +21,15 @@ with patch("boto3.client") as mock_boto:
 import pytest
 from fastapi.testclient import TestClient
 
+from app.core.gemini import reset_gemini_breaker
+
+
+@pytest.fixture(autouse=True)
+def _reset_gemini_breaker():
+    reset_gemini_breaker()
+    yield
+    reset_gemini_breaker()
+
 
 @pytest.fixture
 def mock_db():
