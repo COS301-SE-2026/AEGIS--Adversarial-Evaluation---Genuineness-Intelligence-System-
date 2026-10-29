@@ -3,6 +3,7 @@ import { NAV_ITEMS } from "../../../app/(admin)/types/mock-data";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { logout } from "@/lib/auth";
+import { useState } from "react";
 
 interface AdminTopbarProps {
   onOpenSideBar?: () => void;
@@ -10,11 +11,14 @@ interface AdminTopbarProps {
 
 export default function AdminTopbar({onOpenSideBar}: Readonly<AdminTopbarProps>) {
   const pathname = usePathname();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   function isActivePage(item: (typeof NAV_ITEMS)[number]) {
     return pathname === item.href || pathname.startsWith(`${item.href}`);
   }
 
   function handleLogout(): void {
+    setIsLoggingOut(true);
     void logout();
   }
 
@@ -41,9 +45,11 @@ export default function AdminTopbar({onOpenSideBar}: Readonly<AdminTopbarProps>)
         <button
           type="button"
           onClick={handleLogout}
-          className="rounded border border-default-border/45 px-4 py-2 font-staatliches text-sm tracking-wider text-default-border transition-all duration-150 hover:border-system-red hover:text-system-red"
+          disabled={isLoggingOut}
+          aria-busy={isLoggingOut}
+          className="rounded border border-default-border/45 px-4 py-2 font-staatliches text-sm tracking-wider text-default-border transition-all duration-150 hover:border-system-red hover:text-system-red disabled:cursor-not-allowed disabled:border-tertiary-surface disabled:bg-tertiary-surface disabled:text-default-border disabled:opacity-50"
         >
-          Log out
+          {isLoggingOut ? "Logging out..." : "Log out"}
         </button>
         {/* Bell icon
         <button

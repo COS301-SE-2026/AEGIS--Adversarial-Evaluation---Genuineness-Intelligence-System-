@@ -18,6 +18,7 @@ export function Navbar() {
     const {endTime} = useAssessmentTimer();
     const [timer, setTimer] = useState(0);
     const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     useEffect(function updateAssessmentTimer() {
         if (!endTime) return;
@@ -44,6 +45,7 @@ export function Navbar() {
             setLogoutConfirmationOpen(true);
             return;
         }
+        setIsLoggingOut(true);
         void logout();
     }
 
@@ -52,6 +54,7 @@ export function Navbar() {
     }
 
     function handleConfirmLogout(): void {
+        setIsLoggingOut(true);
         setLogoutConfirmationOpen(false);
         void logout();
     }
@@ -94,9 +97,11 @@ export function Navbar() {
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="rounded border border-default-border/45 px-4 py-2 font-staatliches text-sm tracking-wider text-default-border transition-all duration-150 hover:border-system-red hover:text-system-red"
+                            disabled={isLoggingOut}
+                            aria-busy={isLoggingOut}
+                            className="rounded border border-default-border/45 px-4 py-2 font-staatliches text-sm tracking-wider text-default-border transition-all duration-150 hover:border-system-red hover:text-system-red disabled:cursor-not-allowed disabled:border-tertiary-surface disabled:bg-tertiary-surface disabled:text-default-border disabled:opacity-50"
                         >
-                            Log out
+                            {isLoggingOut ? "Logging out..." : "Log out"}
                         </button>
                     </div>
                     
@@ -131,9 +136,11 @@ export function Navbar() {
                         <button
                             type="button"
                             onClick={handleLogout}
-                            className="rounded border border-default-border/45 px-4 py-2 font-staatliches text-sm tracking-wider text-default-border transition-all duration-150 hover:border-system-red hover:text-system-red"
+                            disabled={isLoggingOut}
+                            aria-busy={isLoggingOut}
+                            className="rounded border border-default-border/45 px-4 py-2 font-staatliches text-sm tracking-wider text-default-border transition-all duration-150 hover:border-system-red hover:text-system-red disabled:cursor-not-allowed disabled:border-tertiary-surface disabled:bg-tertiary-surface disabled:text-default-border disabled:opacity-50"
                         >
-                            Log out
+                            {isLoggingOut ? "Logging out..." : "Log out"}
                         </button>
                     </div>
                 </nav>
