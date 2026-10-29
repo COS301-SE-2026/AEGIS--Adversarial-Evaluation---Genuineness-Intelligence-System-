@@ -12,6 +12,7 @@ export type ApiRequestOptions<TBody = unknown> = {
   signal?: AbortSignal;
   keepalive?: boolean;
   authToken?: string;
+  suppressUnauthorizedHandling?: boolean;
 };
 
 export class ApiError extends Error {
@@ -106,17 +107,28 @@ async function parseResponseData(response: Response): Promise<unknown> {
   return text ? JSON.parse(text) : null;
 }
 
-function throwApiError(response: Response, data: unknown, wasAuthenticated: boolean): never {
+function throwApiError(
+  response: Response,
+  data: unknown,
+  wasAuthenticated: boolean,
+  suppressUnauthorizedHandling: boolean
+): never {
   const detail = (data as { detail?: unknown } | null)?.detail;
 
-  if (response.status === 401 && wasAuthenticated) {
+  if (
+    response.status === 401 &&
+    wasAuthenticated &&
+    !suppressUnauthorizedHandling
+  ) {
     const message = "Your session has expired due to inactivity. Redirecting to login...";
     window.dispatchEvent(new CustomEvent("session-expired", { detail: { message } }));
-    setTimeout(() => {
+    function clearExpiredSession(): void {
       localStorage.removeItem("aegis_token");
       localStorage.removeItem("aegis_role");
       window.location.href = "/auth?mode=login";
-    }, 1200);
+    }
+
+    setTimeout(clearExpiredSession, 1200);
   }
 
   const message =
@@ -142,6 +154,7 @@ export async function apiFetch<TResponse>(
     signal,
     keepalive,
     authToken,
+    suppressUnauthorizedHandling,
   } = options;
  
   const requestHeaders = buildRequestHeaders(headers, authToken, body);
@@ -163,7 +176,12 @@ export async function apiFetch<TResponse>(
   const data = await parseResponseData(response);
  
   if (!response.ok) {
-    throwApiError(response, data, Boolean(authToken));
+    throwApiError(
+      response,
+      data,
+      Boolean(authToken),
+      Boolean(suppressUnauthorizedHandling)
+    );
   }
  
   return data as TResponse;

@@ -1,3 +1,11 @@
+import { apiPost } from "@/lib/apiClient";
+
+type LogoutRedirect = (destination: string) => void;
+
+function redirectToLocation(destination: string): void {
+  window.location.href = destination;
+}
+
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("aegis_token");
@@ -33,11 +41,27 @@ export function isAuthenticated(): boolean {
   return getToken() !== null && !isTokenExpired();
 }
 
-export function logout(): void {
+export async function logout(
+  redirectTo = "/auth?mode=login",
+  redirect: LogoutRedirect = redirectToLocation
+): Promise<void> {
   if (typeof window === "undefined") return;
-  localStorage.removeItem("aegis_token");
-  localStorage.removeItem("aegis_role");
-  window.location.href = "/auth?mode=login";
+
+  const token = getToken();
+  try {
+    if (token) {
+      await apiPost<void>("/api/v1/auth/logout", undefined, {
+        authToken: token,
+        suppressUnauthorizedHandling: true,
+      });
+    }
+  } catch (error) {
+    console.error("Backend logout failed; clearing the local session.", error);
+  } finally {
+    localStorage.removeItem("aegis_token");
+    localStorage.removeItem("aegis_role");
+    redirect(redirectTo);
+  }
 }
 
 export function getAuthHeaders(): Record<string, string> {
@@ -65,4 +89,3 @@ export function getUserId(): number | null {
     return null;
   }
 }
-

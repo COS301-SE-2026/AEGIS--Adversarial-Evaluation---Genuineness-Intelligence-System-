@@ -1,14 +1,19 @@
 from urllib.parse import urlencode
+from datetime import datetime, timezone
 
 import httpx
-from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.security import (hash_password,
                                create_access_token,
-                               verify_password)
+                               verify_password,
+                               hash_token,
+                               is_token_revoked)
 from app.models.oauth import OAuth
+from app.models.revoked_token import RevokedToken
 from app.models.role import Role
 from app.models.user import User
 from app.schema.auth import RegisterRequest, LoginRequest
@@ -179,3 +184,30 @@ def login_user(db: Session, payload: LoginRequest) -> tuple[User, str]:
     )
 
     return user, access_token
+
+
+def logout_user(db: Session, token: str, payload: dict) -> None:
+    token_hash = hash_token(token)
+    if is_token_revoked(db, token):
+        return
+
+    expiry = payload.get("exp")
+    if not isinstance(expiry, (int, float)) or isinstance(expiry, bool):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token is missing a valid expiration claim",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    db.add(
+        RevokedToken(
+            token_hash=token_hash,
+            expires_at=datetime.fromtimestamp(expiry, tz=timezone.utc),
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        if not is_token_revoked(db, token):
+            raise

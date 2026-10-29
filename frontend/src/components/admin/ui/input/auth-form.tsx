@@ -274,7 +274,7 @@ export default function AuthForm({startMode = "login"}: AuthFormProps) {
         </Button>
  
         <p className="text-center font-ibm-plex text-sm text-default-text mt-4">
-          {mode === "login" ? "Don'y have an account? " : "Already have and account? "}
+          {mode === "login" ? "Don't have an account? " : "Already have and account? "}
           <button
               type="button"
               onClick={() => {
