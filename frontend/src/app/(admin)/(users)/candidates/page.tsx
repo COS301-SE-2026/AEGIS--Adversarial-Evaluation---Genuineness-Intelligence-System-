@@ -12,7 +12,7 @@ import { ApiUser, AdminUser, UserRole, normalizeUser } from "@/app/(admin)/types
 
 export default function CandidatesPage() {
   const router = useRouter();
-  const [authChecked, setAuthChecked] = useState(false);
+  
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
@@ -28,23 +28,45 @@ export default function CandidatesPage() {
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
+  useEffect(() => {
 
-    const loadUsers = useCallback(async () => {
-    try {
-      setLoadingData(true);
-      setDataError(null);
-      const data = await apiGet<ApiUser[]>("/api/v1/users", {
-        headers: getAuthHeaders(),
-      });
-      setUsers(data.map(normalizeUser));
-    } catch (err) {
-      setDataError(err instanceof Error ? err.message : "Failed to load users.");
-    } finally {
-      setLoadingData(false);
-    }
-  }, []);
+    let isMounted = true;
 
-    const roleOptions = useMemo(
+    const initialize = async () => {
+      if (!isAuthenticated() || getRole() !== "RECRUITER") {
+          router.replace("/auth?mode=login");
+          return;
+      }
+
+      try {
+        setLoadingData(true);
+        setDataError(null);
+        const data = await apiGet<ApiUser[]>("/api/v1/users", {
+          headers: getAuthHeaders(),
+        });
+
+        if (isMounted) {
+          setUsers(data.map(normalizeUser));
+        }
+      } catch (err) {
+        if (isMounted) {
+          setDataError(err instanceof Error ? err.message : "Failed to load users.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingData(false);
+        }
+      }
+    };
+    
+    void initialize();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
+
+  const roleOptions = useMemo(
     () => ["all", ...Array.from(new Set(users.map((u) => u.role)))],
     [users]
   );
@@ -168,24 +190,8 @@ export default function CandidatesPage() {
     }
   }
 
-  useEffect(() => {
-    if (!authChecked) return;
-    //loadUsers();
-    void Promise.resolve().then(loadUsers);
-  }, [authChecked, loadUsers]);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!isAuthenticated() || getRole() !== "RECRUITER") {
-        router.replace("/auth?mode=login");
-        return;
-      }
-      setAuthChecked(true);
-    };
-    checkAuth();
-  }, [router]);
-
-  if (!authChecked) {
+  if (loadingData && users.length === 0) {
     return (
       <div className="flex min-h-screen bg-background text-white-smoke items-center justify-center">
         <div className="font-jetbrains text-[12px] text-white-smoke/40">

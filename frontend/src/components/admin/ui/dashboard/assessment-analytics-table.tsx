@@ -1,6 +1,6 @@
 "use client"
 
-import type { AnalyticsTableProps } from "@/types/dashboard-types";
+import type { AnalyticsTableColumn, AnalyticsTableProps } from "@/types/dashboard-types";
 
 //extend the table props to accomodate sorting without breaking base type
 type SortableTableProps<T> = AnalyticsTableProps<T> & {
@@ -16,7 +16,7 @@ export function AssessmentAnalyticsTable<T>({ items, columns, emptyMessage = "No
             
             <thead className="text-medium bg-secondary-surface tracking-wide">
                 <tr>
-                    {columns.map((column: any) => (
+                    {columns.map((column: AnalyticsTableColumn<T>) => (
                         <th
                             key={column.key}
                             scope="col"

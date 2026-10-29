@@ -33,7 +33,7 @@ export function AssessmentCandidateTableContainer({ assessmentId }: Readonly<Ass
     const sortingAndPaginatedItems = useMemo(() => {
         if (!data) return [];
 
-        let sortedItems = [...data.items];
+        const sortedItems = [...data.items];
 
         if (sortColumn) {
             sortedItems.sort((a, b) => {
