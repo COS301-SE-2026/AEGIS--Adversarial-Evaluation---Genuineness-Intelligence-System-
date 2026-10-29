@@ -10,6 +10,12 @@ class QuestionAnalyticsMetrics(BaseModel):
     backspace_count: int = Field(
         ..., description="Backspace presses recorded",
     )
+    chars_alnum: int = Field(
+        ..., description="Alphanumeric characters typed",
+    )
+    chars_special: int = Field(
+        ..., description="Special characters typed",
+    )
     copy_event_count: int = Field(
         ..., description="Copy events recorded",
     )

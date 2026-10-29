@@ -63,6 +63,8 @@ def _build_analytics_metrics(
     return QuestionAnalyticsMetrics(
         active_time_ms=metrics.active_time_ms,
         backspace_count=metrics.backspace_count,
+        chars_alnum=metrics.chars_alnum,
+        chars_special=metrics.chars_special,
         copy_event_count=metrics.copy_event_count,
         copy_char_count=metrics.copy_char_count,
         paste_event_count=metrics.paste_event_count,

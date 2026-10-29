@@ -101,9 +101,13 @@ export function formatMs(ms: number): string {
   return `${minute}m ${second}s`;
 }
 
+export function getTypedCharCount(metrics: CandidateMetrics): number {
+  return (metrics.chars_alnum ?? 0) + (metrics.chars_special ?? 0);
+}
+
 export function calculatePastePercentage(metrics: CandidateMetrics | null):  number {
   if (!metrics) return 0;
-  const totalChars = metrics.paste_char_count + metrics.copy_char_count;
+  const totalChars = metrics.paste_char_count + getTypedCharCount(metrics);
   if (totalChars === 0 || totalChars === null) return 0;
   return Math.round((metrics.paste_char_count / totalChars) * 100);
 }
