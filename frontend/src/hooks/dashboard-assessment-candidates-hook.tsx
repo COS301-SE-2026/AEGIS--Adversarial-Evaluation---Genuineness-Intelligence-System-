@@ -19,7 +19,7 @@ export function useAssessmentCandidate(assessmentId: number) {
           signal,
           query: {
             page: 1,
-            page_size: 8,
+            page_size: 1000,
           },
         }
       ),
