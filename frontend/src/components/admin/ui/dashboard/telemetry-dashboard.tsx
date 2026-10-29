@@ -1,6 +1,6 @@
 "use client"
 
-import { CandidateMetrics, formatMs, calculatePastePercentage } from "@/app/(admin)/types/metrics";
+import { CandidateMetrics, formatMs, calculatePastePercentage, getTypedCharCount } from "@/app/(admin)/types/metrics";
 
 interface TelemetryDashboardProps {
     metrics: CandidateMetrics | null;
@@ -49,7 +49,7 @@ export function TelemetryDashboard({metrics}: Readonly<TelemetryDashboardProps>)
                     </div>
                     <div className="bg-background rounded p-2">
                         <p className="text-xs text-default-border">Typed</p>
-                        <p className="text-sm font-bold font-jetbrains-mono text-status-info">{metrics.copy_char_count}</p>
+                        <p className="text-sm font-bold font-jetbrains-mono text-status-info">{getTypedCharCount(metrics)}</p>
                     </div>
                 </div>
             </div>

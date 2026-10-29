@@ -281,7 +281,9 @@ def test_get_question_analytics_populates_answer_and_telemetry():
         candidate_answer="submitted answer",
         is_correct=CorrectnessStatus.PARTIAL,
     )
-    metrics = make_metrics(candidate_response_id=101)
+    metrics = make_metrics(
+        candidate_response_id=101, chars_alnum=80, chars_special=7,
+    )
 
     rows = [
         make_row(
@@ -307,6 +309,8 @@ def test_get_question_analytics_populates_answer_and_telemetry():
     assert item.metrics is not None
     assert item.metrics.active_time_ms == metrics.active_time_ms
     assert item.metrics.backspace_count == metrics.backspace_count
+    assert item.metrics.chars_alnum == 80
+    assert item.metrics.chars_special == 7
     assert item.metrics.copy_event_count == metrics.copy_event_count
     assert item.metrics.copy_char_count == metrics.copy_char_count
     assert item.metrics.paste_event_count == metrics.paste_event_count

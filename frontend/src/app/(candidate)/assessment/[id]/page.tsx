@@ -160,6 +160,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
 
    const {
       flushTelemetry,
+      flushTelemetryAndRestartTimer,
       flushTelemetryKeepAlive,
       recordPasteEvent,
       recordDeleteEvent,
@@ -355,7 +356,7 @@ export default function AssessmentCompletionPage({ params }: { params: Promise<{
       try {
          setIsSaving(true);
          await saveCurrentAnswer();
-         await flushTelemetry();
+         await flushTelemetryAndRestartTimer();
          setCurrentQuestionIndex(currentQuestionIndex + 1);
       } finally {
          setIsSaving(false);
