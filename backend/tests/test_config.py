@@ -106,6 +106,30 @@ def test_settings_env_var_overrides_env_file_value(tmp_path, monkeypatch):
     assert result.piston_enabled is False
 
 
+def test_settings_openrouter_model_defaults_when_env_var_unset(
+    tmp_path, monkeypatch,
+):
+    env_file = tmp_path / ".env"
+    env_file.write_text("")
+    monkeypatch.delenv("OPENROUTER_MODEL", raising=False)
+
+    result = config_module.Settings(_env_file=str(env_file))
+
+    assert result.openrouter_model == "google/gemini-2.5-flash-lite"
+
+
+def test_settings_openrouter_model_env_var_overrides_default(
+    tmp_path, monkeypatch,
+):
+    env_file = tmp_path / ".env"
+    env_file.write_text("")
+    monkeypatch.setenv("OPENROUTER_MODEL", "vendor/custom-model")
+
+    result = config_module.Settings(_env_file=str(env_file))
+
+    assert result.openrouter_model == "vendor/custom-model"
+
+
 def test_load_aws_secrets_not_called_when_environment_not_production():
     original = os.environ.pop("ENVIRONMENT", None)
     try:

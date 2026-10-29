@@ -90,9 +90,7 @@ def _call_llm_or_503(
 ) -> tuple[str, str]:
     _release_db_connection(db)
     try:
-        return call_llm(
-            system_instruction, contents, model, allow_fallback=False
-        )
+        return call_llm(system_instruction, contents, model)
     except LLMProviderError as exc:
         _logger.error("LLM provider failure: %s", exc)
         raise HTTPException(

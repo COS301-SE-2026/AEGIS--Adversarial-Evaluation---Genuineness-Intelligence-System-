@@ -14,26 +14,22 @@ from app.core.openrouter import (
     extract_error_message,
 )
 
-_MODELS = [
-    "qwen/qwen3.8-27b:free",
-    "nvidia/nemotron-3.5-lightning:free",
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-]
+_MODEL = "google/gemini-2.5-flash-lite"
 
 def test_call_openrouter_missing_api_key_raises_clear_error():
     with patch(
         "app.core.openrouter.settings.openrouter_api_key", None
     ), patch("app.core.openrouter.httpx.Client") as mock_client_cls:
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys", "user", _MODELS)
+            call_openrouter("sys", "user", _MODEL)
     assert "OPENROUTER_API_KEY is not configured" in str(exc_info.value)
     mock_client_cls.assert_not_called()
 
-def test_call_openrouter_sends_models_list_in_request_body():
+def test_call_openrouter_sends_single_model_in_request_body():
     response = MagicMock()
     response.raise_for_status.return_value = None
     response.json.return_value = {
-        "model": _MODELS[1],
+        "model": _MODEL,
         "choices": [{"message": {"content": '{"ok": true}'}}],
     }
     with patch(
@@ -42,10 +38,10 @@ def test_call_openrouter_sends_models_list_in_request_body():
         mock_client = MagicMock()
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
-        call_openrouter("sys prompt", "user content", _MODELS)
+        call_openrouter("sys prompt", "user content", _MODEL)
     call_kwargs = mock_client.post.call_args.kwargs
-    assert call_kwargs["json"]["models"] == _MODELS
-    assert "model" not in call_kwargs["json"]
+    assert call_kwargs["json"]["model"] == _MODEL
+    assert "models" not in call_kwargs["json"]
     assert call_kwargs["json"]["messages"][1] == {
         "role": "user",
         "content": "user content",
@@ -57,7 +53,7 @@ def test_call_openrouter_json_only_instruction_forbids_reasoning_text():
     response = MagicMock()
     response.raise_for_status.return_value = None
     response.json.return_value = {
-        "model": _MODELS[1],
+        "model": _MODEL,
         "choices": [{"message": {"content": '{"ok": true}'}}],
     }
     with patch(
@@ -66,7 +62,7 @@ def test_call_openrouter_json_only_instruction_forbids_reasoning_text():
         mock_client = MagicMock()
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
-        call_openrouter("sys prompt", "user content", _MODELS)
+        call_openrouter("sys prompt", "user content", _MODEL)
     system_message = mock_client.post.call_args.kwargs["json"]["messages"][0][
         "content"
     ]
@@ -76,11 +72,35 @@ def test_call_openrouter_json_only_instruction_forbids_reasoning_text():
     assert "first character of your response must be `{`" in system_message
     assert "last character must be `}`" in system_message
 
-def test_call_openrouter_sets_max_tokens_in_request_body():
+def test_call_openrouter_text_mode_omits_json_only_instruction():
     response = MagicMock()
     response.raise_for_status.return_value = None
     response.json.return_value = {
-        "model": _MODELS[0],
+        "model": _MODEL,
+        "choices": [{"message": {"content": "plain text"}}],
+    }
+    with patch(
+        "app.core.openrouter.settings.openrouter_api_key", "test-key"
+    ), patch("app.core.openrouter.httpx.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.post.return_value = response
+        mock_client_cls.return_value.__enter__.return_value = mock_client
+        text, _ = call_openrouter(
+            "sys prompt", "user content", _MODEL, json_mode=False
+        )
+    system_message = mock_client.post.call_args.kwargs["json"]["messages"][0][
+        "content"
+    ]
+    assert text == "plain text"
+    assert system_message == "sys prompt"
+    assert "JSON only" not in system_message
+
+
+def test_call_openrouter_sends_temperature_zero_and_no_max_tokens():
+    response = MagicMock()
+    response.raise_for_status.return_value = None
+    response.json.return_value = {
+        "model": _MODEL,
         "choices": [{"message": {"content": '{"ok": true}'}}],
     }
     with patch(
@@ -89,16 +109,16 @@ def test_call_openrouter_sets_max_tokens_in_request_body():
         mock_client = MagicMock()
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
-        call_openrouter("sys prompt", "user content", _MODELS)
-    call_kwargs = mock_client.post.call_args.kwargs
-    assert call_kwargs["json"]["max_tokens"] == 1024
-    assert isinstance(call_kwargs["json"]["max_tokens"], int)
+        call_openrouter("sys prompt", "user content", _MODEL)
+    payload = mock_client.post.call_args.kwargs["json"]
+    assert payload["temperature"] == 0
+    assert "max_tokens" not in payload
 
 def test_call_openrouter_raises_clear_timeout_error_on_hanging_request():
     def _hang(payload, headers):
         time.sleep(5)
         return {
-            "model": _MODELS[0],
+            "model": _MODEL,
             "choices": [{"message": {"content": '{"ok": true}'}}],
         }
 
@@ -111,7 +131,7 @@ def test_call_openrouter_raises_clear_timeout_error_on_hanging_request():
     ):
         start = time.monotonic()
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys prompt", "user content", _MODELS)
+            call_openrouter("sys prompt", "user content", _MODEL)
         elapsed = time.monotonic() - start
     assert "timed out" in str(exc_info.value)
     assert elapsed < 2
@@ -120,7 +140,7 @@ def test_call_openrouter_returns_content_and_served_by_from_response():
     response = MagicMock()
     response.raise_for_status.return_value = None
     response.json.return_value = {
-        "model": _MODELS[2],
+        "model": _MODEL,
         "choices": [{"message": {"content": '{"ok": true}'}}],
     }
     with patch(
@@ -130,11 +150,10 @@ def test_call_openrouter_returns_content_and_served_by_from_response():
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
         text, served_by = call_openrouter(
-            "sys prompt", "user content", _MODELS
+            "sys prompt", "user content", _MODEL
         )
     assert text == '{"ok": true}'
-    assert served_by == _MODELS[2]
-    assert served_by != _MODELS[0]
+    assert served_by == _MODEL
 
 def test_call_openrouter_raises_when_model_field_missing():
     response = MagicMock()
@@ -149,7 +168,7 @@ def test_call_openrouter_raises_when_model_field_missing():
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys prompt", "user content", _MODELS)
+            call_openrouter("sys prompt", "user content", _MODEL)
     assert "missing 'model' field" in str(exc_info.value)
 
 def test_call_openrouter_http_status_error_raises_openrouter_error():
@@ -168,7 +187,7 @@ def test_call_openrouter_http_status_error_raises_openrouter_error():
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys", "user", _MODELS)
+            call_openrouter("sys", "user", _MODEL)
     assert str(exc_info.value) == "rate limited"
 
 def test_call_openrouter_request_error_raises_openrouter_error():
@@ -179,7 +198,7 @@ def test_call_openrouter_request_error_raises_openrouter_error():
         mock_client.post.side_effect = httpx.ConnectError("boom")
         mock_client_cls.return_value.__enter__.return_value = mock_client
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys", "user", _MODELS)
+            call_openrouter("sys", "user", _MODEL)
     assert "Unable to reach OpenRouter" in str(exc_info.value)
 
 def test_call_openrouter_missing_choices_raises_openrouter_error():
@@ -193,7 +212,7 @@ def test_call_openrouter_missing_choices_raises_openrouter_error():
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys", "user", _MODELS)
+            call_openrouter("sys", "user", _MODEL)
     assert "missing expected content" in str(exc_info.value)
 
 def test_call_openrouter_raises_on_200_response_with_error_body():
@@ -214,7 +233,7 @@ def test_call_openrouter_raises_on_200_response_with_error_body():
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys", "user", _MODELS)
+            call_openrouter("sys", "user", _MODEL)
     assert "Upstream error from Nvidia" in str(exc_info.value)
     assert "503" in str(exc_info.value)
     assert "missing expected content" not in str(exc_info.value)
@@ -233,7 +252,7 @@ def test_call_openrouter_raises_on_200_response_with_non_dict_error_body():
         mock_client.post.return_value = response
         mock_client_cls.return_value.__enter__.return_value = mock_client
         with pytest.raises(OpenRouterError) as exc_info:
-            call_openrouter("sys", "user", _MODELS)
+            call_openrouter("sys", "user", _MODEL)
     assert str(exc_info.value) == "rate limited"
 
 def test_extract_error_message_uses_json_message():

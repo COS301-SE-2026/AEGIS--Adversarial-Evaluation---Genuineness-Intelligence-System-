@@ -9,8 +9,6 @@ from app.core.config import settings
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 _REQUEST_TIMEOUT_SECONDS = 30
 
-_MAX_TOKENS = 1024
-
 _JSON_ONLY_INSTRUCTION = (
     "\n\nRespond with JSON only, matching the exact schema requested "
     "above. Output ONLY the raw JSON object: no reasoning, no "
@@ -35,7 +33,10 @@ def _post_to_openrouter(payload: dict, headers: dict) -> dict:
 
 
 def call_openrouter(
-    system_instruction: str, contents: str, models: list[str]
+    system_instruction: str,
+    contents: str,
+    model: str,
+    json_mode: bool = True,
 ) -> tuple[str, str]:
     if not settings.openrouter_api_key:
         raise OpenRouterError(
@@ -43,13 +44,17 @@ def call_openrouter(
             "OpenRouter fallback."
         )
 
+    system_content = system_instruction
+    if json_mode:
+        system_content += _JSON_ONLY_INSTRUCTION
+
     payload = {
-        "models": models,
-        "max_tokens": _MAX_TOKENS,
+        "model": model,
+        "temperature": 0,
         "messages": [
             {
                 "role": "system",
-                "content": system_instruction + _JSON_ONLY_INSTRUCTION,
+                "content": system_content,
             },
             {"role": "user", "content": contents},
         ],

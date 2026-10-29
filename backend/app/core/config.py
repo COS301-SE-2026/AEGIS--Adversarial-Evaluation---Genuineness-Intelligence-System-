@@ -104,14 +104,13 @@ class Settings(BaseSettings):
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-1.5-flash"
     gemini_timeout_seconds: int = 10
+    gemini_breaker_failure_threshold: int = 3
+    gemini_breaker_cooldown_seconds: int = 60
+    force_backup_ai: bool = False
 
     # OpenRouter API configuration (fallback provider for Gemini)
     openrouter_api_key: str | None = None
-    openrouter_models: list[str] = [
-        "qwen/qwen3.8-27b:free",
-        "nvidia/nemotron-3.5-lightning:free",
-        "nvidia/nemotron-3-ultra-550b-a55b:free",
-    ]
+    openrouter_model: str = "google/gemini-2.5-flash-lite"
 
     # Piston sandbox configuration
     piston_base_url: str = "http://localhost:2000"
