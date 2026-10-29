@@ -30,7 +30,7 @@ AEGIS is a recruitment technical assessment integrity platform designed to help 
 
 Watch the AEGIS demonstration video to see the system's key features and capabilities.
 
-[▶ Watch the AEGIS Demo Video](docs/Video/ProjectDemo.mp4)
+[▶ Watch the AEGIS Demo Video](https://youtu.be/7QXNJ04_10w)
 
 ---
 # Documentation
