@@ -7,9 +7,8 @@ import math
 import uuid
 from typing import Any, Optional
 from fastapi import HTTPException, status
-from google.genai import types
 from sqlalchemy.orm import Session, selectinload
-from app.core.gemini import call_llm, get_gemini_client
+from app.core.gemini import call_llm
 from app.core.piston import PistonClient, PistonError
 from app.models.assessment import Assessment
 from app.models.assessment_question import AssessmentQuestion
@@ -974,16 +973,13 @@ def _build_behavioral_summary_user_message(
 def _generate_behavioral_summary(
     question_behaviors: list[QuestionBehavior],
 ) -> str:
-    client = get_gemini_client()
-    response = client.models.generate_content(
-        model=_BEHAVIORAL_SUMMARY_MODEL,
-        contents=_build_behavioral_summary_user_message(question_behaviors),
-        config=types.GenerateContentConfig(
-            system_instruction=_BEHAVIORAL_SUMMARY_SYSTEM_PROMPT,
-            temperature=0.0,
-        ),
+    text, _served_by = call_llm(
+        _BEHAVIORAL_SUMMARY_SYSTEM_PROMPT,
+        _build_behavioral_summary_user_message(question_behaviors),
+        _BEHAVIORAL_SUMMARY_MODEL,
+        json_mode=False,
     )
-    return (response.text or "").strip()
+    return (text or "").strip()
 
 
 def submit_candidate_assessment(

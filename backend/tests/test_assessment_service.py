@@ -2,9 +2,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock,patch
 import json
+import httpx
 import pytest
 from fastapi import HTTPException
 
+from app.core.openrouter import OpenRouterError
 from app.core.piston import PistonError
 from app.models.adversarial_question import AdversarialQuestion
 from app.models.assessment import Assessment
@@ -1362,7 +1364,7 @@ def test_submit_candidate_assessment_forwards_gathered_behavior_to_summary():
     behaviors = [_make_question_behavior()]
 
     with patch(
-        "app.services.assessment.get_gemini_client",
+        "app.services.assessment.call_llm",
         return_value=MagicMock(),
     ), patch(
         "app.services.assessment._gather_behavioral_summary_data",
@@ -1398,7 +1400,7 @@ def test_submit_candidate_assessment_skips_metrics_query_when_no_responses():
     mock_db.query.side_effect = [session_query]
 
     with patch(
-        "app.services.assessment.get_gemini_client"
+        "app.services.assessment.call_llm"
     ) as mock_get_client:
         result = submit_candidate_assessment(mock_db, 9)
 
@@ -1476,15 +1478,13 @@ def test_submit_candidate_assessment_generates_and_stores_behavioral_summary():
         ),
     ]
 
-    mock_client = MagicMock()
-    mock_client.models.generate_content.return_value = MagicMock(
-        text="  Question 1 showed heavy pasting.  ",
-    )
-
     with patch(
-        "app.services.assessment.get_gemini_client",
-        return_value=mock_client,
-    ), patch(
+        "app.services.assessment.call_llm",
+        return_value=(
+            "  Question 1 showed heavy pasting.  ",
+            "gemini-3.1-flash-lite",
+        ),
+    ) as mock_call_llm, patch(
         "app.services.assessment._gather_behavioral_summary_data",
         return_value=behaviors,
     ), patch(
@@ -1495,10 +1495,10 @@ def test_submit_candidate_assessment_generates_and_stores_behavioral_summary():
 
     assert result.behavioral_summary == "Question 1 showed heavy pasting."
 
-    call_kwargs = mock_client.models.generate_content.call_args.kwargs
-    assert call_kwargs["model"] == "gemini-3.1-flash-lite"
-    assert call_kwargs["config"].temperature == 0.0
-    contents = call_kwargs["contents"]
+    system_instruction, contents, model = mock_call_llm.call_args.args
+    assert system_instruction.startswith("You are summarising")
+    assert model == "gemini-3.1-flash-lite"
+    assert mock_call_llm.call_args.kwargs == {"json_mode": False}
     assert "Question 1 (CODING)" in contents
     assert "3 paste event(s) totalling 450 pasted character(s)" in contents
     assert "2 copy event(s) totalling 75 copied character(s)" in contents
@@ -1520,7 +1520,7 @@ def test_submit_candidate_assessment_skips_gemini_when_no_behavior_gathered():
         "app.services.assessment._gather_behavioral_summary_data",
         return_value=[],
     ) as mock_gather, patch(
-        "app.services.assessment.get_gemini_client"
+        "app.services.assessment.call_llm"
     ) as mock_get_client, patch(
         "app.services.assessment.get_review_priority",
         return_value=MagicMock(score=12, band="low"),
@@ -1530,6 +1530,63 @@ def test_submit_candidate_assessment_skips_gemini_when_no_behavior_gathered():
     mock_gather.assert_called_once()
     mock_get_client.assert_not_called()
     assert result.behavioral_summary is None
+    mock_db.commit.assert_called_once()
+
+
+def test_submit_candidate_assessment_summary_null_when_both_providers_fail():
+    mock_db = MagicMock()
+    mock_session = _make_submit_ready_session(response_id=302)
+
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
+
+    with patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=[_make_question_behavior()],
+    ), patch(
+        "app.core.gemini._call_gemini",
+        side_effect=httpx.ReadTimeout("gemini hung"),
+    ), patch(
+        "app.core.gemini.call_openrouter",
+        side_effect=OpenRouterError("openrouter down"),
+    ), patch(
+        "app.services.assessment.get_review_priority",
+        return_value=MagicMock(score=40, band="medium"),
+    ):
+        result = submit_candidate_assessment(mock_db, 9)
+
+    assert result is mock_session
+    assert mock_session.status == SessionStatus.COMPLETED
+    assert result.behavioral_summary is None
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once_with(mock_session)
+
+
+def test_submit_candidate_assessment_summary_falls_back_to_openrouter():
+    mock_db = MagicMock()
+    mock_session = _make_submit_ready_session(response_id=303)
+
+    mock_db.query.side_effect = [_mock_query_result(mock_session)]
+
+    with patch(
+        "app.services.assessment._gather_behavioral_summary_data",
+        return_value=[_make_question_behavior()],
+    ), patch(
+        "app.core.gemini._call_gemini",
+        side_effect=httpx.ReadTimeout("gemini hung"),
+    ), patch(
+        "app.core.gemini.call_openrouter",
+        return_value=(
+            "  Fallback summary.  ",
+            "google/gemini-2.5-flash-lite",
+        ),
+    ) as mock_openrouter, patch(
+        "app.services.assessment.get_review_priority",
+        return_value=MagicMock(score=40, band="medium"),
+    ):
+        result = submit_candidate_assessment(mock_db, 9)
+
+    assert result.behavioral_summary == "Fallback summary."
+    assert mock_openrouter.call_args.args[3] is False
     mock_db.commit.assert_called_once()
 
 
@@ -1543,7 +1600,7 @@ def test_submit_candidate_assessment_summary_null_on_gemini_failure():
         "app.services.assessment._gather_behavioral_summary_data",
         return_value=[_make_question_behavior()],
     ), patch(
-        "app.services.assessment.get_gemini_client",
+        "app.services.assessment.call_llm",
         side_effect=RuntimeError("Gemini is unreachable"),
     ), patch(
         "app.services.assessment.get_review_priority",
@@ -1567,7 +1624,7 @@ def test_submit_candidate_assessment_stores_integrity_score_and_band():
         "app.services.assessment._gather_behavioral_summary_data",
         return_value=[],
     ), patch(
-        "app.services.assessment.get_gemini_client"
+        "app.services.assessment.call_llm"
     ), patch(
         "app.services.assessment.get_review_priority",
         return_value=MagicMock(score=72, band="high"),
@@ -1592,7 +1649,7 @@ def test_submit_candidate_assessment_integrity_null_on_scoring_failure():
         "app.services.assessment._gather_behavioral_summary_data",
         return_value=[],
     ), patch(
-        "app.services.assessment.get_gemini_client"
+        "app.services.assessment.call_llm"
     ), patch(
         "app.services.assessment.get_review_priority",
         side_effect=RuntimeError("scoring blew up"),
@@ -1618,7 +1675,7 @@ def test_submit_candidate_assessment_skips_integrity_when_no_responses():
     mock_db.query.side_effect = [_mock_query_result(mock_session)]
 
     with patch(
-        "app.services.assessment.get_gemini_client"
+        "app.services.assessment.call_llm"
     ), patch(
         "app.services.assessment.get_review_priority",
     ) as mock_priority:
