@@ -1,4 +1,9 @@
+from unittest.mock import MagicMock
+
+import pytest
 from fastapi.testclient import TestClient
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -8,6 +13,7 @@ from app.database.database import get_db as app_get_db
 from app.main import app
 from app.models import RevokedToken
 from app.models.assessment import Assessment
+from app.services.auth import logout_user
 
 
 def create_logout_client():
@@ -93,3 +99,70 @@ def test_logout_requires_a_token():
         assert response.status_code == 401
     finally:
         remove_logout_overrides(engine)
+
+
+def test_logout_rejects_token_without_expiration_claim(monkeypatch):
+    db = MagicMock()
+    token = create_access_token({"sub": "user-1"})
+    revoked_check = MagicMock(return_value=False)
+    monkeypatch.setattr("app.services.auth.is_token_revoked", revoked_check)
+
+    with pytest.raises(HTTPException) as error:
+        logout_user(db, token, {})
+
+    assert error.value.status_code == 401
+    db.add.assert_not_called()
+    db.commit.assert_not_called()
+
+
+def test_logout_rejects_token_with_invalid_expiration_claim(monkeypatch):
+    db = MagicMock()
+    token = create_access_token({"sub": "user-1"})
+    revoked_check = MagicMock(return_value=False)
+    monkeypatch.setattr("app.services.auth.is_token_revoked", revoked_check)
+
+    with pytest.raises(HTTPException) as error:
+        logout_user(db, token, {"exp": "not-a-timestamp"})
+
+    assert error.value.status_code == 401
+    db.add.assert_not_called()
+    db.commit.assert_not_called()
+
+
+def test_logout_handles_concurrent_duplicate_revocation(monkeypatch):
+    db = MagicMock()
+    token = create_access_token({"sub": "user-1"})
+    db.commit.side_effect = IntegrityError(
+        "commit",
+        {},
+        Exception("duplicate token hash"),
+    )
+    revoked_check = MagicMock(side_effect=[False, True])
+    monkeypatch.setattr("app.services.auth.is_token_revoked", revoked_check)
+
+    logout_user(db, token, {"exp": 2_000_000_000})
+
+    db.rollback.assert_called_once()
+    assert revoked_check.call_count == 2
+
+
+def test_logout_reraises_database_integrity_error_when_not_revoked(
+    monkeypatch,
+):
+    db = MagicMock()
+    token = create_access_token({"sub": "user-1"})
+    database_error = IntegrityError(
+        "commit",
+        {},
+        Exception("database integrity failure"),
+    )
+    db.commit.side_effect = database_error
+    revoked_check = MagicMock(return_value=False)
+    monkeypatch.setattr("app.services.auth.is_token_revoked", revoked_check)
+
+    with pytest.raises(IntegrityError) as error:
+        logout_user(db, token, {"exp": 2_000_000_000})
+
+    assert error.value is database_error
+    db.rollback.assert_called_once()
+    assert revoked_check.call_count == 2
